@@ -805,6 +805,34 @@ mlir::LogicalResult MatmulOp::verify() {
 
 
 //===----------------------------------------------------------------------===//
+ // PowOp
+ //===----------------------------------------------------------------------===//
+
+ void PowOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                   mlir::Value lhs, mlir::Value rhs) {
+   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+   state.addOperands({lhs, rhs});
+ }
+
+void PowOp::inferShapes() { getResult().setType(getLhs().getType()); }
+
+mlir::LogicalResult PowOp::verify() {
+    auto lhsType = llvm::dyn_cast<RankedTensorType>(getLhs().getType());
+    auto resultType = llvm::dyn_cast<RankedTensorType>(getType());
+
+    if(!lhsType || !resultType) return mlir::success();
+
+   // ensure result shape matches lhs shape
+   auto resultShape = resultType.getShape();
+   if(!std::equal(lhsType.getShape().begin(), lhsType.getShape().end(),
+               resultShape.rbegin())) {
+       return emitError() << "expected result shape to be the same as the lhs input operand.";
+   }
+
+    return mlir::success();
+}
+
+//===----------------------------------------------------------------------===//
 // zeroCrossCountOp
 //===----------------------------------------------------------------------===//
 

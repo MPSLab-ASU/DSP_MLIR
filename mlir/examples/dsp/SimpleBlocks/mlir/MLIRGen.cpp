@@ -218,6 +218,8 @@ private:
       return builder.create<DivOp>(location, lhs, rhs);
     case '-':
       return builder.create<SubOp>(location, lhs, rhs);
+    case '^':
+      return builder.create<PowOp>(location, lhs, rhs);
     }
 
     emitError(location, "invalid binary operator '") << binop.getOp() << "'";
@@ -379,6 +381,15 @@ private:
       }
       return builder.create<SubOp>(location, operands[0], operands[1]);
     }
+    if(callee == "pow"){
+       if(call.getArgs().size() != 2){
+         emitError(location, "MLIR codegen encountered an error: dsp.pow "
+                             "accepts only 2 arguments");
+         return nullptr;
+       }
+       return builder.create<PowOp>(location, operands[0], operands[1]);
+    }
+
 
     // Modulo Op
     if (callee == "modulo") {

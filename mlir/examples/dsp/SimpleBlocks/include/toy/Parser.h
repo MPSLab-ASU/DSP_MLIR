@@ -482,6 +482,8 @@ private:
       return 40;
     case '/':
       return 40;
+    case '^':
+      return 60;
     default:
       return -1;
     }

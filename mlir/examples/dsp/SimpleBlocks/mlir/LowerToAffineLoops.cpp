@@ -7865,6 +7865,7 @@ using MulOpLowering = BinaryOpLowering<dsp::MulOp, arith::MulFOp>;
 using DivOpLowering = BinaryOpLowering<dsp::DivOp, arith::DivFOp>;
 using SinOpLowering = UnaryOpLowering<dsp::SinOp, math::SinOp>;
 using CosOpLowering = UnaryOpLowering<dsp::CosOp, math::CosOp>;
+
 //===----------------------------------------------------------------------===//
 // ToyToAffine RewritePatterns: Constant operations
 //===----------------------------------------------------------------------===//
@@ -8864,8 +8865,57 @@ struct SpaceErrCorrectionOpLowering : public ConversionPattern {
     return mlir::success();
   }
 };
-} // namespace
+//===----------------------------------------------------------------------===//
+// ToyToAffine RewritePatterns: Power operations
+//===----------------------------------------------------------------------===//
 
+struct PowOpLowering : public ConversionPattern {
+    PowOpLowering(MLIRContext *ctx) 
+        : ConversionPattern(dsp::PowOp::getOperationName(), 1, ctx) {}
+
+    LogicalResult 
+        matchAndRewrite(Operation *op, ArrayRef<Value> operands,
+                ConversionPatternRewriter &rewriter) const final {
+           auto loc = op->getLoc();
+
+
+           dsp::PowOpAdaptor powerAdaptor(operands);
+           Value lhs = powerAdaptor.getLhs();
+           Value rhs = powerAdaptor.getRhs();
+
+           auto inputType = llvm::cast<RankedTensorType>(lhs.getType());
+           auto resultType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
+
+           // allocate space for result
+           auto memRefType = convertTensorToMemRef(resultType);
+           auto alloc = insertAllocAndDealloc(memRefType, loc, rewriter);
+
+           // affine loops for input
+           int64_t lb = 0;
+           int64_t ub = inputType.getShape()[0];
+           int64_t step = 1;
+
+           affine::AffineForOp forOp = rewriter.create<AffineForOp>(loc, lb, ub, step);
+           auto iv = forOp.getInductionVar(); 
+
+           rewriter.setInsertionPointToStart(forOp.getBody());
+
+           Value loadLHS = rewriter.create<AffineLoadOp>(loc, lhs, ValueRange{iv});
+           Value loadRHS = rewriter.create<AffineLoadOp>(loc, rhs, ValueRange{});
+
+           Value power = rewriter.create<math::PowFOp>(loc, loadLHS, loadRHS);
+
+           // store result
+           rewriter.create<AffineStoreOp>(loc, power, alloc, ValueRange{iv});
+           rewriter.setInsertionPointAfter(forOp);
+
+           // replace op
+           rewriter.replaceOp(op, alloc);
+           return success();
+  }
+};
+
+} // namespace
 //===----------------------------------------------------------------------===//
 // ToyToAffineLoweringPass
 //===----------------------------------------------------------------------===//
@@ -8923,7 +8973,7 @@ void ToyToAffineLoweringPass::runOnOperation() {
       DownSamplingOpLowering, UpSamplingOpLowering,
       LowPassFilter1stOrderOpLowering, HighPassFilterOpLowering,
       FFT1DOpLowering, IFFT1DOpLowering, HammingWindowOpLowering, DCTOpLowering,
-      filterOpLowering, DivOpLowering, BitwiseAndOpLowering,
+      filterOpLowering, DivOpLowering, BitwiseAndOpLowering, PowOpLowering,
       zeroCrossCountOpLowering, SumOpLowering, SinOpLowering, CosOpLowering,
       SquareOpLowering, FFT1DRealOpLowering, FFT1DImgOpLowering, SincOpLowering,
       GetElemAtIndxOpLowering, SetElemAtIndxOpLowering,

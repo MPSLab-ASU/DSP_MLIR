@@ -331,6 +331,33 @@ def BitwiseAndOp : Dsp_Op<"bitwiseand",
 }
 
 //===----------------------------------------------------------------------===//
+// PowerOp
+//===----------------------------------------------------------------------===//
+
+def PowOp : Dsp_Op<"pow",
+    [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]>{
+        let summary = "element-wise power operation for tensor";
+        let description = [{
+            The "pow" operation performs element-wise power for base tensor.
+                The accepted operand is restrict to a scaler constant.
+        }];
+
+        let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);
+        let results = (outs F64Tensor);
+
+        // has custom parser and printer for method
+        // FIXME: pow op should have custom assembly format
+        // let hasCustomAssemblyFormat = 1;
+
+        // Allow building a PowOp from two operands.
+        let builders = [
+            OpBuilder<(ins "Value":$lhs, "Value":$rhs)>
+        ];
+        let hasVerifier = 1;
+    }
+
+
+//===----------------------------------------------------------------------===//
 // PrintOp
 //===----------------------------------------------------------------------===//
 
@@ -487,6 +514,7 @@ def DelayOp : Dsp_Op<"delay" ,
   let hasCanonicalizer = 1;
 
   let hasVerifier = 1;
+
 }
 
 
