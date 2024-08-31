@@ -5973,6 +5973,84 @@ struct GainOpLowering: public ConversionPattern {
   }
 
 };
+
+//===----------------------------------------------------------------------===//
+// ToyToAffine RewritePatterns: BitwiseAndOp operations
+//===----------------------------------------------------------------------===//
+
+struct BitwiseAndOpLowering : public ConversionPattern {
+  BitwiseAndOpLowering(MLIRContext *ctx)
+      : ConversionPattern(dsp::BitwiseAndOp::getOperationName(), 1, ctx) {}
+
+  LogicalResult 
+    matchAndRewrite(Operation *op, ArrayRef<Value> operands,
+              ConversionPatternRewriter &rewriter) const final {
+      //dsp.bitwiseandop has 2 operands -- both of type tensor f64 , of the same size
+
+      //Get the location of BitwiseAndOp
+      auto loc = op->getLoc();
+      
+      
+      //Pseudo-code:
+          //  y[i] = bitwiseand(lhs[i], rhs[i]) for  0<=i<N
+          //  
+
+    //output for result type
+    auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));  
+
+    //allocation & deallocation for the result of this operation
+    auto memRefType = convertTensorToMemRef(tensorType);
+    auto alloc = insertAllocAndDealloc(memRefType, loc, rewriter);
+
+    //construct affine loops for the input
+    SmallVector<int64_t, 4> lowerBounds(tensorType.getRank(), /*Value*/0);
+    SmallVector<int64_t, 4> steps(tensorType.getRank(), /*Value=*/1);    
+    BitwiseAndOpAdaptor bitwiseandOpAdaptor(operands);
+    
+    DEBUG_PRINT_NO_ARGS();
+
+    //first from 0 <= i < N
+    int64_t lb = 0 ;
+    int64_t ub = tensorType.getShape()[0];   
+    int64_t step = 1;
+
+    DEBUG_PRINT_NO_ARGS();
+
+    //loop from 0 <= i < N
+    affine::AffineForOp forOpY = rewriter.create<AffineForOp>(loc, lb, ub, step);
+    auto ivY = forOpY.getInductionVar();
+    rewriter.setInsertionPointToStart(forOpY.getBody());
+
+    Value getLhs = rewriter.create<AffineLoadOp>(loc, bitwiseandOpAdaptor.getLhs() , ivY);
+    Value getRhs = rewriter.create<AffineLoadOp>(loc, bitwiseandOpAdaptor.getRhs() , ivY);
+    Value lhsInt = rewriter.create<arith::FPToSIOp>(loc, rewriter.getI64Type(), getLhs);
+    Value rhsInt = rewriter.create<arith::FPToSIOp>(loc, rewriter.getI64Type(), getRhs);
+    Value andiResult = rewriter.create<arith::AndIOp>(loc, lhsInt, rhsInt );
+    Value resultFp= rewriter.create<arith::SIToFPOp>(loc, rewriter.getF64Type(), andiResult);
+
+    rewriter.create<AffineStoreOp>(loc, resultFp, alloc, ValueRange{ivY}); 
+    rewriter.setInsertionPointAfter(forOpY);
+
+    //debug
+    // forOpY->dump();
+    // "affine.for"() <{lowerBoundMap = affine_map<() -> (0)>, operandSegmentSizes = array<i32: 0, 0, 0>, step = 1 : index, upperBoundMap = affine_map<() -> (5)>}> ({
+    // ^bb0(%arg0: index):
+    //   %26 = "affine.load"(%2, %arg0) <{map = affine_map<(d0) -> (d0)>}> : (memref<5xf64>, index) -> f64
+    //   %27 = "affine.load"(%1, %arg0) <{map = affine_map<(d0) -> (d0)>}> : (memref<5xf64>, index) -> f64
+    //   %28 = "arith.fptosi"(%26) : (f64) -> i64
+    //   %29 = "arith.fptosi"(%27) : (f64) -> i64
+    //   %30 = "arith.andi"(%28, %29) : (i64, i64) -> i64
+    //   %31 = "arith.sitofp"(%30) : (i64) -> f64
+    //   "affine.store"(%31, %0, %arg0) <{map = affine_map<(d0) -> (d0)>}> : (f64, memref<5xf64>, index) -> ()
+    //   "affine.yield"() : () -> ()
+    // }) : () -> ()
+
+    rewriter.replaceOp(op, alloc);
+      
+    return success();
+  };
+};
+
 //===----------------------------------------------------------------------===//
 // ToyToAffine RewritePatterns: Binary operations
 //===----------------------------------------------------------------------===//
@@ -6277,7 +6355,7 @@ void ToyToAffineLoweringPass::runOnOperation() {
                SlidingWindowAvgOpLowering, DownSamplingOpLowering, 
                UpSamplingOpLowering, LowPassFilter1stOrderOpLowering, 
                HighPassFilterOpLowering, FFT1DOpLowering, IFFT1DOpLowering,
-               HammingWindowOpLowering, DCTOpLowering, filterOpLowering, DivOpLowering,
+               HammingWindowOpLowering, DCTOpLowering, filterOpLowering, DivOpLowering, BitwiseAndOpLowering,
                SumOpLowering, SinOpLowering, CosOpLowering, SquareOpLowering,
                FFT1DRealOpLowering, FFT1DImgOpLowering, SincOpLowering, GetElemAtIndxOpLowering,
                SetElemAtIndxOpLowering ,LowPassFIRFilterOpLowering, HighPassFIRFilterOpLowering,
