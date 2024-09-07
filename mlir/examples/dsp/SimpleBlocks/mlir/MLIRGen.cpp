@@ -40,6 +40,7 @@
 #include <numeric>
 #include <optional>
 #include <vector>
+#include <iostream>
 
 using namespace mlir::dsp;
 using namespace dsp;
@@ -281,6 +282,11 @@ private:
                                  std::multiplies<int>()));
     collectData(lit, data);
 
+    std::cout << "\n===\nMK printing: " << std::endl;
+    for(auto v : data) {
+        std::cout << v << ",  ";
+    }
+    std::cout << "\n===\nEnd printing.\n===\n" << std::endl;
     // The type of this attribute is tensor of 64-bit floating-point with the
     // shape of the literal.
     mlir::Type elementType = builder.getF64Type();
@@ -311,8 +317,17 @@ private:
       return;
     }
 
-    assert(isa<NumberExprAST>(expr) && "expected literal or number expr");
-    data.push_back(cast<NumberExprAST>(expr).getValue());
+    //assert(isa<DoubleExprAST>(expr) && "expected literal or number expr");
+    //data.push_back(cast<DoubleExprAST>(expr).getDouble());
+
+    if(isa<DoubleExprAST>(expr)) {
+        data.push_back(cast<DoubleExprAST>(expr).getDouble());
+        return;
+    }
+    if(isa<IntExprAST>(expr)) {
+        data.push_back(cast<IntExprAST>(expr).getInt());
+        return;
+    }
   }
 
   /// Emit a call expression. It emits specific operations for the `transpose`
@@ -755,9 +770,17 @@ private:
     return mlir::success();
   }
 
+  // test for int and double
   /// Emit a constant for a single number (FIXME: semantic? broadcast?)
-  mlir::Value mlirGen(NumberExprAST &num) {
-    return builder.create<ConstantOp>(loc(num.loc()), num.getValue());
+  //mlir::Value mlirGen(NumberExprAST &num) {
+    //return builder.create<ConstantOp>(loc(num.loc()), num.getValue());
+  //}
+  mlir::Value mlirGen(IntExprAST &num) {
+      return builder.create<IntegerConstantOp>(loc(num.loc()), num.getInt());
+  }
+
+  mlir::Value mlirGen(DoubleExprAST &num) {
+      return builder.create<ConstantOp>(loc(num.loc()), num.getDouble());
   }
 
   /// Dispatch codegen for the right expression subclass using RTTI.
@@ -771,8 +794,13 @@ private:
       return mlirGen(cast<LiteralExprAST>(expr));
     case dsp::ExprAST::Expr_Call:
       return mlirGen(cast<CallExprAST>(expr));
-    case dsp::ExprAST::Expr_Num:
-      return mlirGen(cast<NumberExprAST>(expr));
+    // test for int and double
+    //case dsp::ExprAST::Expr_Num:
+      //return mlirGen(cast<NumberExprAST>(expr));
+    case dsp::ExprAST::Expr_Int:
+      return mlirGen(cast<IntExprAST>(expr));
+    case dsp::ExprAST::Expr_Double:
+      return mlirGen(cast<DoubleExprAST>(expr));
     default:
       emitError(loc(expr.loc()))
           << "MLIR codegen encountered an unhandled expr kind '"

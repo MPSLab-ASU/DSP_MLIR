@@ -46,7 +46,8 @@ enum Token : int {
 
   // primary
   tok_identifier = -5,
-  tok_number = -6,
+  tok_int = -6,
+  tok_double = -7,
 };
 
 /// The Lexer is an abstract base class providing all the facilities that the
@@ -84,9 +85,19 @@ public:
   }
 
   /// Return the current number (prereq: getCurToken() == tok_number)
-  double getValue() {
-    assert(curTok == tok_number);
-    return numVal;
+  //double getValue() {
+    //assert(curTok == tok_number);
+    //return numVal;
+  //}
+
+  int getIntValue() {
+      assert(curTok == tok_int);
+      return numInt;
+  }
+
+  double getDoubleValue() {
+      assert(curTok == tok_double);
+      return numDouble;
   }
 
   /// Return the location for the beginning of the current token.
@@ -149,15 +160,37 @@ private:
     }
 
     // Number: [0-9.]+
-    if (isdigit(lastChar) || lastChar == '.') {
-      std::string numStr;
-      do {
-        numStr += lastChar;
-        lastChar = Token(getNextChar());
-      } while (isdigit(lastChar) || lastChar == '.');
+    //if (isdigit(lastChar) || lastChar == '.') {
+      //std::string numStr;
+      //do {
+        //numStr += lastChar;
+        //lastChar = Token(getNextChar());
+      //} while (isdigit(lastChar) || lastChar == '.');
+//
+      //numVal = strtod(numStr.c_str(), nullptr);
+      //return tok_number;
+    //}
 
-      numVal = strtod(numStr.c_str(), nullptr);
-      return tok_number;
+    // add -- number
+    if(isdigit(lastChar)) {
+        std::string numStr;
+        bool isDouble = false;
+
+        do {
+            if(lastChar == '.') isDouble = true;
+
+            numStr += lastChar;
+            lastChar = Token(getNextChar());
+        } while (isdigit(lastChar) || lastChar == '.');
+
+        if(isDouble) {
+            numDouble = strtod(numStr.c_str(), nullptr);
+            return tok_double;
+        } else {
+            char ** p_end;
+            numInt = strtol(numStr.c_str(), p_end, 10);
+            return tok_int;
+        }
     }
 
     if (lastChar == '#') {
@@ -190,7 +223,9 @@ private:
   std::string identifierStr;
 
   /// If the current Token is a number, this contains the value.
-  double numVal = 0;
+  //double numVal = 0;
+  int numInt = 0;
+  double numDouble = 0;
 
   /// The last value returned by getNextChar(). We need to keep it around as we
   /// always need to read ahead one character to decide when to end a token and

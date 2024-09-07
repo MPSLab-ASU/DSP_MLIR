@@ -12,8 +12,8 @@ def main() {
   # int a1 = [21, 11];
 
   # var a1 = [20, 40 ,60];
-  var b = 2 ; 
-  var c = 3;
+  var b = 2.0 ;
+  var c = 3.0;
 
   # var c = delay(b);
   # var d = delay(a, b);

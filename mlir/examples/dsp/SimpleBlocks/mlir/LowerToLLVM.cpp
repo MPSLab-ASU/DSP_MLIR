@@ -58,6 +58,7 @@
 #include "llvm/Support/Casting.h"
 #include <memory>
 #include <utility>
+#include <iostream>
 
 using namespace mlir;
 
@@ -85,8 +86,23 @@ public:
 
     // Get a symbol reference to the printf function, inserting it if necessary.
     auto printfRef = getOrInsertPrintf(rewriter, parentModule);
-    Value formatSpecifierCst = getOrCreateGlobalString(
-        loc, rewriter, "frmt_spec", StringRef("%f \0", 4), parentModule);
+    /* test int and float lowering */
+    auto eleType = memRefType.getElementType();
+    Value formatSpecifierCst;
+    if(mlir::isa<FloatType>(eleType)) {
+        std::cout << "MK detect float" << std::endl;
+        formatSpecifierCst = getOrCreateGlobalString(
+                loc, rewriter, "frmt_spec_f", StringRef("%f \0", 4), parentModule);
+
+    }
+    else if(mlir::isa<IntegerType>(eleType)) {
+        std::cout << "MK detect int" << std::endl;
+        formatSpecifierCst = getOrCreateGlobalString(
+                loc, rewriter, "frmt_spec_d", StringRef("%ld \0", 5), parentModule);
+
+    }
+    //Value formatSpecifierCst = getOrCreateGlobalString(
+        //loc, rewriter, "frmt_spec", StringRef("%f \0", 4), parentModule);
     Value newLineCst = getOrCreateGlobalString(
         loc, rewriter, "nl", StringRef("\n\0", 2), parentModule);
 

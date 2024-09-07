@@ -42,7 +42,11 @@ private:
   void dump(VarDeclExprAST *varDecl);
   void dump(ExprAST *expr);
   void dump(ExprASTList *exprList);
-  void dump(NumberExprAST *num);
+  //void dump(NumberExprAST *num);
+  // add -- expr dump
+  void dump(IntExprAST *num);
+  void dump(DoubleExprAST *num);
+  // end add
   void dump(LiteralExprAST *node);
   void dump(VariableExprAST *node);
   void dump(ReturnExprAST *node);
@@ -80,7 +84,7 @@ static std::string loc(T *node) {
 /// Dispatch to a generic expressions to the appropriate subclass using RTTI
 void ASTDumper::dump(ExprAST *expr) {
   llvm::TypeSwitch<ExprAST *>(expr)
-      .Case<BinaryExprAST, CallExprAST, LiteralExprAST, NumberExprAST,
+      .Case<BinaryExprAST, CallExprAST, LiteralExprAST, /*add -- expr type switch*/ IntExprAST, DoubleExprAST, // NumberExprAST,
             PrintExprAST, ReturnExprAST, VarDeclExprAST, VariableExprAST>(
           [&](auto *node) { this->dump(node); })
       .Default([&](ExprAST *) {
@@ -111,9 +115,22 @@ void ASTDumper::dump(ExprASTList *exprList) {
 }
 
 /// A literal number, just print the value.
-void ASTDumper::dump(NumberExprAST *num) {
-  INDENT();
-  llvm::errs() << num->getValue() << " " << loc(num) << "\n";
+//void ASTDumper::dump(NumberExprAST *num) {
+  //INDENT();
+  //llvm::errs() << num->getValue() << " " << loc(num) << "\n";
+//}
+
+// add -- expr dumps
+void ASTDumper::dump(IntExprAST *num) {
+    printf("AST.cpp -- getting int: %d", num->getInt());
+    INDENT();
+    llvm::errs() << num->getInt() << " " << loc(num) << "\n";
+}
+
+void ASTDumper::dump(DoubleExprAST *num) {
+    printf("AST.cpp -- getting double: %f", num->getDouble());
+    INDENT();
+    llvm::errs() << num->getDouble() << " " << loc(num) << "\n";
 }
 
 /// Helper to print recursively a literal. This handles nested array like:
@@ -122,10 +139,20 @@ void ASTDumper::dump(NumberExprAST *num) {
 ///    <2,2>[<2>[ 1, 2 ], <2>[ 3, 4 ] ]
 void printLitHelper(ExprAST *litOrNum) {
   // Inside a literal expression we can have either a number or another literal
-  if (auto *num = llvm::dyn_cast<NumberExprAST>(litOrNum)) {
-    llvm::errs() << num->getValue();
-    return;
-  }
+  //if (auto *num = llvm::dyn_cast<NumberExprAST>(litOrNum)) {
+    //llvm::errs() << num->getValue();
+    //return;
+  //}
+
+  // add -- lit helper expr dump int and double
+    if (auto *num = llvm::dyn_cast<IntExprAST>(litOrNum)) {
+        llvm::errs() << "Integer : " << num->getInt();
+        return;
+    }
+    if (auto *num = llvm::dyn_cast<DoubleExprAST>(litOrNum)) {
+        llvm::errs() << "Double : " << num->getDouble();
+        return;
+    }
   auto *literal = llvm::cast<LiteralExprAST>(litOrNum);
 
   // Print the dimension for this literal first
