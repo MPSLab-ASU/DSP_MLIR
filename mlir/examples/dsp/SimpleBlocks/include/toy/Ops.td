@@ -83,9 +83,42 @@ def ConstantOp : Dsp_Op<"constant", [Pure]> {
 
     // Build a constant with a given constant floating-point value.
     OpBuilder<(ins "double":$value)>,
+  ];
 
-    // Build a constant with a given constant floating-point value.
-    // OpBuilder<(ins "int":$value)>
+  // Indicate that additional verification for this operation is necessary.
+  let hasVerifier = 1;
+}
+
+//===----------------------------------------------------------------------===//
+// IntegerConstantOp
+//===----------------------------------------------------------------------===//
+
+def IntegerConstantOp : Dsp_Op<"integer_constant", [Pure]> {
+  let summary = "integer constant";
+  let description = [{
+    Integer Constant operation turns a literal into an SSA value. The data is attached
+    to the operation as an attribute. For example:
+
+    ```mlir
+      %0 = dsp.integer_constant dense<[[1, 2, 30], [4, 5, 6]]>
+                        : tensor<2x3xi64>
+    ```
+  }];
+
+  // expect an integer constant tensor value of type I64
+  let arguments = (ins I64ElementsAttr:$value);
+
+  let results = (outs I64Tensor);
+
+  let hasCustomAssemblyFormat = 1;
+
+  let builders = [
+    OpBuilder<(ins "DenseIntElementsAttr":$value), [{
+      build($_builder, $_state, value.getType(), value);
+    }]>,
+    
+    // Build a constant with a given constant int64 value.
+    OpBuilder<(ins "int":$value)>,
   ];
 
   // Indicate that additional verification for this operation is necessary.
@@ -299,7 +332,7 @@ def PrintOp : Dsp_Op<"print"> {
 
   // The print operation takes an input tensor to print.
   // We also allow a F64MemRef to enable interop during partial lowering.
-  let arguments = (ins AnyTypeOf<[F64Tensor, F64MemRef]>:$input);
+  let arguments = (ins AnyTypeOf<[F64, I64, F64Tensor, F64MemRef, I64Tensor, I64MemRef]>:$input);
 
   let assemblyFormat = "$input attr-dict `:` type($input)";
 }

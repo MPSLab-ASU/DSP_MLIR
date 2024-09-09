@@ -242,6 +242,59 @@ mlir::LogicalResult ConstantOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
+// Integer ConstantOp
+//===----------------------------------------------------------------------===//
+
+void IntegerConstantOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                       int value) {
+  auto dataType = RankedTensorType::get({}, builder.getI64Type());
+  auto dataAttribute = DenseIntElementsAttr::get(dataType, value);
+  IntegerConstantOp::build(builder, state, dataType, dataAttribute);
+}
+
+mlir::ParseResult IntegerConstantOp::parse(mlir::OpAsmParser &parser,
+                                    mlir::OperationState &result) {
+  mlir::DenseIntElementsAttr value;
+  printf("Parse Integer constant success for MLIRgen.\n");
+  if (parser.parseOptionalAttrDict(result.attributes) ||
+      parser.parseAttribute(value, "value", result.attributes))
+    return failure();
+
+  result.addTypes(value.getType());
+  return success();
+}
+
+void IntegerConstantOp::print(mlir::OpAsmPrinter &printer) {
+  printer << " ";
+  printer.printOptionalAttrDict((*this)->getAttrs(), /*elidedAttrs=*/{"value"});
+  printer << getValue();
+}
+
+mlir::LogicalResult IntegerConstantOp::verify() {
+  auto resultType = llvm::dyn_cast<mlir::RankedTensorType>(getResult().getType());
+  if (!resultType)
+    return success();
+
+  auto attrType = llvm::cast<mlir::RankedTensorType>(getValue().getType());
+  if (attrType.getRank() != resultType.getRank()) {
+    return emitOpError("return type must match the one of the attached value "
+                       "attribute: ")
+           << attrType.getRank() << " != " << resultType.getRank();
+  }
+
+  // Check that each of the dimensions match between the two types.
+  for (int dim = 0, dimE = attrType.getRank(); dim < dimE; ++dim) {
+    if (attrType.getShape()[dim] != resultType.getShape()[dim]) {
+      return emitOpError(
+                 "return type shape mismatches its attribute at dimension ")
+             << dim << ": " << attrType.getShape()[dim]
+             << " != " << resultType.getShape()[dim];
+    }
+  }
+  return mlir::success();
+}
+
+//===----------------------------------------------------------------------===//
 // AddOp
 //===----------------------------------------------------------------------===//
 

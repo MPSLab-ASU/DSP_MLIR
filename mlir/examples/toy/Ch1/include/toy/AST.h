@@ -37,7 +37,9 @@ public:
   enum ExprASTKind {
     Expr_VarDecl,
     Expr_Return,
-    Expr_Num,
+    // Expr_Num,
+    Expr_Int,
+    Expr_Double,
     Expr_Literal,
     Expr_Var,
     Expr_BinOp,
@@ -62,17 +64,43 @@ private:
 using ExprASTList = std::vector<std::unique_ptr<ExprAST>>;
 
 /// Expression class for numeric literals like "1.0".
-class NumberExprAST : public ExprAST {
-  double val;
+//class NumberExprAST : public ExprAST {
+  //double val;
+//
+//public:
+  //NumberExprAST(Location loc, double val)
+      //: ExprAST(Expr_Num, std::move(loc)), val(val) {}
+//
+  //double getValue() { return val; }
+//
+  ///// LLVM style RTTI
+  //static bool classof(const ExprAST *c) { return c->getKind() == Expr_Num; }
+//};
+
+// add -- Int Expr AST
+class IntExprAST : public ExprAST {
+    int val;
 
 public:
-  NumberExprAST(Location loc, double val)
-      : ExprAST(Expr_Num, std::move(loc)), val(val) {}
+    IntExprAST(Location loc, int val)
+        : ExprAST(Expr_Int, std::move(loc)), val(val) {}
 
-  double getValue() { return val; }
+    int getInt() { return val; }
 
-  /// LLVM style RTTI
-  static bool classof(const ExprAST *c) { return c->getKind() == Expr_Num; }
+    static bool classof(const ExprAST *c) { return c->getKind() == Expr_Int; }
+};
+
+// add -- Double Expr AST
+class DoubleExprAST : public ExprAST {
+    double val;
+
+public:
+    DoubleExprAST(Location loc, double val)
+        : ExprAST(Expr_Double, std::move(loc)), val(val) {}
+
+    double getDouble() { return val; }
+
+    static bool classof(const ExprAST *c) { return c->getKind() == Expr_Double; }
 };
 
 /// Expression class for a literal value.

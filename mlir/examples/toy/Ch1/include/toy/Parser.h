@@ -77,12 +77,34 @@ private:
 
   /// Parse a literal number.
   /// numberexpr ::= number
-  std::unique_ptr<ExprAST> parseNumberExpr() {
-    auto loc = lexer.getLastLocation();
-    auto result =
-        std::make_unique<NumberExprAST>(std::move(loc), lexer.getValue());
-    lexer.consume(tok_number);
-    return std::move(result);
+  //std::unique_ptr<ExprAST> parseNumberExpr() {
+    //auto loc = lexer.getLastLocation();
+    //auto result =
+        //std::make_unique<NumberExprAST>(std::move(loc), lexer.getValue());
+    //lexer.consume(tok_number);
+    //return std::move(result);
+  //}
+
+  // add -- Parse an integer
+  std::unique_ptr<ExprAST> parseIntExpr() {
+      auto loc = lexer.getLastLocation();
+      printf("Parser.h -- get Integer valus: %d\n", lexer.getIntValue());
+      auto result = 
+          std::make_unique<IntExprAST>(std::move(loc), lexer.getIntValue());
+
+      lexer.consume(tok_int);
+      return std::move(result);
+  }
+
+  // add -- Parse an integer
+  std::unique_ptr<ExprAST> parseDoubleExpr() {
+      auto loc = lexer.getLastLocation();
+      printf("Parser.h -- get Double valus: %f\n", lexer.getDoubleValue());
+      auto result = 
+          std::make_unique<DoubleExprAST>(std::move(loc), lexer.getDoubleValue());
+
+      lexer.consume(tok_double);
+      return std::move(result);
   }
 
   /// Parse a literal array expression.
@@ -103,9 +125,16 @@ private:
         if (!values.back())
           return nullptr; // parse error in the nested array.
       } else {
-        if (lexer.getCurToken() != tok_number)
-          return parseError<ExprAST>("<num> or [", "in literal expression");
-        values.push_back(parseNumberExpr());
+        //if (lexer.getCurToken() != tok_number)
+          //return parseError<ExprAST>("<num> or [", "in literal expression");
+        //values.push_back(parseNumberExpr());
+
+        // add -- int and double logic
+          if(lexer.getCurToken() != tok_int && lexer.getCurToken() != tok_double) {
+              return parseError<ExprAST>("<number> or [", "in literal expression");
+          }
+          if(lexer.getCurToken() == tok_int) values.push_back(parseIntExpr());
+          else if(lexer.getCurToken() == tok_double) values.push_back(parseDoubleExpr());
       }
 
       // End of this list on ']'
@@ -224,8 +253,13 @@ private:
       return nullptr;
     case tok_identifier:
       return parseIdentifierExpr();
-    case tok_number:
-      return parseNumberExpr();
+    //case tok_number:
+      //return parseNumberExpr();
+    /* add -- integer and double cases */
+    case tok_int:
+      return parseIntExpr();
+    case tok_double:
+      return parseDoubleExpr();
     case '(':
       return parseParenExpr();
     case '[':
@@ -295,11 +329,20 @@ private:
 
     auto type = std::make_unique<VarType>();
 
-    while (lexer.getCurToken() == tok_number) {
-      type->shape.push_back(lexer.getValue());
-      lexer.getNextToken();
-      if (lexer.getCurToken() == ',')
+    //while (lexer.getCurToken() == tok_number) {
+      //type->shape.push_back(lexer.getValue());
+      //lexer.getNextToken();
+      //if (lexer.getCurToken() == ',')
+        //lexer.getNextToken();
+    //}
+    
+    // add -- integer and double logic
+    while (lexer.getCurToken() == tok_int || lexer.getCurToken() == tok_double) {
+        if(lexer.getCurToken() == tok_int ) type->shape.push_back(lexer.getIntValue());
+        else if(lexer.getCurToken() == tok_double ) type->shape.push_back(lexer.getDoubleValue());
         lexer.getNextToken();
+
+        if(lexer.getCurToken() == ',') lexer.getNextToken();
     }
 
     if (lexer.getCurToken() != '>')
