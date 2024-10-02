@@ -8,7 +8,7 @@
 # }
 
 def main() {
-  var a = [10,20,30];
+  var a = [10,-20,30,-10,40,50,60,-100,-20,-30,10]; # Count should be 6
   var g = zeroCrossCount(a);
 
   

@@ -6748,7 +6748,10 @@ struct ZeroCrossCountOpLowering : public ConversionPattern {
 
     // allocation & deallocation for the result of this operation
     auto memRefType = convertTensorToMemRef(tensorType);
-    auto alloc = insertAllocAndDealloc(memRefType, loc, rewriter);
+    // Force the result to be a tensor of size 1
+    auto alloc = insertAllocAndDealloc(
+        MemRefType::get(ArrayRef<int64_t>(1), tensorType.getElementType()), loc,
+        rewriter);
 
     // construct affine loops for the input
     SmallVector<int64_t, 4> lowerBounds(tensorType.getRank(), /*Value*/ 0);
@@ -6767,9 +6770,9 @@ struct ZeroCrossCountOpLowering : public ConversionPattern {
     Value constant0 = rewriter.create<arith::ConstantOp>(
         loc, rewriter.getI64Type(),
         rewriter.getIntegerAttr(rewriter.getI64Type(), 0));
-    Value countVal = rewriter.create<arith::ConstantOp>(
+    Value constant1 = rewriter.create<arith::ConstantOp>(
         loc, rewriter.getI64Type(),
-        rewriter.getIntegerAttr(rewriter.getI64Type(), 0));
+        rewriter.getIntegerAttr(rewriter.getI64Type(), 1));
     Value Indx0 = rewriter.create<arith::ConstantIndexOp>(loc, 0);
 
     Value lb = rewriter.create<arith::ConstantOp>(
@@ -6782,7 +6785,7 @@ struct ZeroCrossCountOpLowering : public ConversionPattern {
     Value step = rewriter.create<arith::ConstantIndexOp>(loc, 1);
     // DEBUG_PRINT_WITH_ARGS("step=", step);
     auto forOpY =
-        rewriter.create<scf::ForOp>(loc, lb, ub, step, ValueRange{countVal});
+        rewriter.create<scf::ForOp>(loc, lb, ub, step, ValueRange{constant0});
     // DEBUG_PRINT_WITH_ARGS("forOpY=", forOpY);
     auto ivY = forOpY.getInductionVar();
     rewriter.setInsertionPointToStart(forOpY.getBody());
@@ -6813,7 +6816,8 @@ struct ZeroCrossCountOpLowering : public ConversionPattern {
     rewriter.create<scf::YieldOp>(loc, ValueRange{countArg});
     rewriter.setInsertionPointToStart(ifOp.elseBlock());
     // DEBUG_PRINT_WITH_ARGS("Else");
-    auto countPlusOne = rewriter.create<arith::AddIOp>(loc, countArg, countVal);
+    auto countPlusOne =
+        rewriter.create<arith::AddIOp>(loc, countArg, constant1);
     rewriter.create<scf::YieldOp>(loc, ValueRange{countPlusOne});
 
     rewriter.setInsertionPointAfter(ifOp);
