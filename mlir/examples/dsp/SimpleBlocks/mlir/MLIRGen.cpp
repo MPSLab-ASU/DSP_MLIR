@@ -15,25 +15,24 @@
 #include "toy/AST.h"
 #include "toy/Dialect.h"
 
-
-#include "mlir/IR/Block.h"
-#include "mlir/IR/Diagnostics.h"
-#include "mlir/IR/Value.h"
-#include "mlir/Support/LogicalResult.h"
 #include "mlir/IR/Attributes.h"
+#include "mlir/IR/Block.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/Value.h"
 #include "mlir/IR/Verifier.h"
+#include "mlir/Support/LogicalResult.h"
 #include "toy/Lexer.h"
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/ScopedHashTable.h"
-#include "llvm/Support/raw_ostream.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/Twine.h"
+#include "llvm/Support/raw_ostream.h"
 #include <cassert>
 #include <cstdint>
 #include <functional>
@@ -332,15 +331,16 @@ private:
 
     // Builtin calls have their custom operation, meaning this is a
     // straightforward emission.
+
     if (callee == "bitwiseand") {
-      if(call.getArgs().size() != 2){
+      if (call.getArgs().size() != 2) {
         emitError(location, "MLIR codegen encountered an error: dsp.bitwiseand "
                             "accepts only 2 arguments");
         return nullptr;
       }
-      return builder.create<BitwiseAndOp>(location, operands[0] , operands[1]);
+      return builder.create<BitwiseAndOp>(location, operands[0], operands[1]);
     }
-    
+
     if (callee == "transpose") {
       if (call.getArgs().size() != 1) {
         emitError(location, "MLIR codegen encountered an error: dsp.transpose "
@@ -351,32 +351,32 @@ private:
     }
 
     //
-    if(callee == "delay"){
-      if(call.getArgs().size() != 2){
+    if (callee == "delay") {
+      if (call.getArgs().size() != 2) {
         emitError(location, "MLIR codegen encountered an error: dsp.delay "
                             "accepts only 2 arguments");
         return nullptr;
       }
-      return builder.create<DelayOp>(location, operands[0] , operands[1]);
+      return builder.create<DelayOp>(location, operands[0], operands[1]);
     }
 
-    if(callee == "gain"){
-      if(call.getArgs().size() != 2){
+    if (callee == "gain") {
+      if (call.getArgs().size() != 2) {
         emitError(location, "MLIR codegen encountered an error: dsp.gain "
                             "accepts only 2 arguments");
         return nullptr;
       }
-      return builder.create<GainOp>(location, operands[0] , operands[1]);
+      return builder.create<GainOp>(location, operands[0], operands[1]);
     }
 
     // Sub Op
-    if(callee == "sub"){
-       if(call.getArgs().size() != 2){
-         emitError(location, "MLIR codegen encountered an error: dsp.sub "
-                             "accepts only 2 arguments");
-         return nullptr;
-       }
-       return builder.create<SubOp>(location, operands[0], operands[1]);
+    if (callee == "sub") {
+      if (call.getArgs().size() != 2) {
+        emitError(location, "MLIR codegen encountered an error: dsp.sub "
+                            "accepts only 2 arguments");
+        return nullptr;
+      }
+      return builder.create<SubOp>(location, operands[0], operands[1]);
     }
 
     // Modulo Op
@@ -422,56 +422,62 @@ private:
                             "accepts only 2 arguments");
         return nullptr;
       }
-      return builder.create<FIRFilterResponseOp>(location, operands[0] , operands[1]);
+      return builder.create<FIRFilterResponseOp>(location, operands[0],
+                                                 operands[1]);
     }
 
-    if(callee == "slidingWindowAvg"){
-      if(call.getArgs().size() != 1){
-        emitError(location, "MLIR codegen encountered an error: dsp.slidingWindowAvg "
-                            "accepts only 1 arguments");
+    if (callee == "slidingWindowAvg") {
+      if (call.getArgs().size() != 1) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.slidingWindowAvg "
+                  "accepts only 1 arguments");
         return nullptr;
       }
-      return builder.create<SlidingWindowAvgOp>(location, operands[0] );
+      return builder.create<SlidingWindowAvgOp>(location, operands[0]);
     }
 
-    if(callee == "downsampling"){
-      if(call.getArgs().size() != 2){
-        emitError(location, "MLIR codegen encountered an error: dsp.downsampling "
-                            "accepts only 2 arguments");
+    if (callee == "downsampling") {
+      if (call.getArgs().size() != 2) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.downsampling "
+                  "accepts only 2 arguments");
         return nullptr;
       }
-      return builder.create<DownsamplingOp>(location, operands[0] , operands[1]);
+      return builder.create<DownsamplingOp>(location, operands[0], operands[1]);
     }
 
-    if(callee == "upsampling"){
-      if(call.getArgs().size() != 2){
+    if (callee == "upsampling") {
+      if (call.getArgs().size() != 2) {
         emitError(location, "MLIR codegen encountered an error: dsp.upsampling "
                             "accepts only 2 arguments");
         return nullptr;
       }
-      return builder.create<UpsamplingOp>(location, operands[0] , operands[1]);
+      return builder.create<UpsamplingOp>(location, operands[0], operands[1]);
     }
 
-    if(callee == "lowPassFilter"){
-      if(call.getArgs().size() != 2){
-        emitError(location, "MLIR codegen encountered an error: dsp.lowPassFilter "
-                            "accepts only 2 arguments");
+    if (callee == "lowPassFilter") {
+      if (call.getArgs().size() != 2) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.lowPassFilter "
+                  "accepts only 2 arguments");
         return nullptr;
       }
-      return builder.create<LowPassFilter1stOrderOp>(location, operands[0] , operands[1]);
+      return builder.create<LowPassFilter1stOrderOp>(location, operands[0],
+                                                     operands[1]);
     }
 
-    if(callee == "highPassFilter"){
-      if(call.getArgs().size() != 1){
-        emitError(location, "MLIR codegen encountered an error: dsp.highPassFilter "
-                            "accepts only 1 arguments");
+    if (callee == "highPassFilter") {
+      if (call.getArgs().size() != 1) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.highPassFilter "
+                  "accepts only 1 arguments");
         return nullptr;
       }
-      return builder.create<HighPassFilterOp>(location, operands[0] );
+      return builder.create<HighPassFilterOp>(location, operands[0]);
     }
 
-    if(callee == "fft1d"){
-      if(call.getArgs().size() != 1){
+    if (callee == "fft1d") {
+      if (call.getArgs().size() != 1) {
         emitError(location, "MLIR codegen encountered an error: dsp.fft1d "
                             "accepts only 1 arguments");
         return nullptr;
@@ -479,26 +485,26 @@ private:
       // return builder.create<FFT1DOp>(location, operands[0] );
     }
 
-    if(callee == "fft1dreal"){
-      if(call.getArgs().size() != 1){
+    if (callee == "fft1dreal") {
+      if (call.getArgs().size() != 1) {
         emitError(location, "MLIR codegen encountered an error: dsp.fft1dreal "
                             "accepts only 1 arguments");
         return nullptr;
       }
-      return builder.create<FFT1DRealOp>(location, operands[0] );
+      return builder.create<FFT1DRealOp>(location, operands[0]);
     }
 
-    if(callee == "fft1dimg"){
-      if(call.getArgs().size() != 1){
+    if (callee == "fft1dimg") {
+      if (call.getArgs().size() != 1) {
         emitError(location, "MLIR codegen encountered an error: dsp.fft1dimg "
                             "accepts only 1 arguments");
         return nullptr;
       }
-      return builder.create<FFT1DImgOp>(location, operands[0] );
+      return builder.create<FFT1DImgOp>(location, operands[0]);
     }
 
-    if(callee == "ifft1d"){
-      if(call.getArgs().size() != 2){
+    if (callee == "ifft1d") {
+      if (call.getArgs().size() != 2) {
         emitError(location, "MLIR codegen encountered an error: dsp.ifft1d "
                             "accepts only 1 arguments");
         return nullptr;
@@ -506,263 +512,294 @@ private:
       return builder.create<IFFT1DOp>(location, operands[0], operands[1]);
     }
 
-    if(callee == "hamming"){
-      if(call.getArgs().size() != 1){
+    if (callee == "hamming") {
+      if (call.getArgs().size() != 1) {
         emitError(location, "MLIR codegen encountered an error: dsp.hamming "
                             "accepts only 1 arguments");
         return nullptr;
       }
-      return builder.create<HammingWindowOp>(location, operands[0] );
+      return builder.create<HammingWindowOp>(location, operands[0]);
     }
 
-    if(callee == "dct"){
-      if(call.getArgs().size() != 1){
+    if (callee == "dct") {
+      if (call.getArgs().size() != 1) {
         emitError(location, "MLIR codegen encountered an error: dsp.dct "
                             "accepts only 1 arguments");
         return nullptr;
       }
-      return builder.create<DCTOp>(location, operands[0] );
+      return builder.create<DCTOp>(location, operands[0]);
     }
 
-    if(callee == "filter"){
-      if(call.getArgs().size() != 3){
+    if (callee == "filter") {
+      if (call.getArgs().size() != 3) {
         emitError(location, "MLIR codegen encountered an error: dsp.filter "
                             "accepts only 1 arguments");
         return nullptr;
       }
-      return builder.create<filterOp>(location, operands[0],operands[1], operands[2] );
+      return builder.create<filterOp>(location, operands[0], operands[1],
+                                      operands[2]);
     }
 
-    if(callee == "div"){
-      if(call.getArgs().size() != 2){
+    if (callee == "div") {
+      if (call.getArgs().size() != 2) {
         emitError(location, "MLIR codegen encountered an error: dsp.div "
                             "accepts only 2 arguments");
         return nullptr;
       }
-      return builder.create<DivOp>(location, operands[0] , operands[1]);
+      return builder.create<DivOp>(location, operands[0], operands[1]);
     }
 
-    if(callee == "sum"){
-      if(call.getArgs().size() != 1){
+    if (callee == "sum") {
+      if (call.getArgs().size() != 1) {
         emitError(location, "MLIR codegen encountered an error: dsp.sum "
                             "accepts only 1 arguments");
         return nullptr;
       }
-      return builder.create<SumOp>(location, operands[0] );
+      return builder.create<SumOp>(location, operands[0]);
     }
 
-    if(callee == "sin"){
-       if(call.getArgs().size() != 1){
-         emitError(location, "MLIR codegen encountered an error: dsp.sin "
-                             "accepts only 1 arguments");
-         return nullptr;
-       }
-       return builder.create<SinOp>(location, operands[0] );
-     }
+    if (callee == "sin") {
+      if (call.getArgs().size() != 1) {
+        emitError(location, "MLIR codegen encountered an error: dsp.sin "
+                            "accepts only 1 arguments");
+        return nullptr;
+      }
+      return builder.create<SinOp>(location, operands[0]);
+    }
 
-     if(callee == "cos"){
-       if(call.getArgs().size() != 1){
-         emitError(location, "MLIR codegen encountered an error: dsp.cos "
-                             "accepts only 1 arguments");
-         return nullptr;
-       }
-       return builder.create<CosOp>(location, operands[0] );
-     }
+    if (callee == "cos") {
+      if (call.getArgs().size() != 1) {
+        emitError(location, "MLIR codegen encountered an error: dsp.cos "
+                            "accepts only 1 arguments");
+        return nullptr;
+      }
+      return builder.create<CosOp>(location, operands[0]);
+    }
 
-     if(callee == "square"){
-      if(call.getArgs().size() != 1){
+    if (callee == "square") {
+      if (call.getArgs().size() != 1) {
         emitError(location, "MLIR codegen encountered an error: dsp.square "
                             "accepts only 1 arguments");
         return nullptr;
       }
-      return builder.create<SquareOp>(location, operands[0] );
+      return builder.create<SquareOp>(location, operands[0]);
     }
 
     // Sinc Op
-    if(callee == "sinc"){
-       if(call.getArgs().size() != 2){
-         emitError(location, "MLIR codegen encountered an error: dsp.sinc "
-                             "accepts only 2 arguments");
-         return nullptr;
-       }
-       return builder.create<SincOp>(location, operands[0], operands[1]);
+    if (callee == "sinc") {
+      if (call.getArgs().size() != 2) {
+        emitError(location, "MLIR codegen encountered an error: dsp.sinc "
+                            "accepts only 2 arguments");
+        return nullptr;
+      }
+      return builder.create<SincOp>(location, operands[0], operands[1]);
     }
 
     // Get Elem At Op
-    if(callee == "getElemAtIndx"){
-       if(call.getArgs().size() != 2){
-         emitError(location, "MLIR codegen encountered an error: dsp.getElemAtIndx "
-                             "accepts only 2 arguments");
-         return nullptr;
-       }
-       return builder.create<GetElemAtIndxOp>(location, operands[0], operands[1]);
+    if (callee == "getElemAtIndx") {
+      if (call.getArgs().size() != 2) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.getElemAtIndx "
+                  "accepts only 2 arguments");
+        return nullptr;
+      }
+      return builder.create<GetElemAtIndxOp>(location, operands[0],
+                                             operands[1]);
     }
 
     // Set Elem At Indx
-    if(callee == "setElemAtIndx"){
-       if(call.getArgs().size() != 3){
-         emitError(location, "MLIR codegen encountered an error: dsp.setElemAtIndx "
-                             "accepts only 2 arguments");
-         return nullptr;
-       }
-       return builder.create<SetElemAtIndxOp>(location, operands[0], operands[1], operands[2]);
+    if (callee == "setElemAtIndx") {
+      if (call.getArgs().size() != 3) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.setElemAtIndx "
+                  "accepts only 2 arguments");
+        return nullptr;
+      }
+      return builder.create<SetElemAtIndxOp>(location, operands[0], operands[1],
+                                             operands[2]);
     }
 
     // lowPassFilter Op
-    if(callee == "lowPassFIRFilter"){
-       if(call.getArgs().size() != 2){
-         emitError(location, "MLIR codegen encountered an error: dsp.lowPassFilter "
-                             "accepts only 2 arguments");
-         return nullptr;
-       }
-       return builder.create<LowPassFIRFilterOp>(location, operands[0], operands[1]);
+    if (callee == "lowPassFIRFilter") {
+      if (call.getArgs().size() != 2) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.lowPassFilter "
+                  "accepts only 2 arguments");
+        return nullptr;
+      }
+      return builder.create<LowPassFIRFilterOp>(location, operands[0],
+                                                operands[1]);
     }
 
     // highPassFilter Op
-    if(callee == "highPassFIRFilter"){
-       if(call.getArgs().size() != 2){
-         emitError(location, "MLIR codegen encountered an error: dsp.highPassFilter "
-                             "accepts only 2 arguments");
-         return nullptr;
-       }
-       return builder.create<HighPassFIRFilterOp>(location, operands[0], operands[1]);
-    }
-
-    if(callee == "getRangeOfVector"){
-      if(call.getArgs().size() != 3){
-        emitError(location, "MLIR codegen encountered an error: dsp.getRangeOfVector "
-                            "accepts only 3 arguments");
+    if (callee == "highPassFIRFilter") {
+      if (call.getArgs().size() != 2) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.highPassFilter "
+                  "accepts only 2 arguments");
         return nullptr;
       }
-      return builder.create<GetRangeOfVectorOp>(location, operands[0],operands[1], operands[2] );
+      return builder.create<HighPassFIRFilterOp>(location, operands[0],
+                                                 operands[1]);
+    }
+
+    if (callee == "getRangeOfVector") {
+      if (call.getArgs().size() != 3) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.getRangeOfVector "
+                  "accepts only 3 arguments");
+        return nullptr;
+      }
+      return builder.create<GetRangeOfVectorOp>(location, operands[0],
+                                                operands[1], operands[2]);
     }
 
     // FIRHammingOptimizedOp
-    if(callee == "FIRFilterHammingOptimized"){
-       if(call.getArgs().size() != 2){
-         emitError(location, "MLIR codegen encountered an error: dsp.FIRFilterHammingOptimized "
-                             "accepts only 2 arguments");
-         return nullptr;
-       }
-       return builder.create<FIRFilterHammingOptimizedOp>(location, operands[0], operands[1]);
+    if (callee == "FIRFilterHammingOptimized") {
+      if (call.getArgs().size() != 2) {
+        emitError(
+            location,
+            "MLIR codegen encountered an error: dsp.FIRFilterHammingOptimized "
+            "accepts only 2 arguments");
+        return nullptr;
+      }
+      return builder.create<FIRFilterHammingOptimizedOp>(location, operands[0],
+                                                         operands[1]);
     }
 
     // HighPassFIRHammingOptimizedOp
-    if(callee == "highPassFIRHammingOptimized"){
-       if(call.getArgs().size() != 2){
-         emitError(location, "MLIR codegen encountered an error: dsp.HighPassFIRHammingOptimizedOp "
-                             "accepts only 2 arguments");
-         return nullptr;
-       }
-       return builder.create<HighPassFIRHammingOptimizedOp>(location, operands[0], operands[1]);
+    if (callee == "highPassFIRHammingOptimized") {
+      if (call.getArgs().size() != 2) {
+        emitError(location, "MLIR codegen encountered an error: "
+                            "dsp.HighPassFIRHammingOptimizedOp "
+                            "accepts only 2 arguments");
+        return nullptr;
+      }
+      return builder.create<HighPassFIRHammingOptimizedOp>(
+          location, operands[0], operands[1]);
     }
 
     // LMS FILTER
-    if(callee == "lmsFilter"){
-      if(call.getArgs().size() != 5){
+    if (callee == "lmsFilter") {
+      if (call.getArgs().size() != 5) {
         emitError(location, "MLIR codegen encountered an error: dsp.lmsFilter"
                             "accepts only 5 arguments");
         return nullptr;
       }
-      return builder.create<LMSFilterOp>(location, operands[0] , operands[1], operands[2], operands[3],operands[4] );
+      return builder.create<LMSFilterOp>(location, operands[0], operands[1],
+                                         operands[2], operands[3], operands[4]);
     }
 
-    if(callee == "threshold"){
-       if(call.getArgs().size() != 2){
-         emitError(location, "MLIR codegen encountered an error: dsp.ThresholdOp "
-                             "accepts only 2 arguments");
-         return nullptr;
-       }
-       return builder.create<ThresholdOp>(location, operands[0], operands[1]);
+    if (callee == "threshold") {
+      if (call.getArgs().size() != 2) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.ThresholdOp "
+                  "accepts only 2 arguments");
+        return nullptr;
+      }
+      return builder.create<ThresholdOp>(location, operands[0], operands[1]);
     }
 
-    if(callee == "quantization"){
-       if(call.getArgs().size() != 4){
-         emitError(location, "MLIR codegen encountered an error: dsp.quantization "
-                             "accepts only 4 arguments");
-         return nullptr;
-       }
-       return builder.create<QuantizationOp>(location, operands[0], operands[1],operands[2], operands[3]);
+    if (callee == "quantization") {
+      if (call.getArgs().size() != 4) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.quantization "
+                  "accepts only 4 arguments");
+        return nullptr;
+      }
+      return builder.create<QuantizationOp>(location, operands[0], operands[1],
+                                            operands[2], operands[3]);
     }
 
-    if(callee == "lmsFilterResponse"){
-      if(call.getArgs().size() != 4){
+    if (callee == "lmsFilterResponse") {
+      if (call.getArgs().size() != 4) {
         emitError(location, "MLIR codegen encountered an error: dsp.lmsFilter"
                             "accepts only 4 arguments");
         return nullptr;
       }
-      return builder.create<LMSFilterResponseOp>(location, operands[0] , operands[1], operands[2], operands[3]);
+      return builder.create<LMSFilterResponseOp>(
+          location, operands[0], operands[1], operands[2], operands[3]);
     }
 
-    if(callee == "runLenEncoding"){
-       if(call.getArgs().size() != 1){
-         emitError(location, "MLIR codegen encountered an error: dsp.runLenEncoding "
-                             "accepts only 1 arguments");
-         return nullptr;
-       }
-       return builder.create<RunLenEncodingOp>(location, operands[0]);
-    }
-
-    if(callee == "FIRFilterResSymmOptimized"){
-      if(call.getArgs().size() != 2){
-        emitError(location, "MLIR codegen encountered an error: dsp.FIRFilterResSymmOptimized "
-                            "accepts only 2 arguments");
+    if (callee == "runLenEncoding") {
+      if (call.getArgs().size() != 1) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.runLenEncoding "
+                  "accepts only 1 arguments");
         return nullptr;
       }
-      return builder.create<FIRFilterResSymmOptimizedOp>(location, operands[0] , operands[1]);
+      return builder.create<RunLenEncodingOp>(location, operands[0]);
     }
 
-    if(callee == "len"){
-      if(call.getArgs().size() != 1){
+    if (callee == "FIRFilterResSymmOptimized") {
+      if (call.getArgs().size() != 2) {
+        emitError(
+            location,
+            "MLIR codegen encountered an error: dsp.FIRFilterResSymmOptimized "
+            "accepts only 2 arguments");
+        return nullptr;
+      }
+      return builder.create<FIRFilterResSymmOptimizedOp>(location, operands[0],
+                                                         operands[1]);
+    }
+
+    if (callee == "len") {
+      if (call.getArgs().size() != 1) {
         emitError(location, "MLIR codegen encountered an error: dsp.len "
                             "accepts only 1 arguments");
         return nullptr;
       }
-      return builder.create<LengthOp>(location, operands[0] );
+      return builder.create<LengthOp>(location, operands[0]);
     }
 
-
-    if(callee == "reverseInput"){
-      if(call.getArgs().size() != 1){
-        emitError(location, "MLIR codegen encountered an error: dsp.reverseInput "
-                            "accepts only 1 arguments");
+    if (callee == "reverseInput") {
+      if (call.getArgs().size() != 1) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.reverseInput "
+                  "accepts only 1 arguments");
         return nullptr;
       }
-      return builder.create<ReverseInputOp>(location, operands[0] );
+      return builder.create<ReverseInputOp>(location, operands[0]);
     }
 
-   if(callee == "padding"){
-       if(call.getArgs().size() != 3){
-         emitError(location, "MLIR codegen encountered an error: dsp.padding "
-                             "accepts only 3 arguments");
-         return nullptr;
-       }
-       return builder.create<PaddingOp>(location, operands[0], operands[1], operands[2]);
+    if (callee == "padding") {
+      if (call.getArgs().size() != 3) {
+        emitError(location, "MLIR codegen encountered an error: dsp.padding "
+                            "accepts only 3 arguments");
+        return nullptr;
+      }
+      return builder.create<PaddingOp>(location, operands[0], operands[1],
+                                       operands[2]);
     }
 
-    if(callee == "FIRFilterYSymmOptimized"){
-      if(call.getArgs().size() != 2){
-        emitError(location, "MLIR codegen encountered an error: dsp.FIRFilterYSymmOptimizedOp "
-                            "accepts only 2 arguments");
+    if (callee == "FIRFilterYSymmOptimized") {
+      if (call.getArgs().size() != 2) {
+        emitError(
+            location,
+            "MLIR codegen encountered an error: dsp.FIRFilterYSymmOptimizedOp "
+            "accepts only 2 arguments");
         return nullptr;
       }
-      return builder.create<FIRFilterYSymmOptimizedOp>(location, operands[0] , operands[1]);
+      return builder.create<FIRFilterYSymmOptimizedOp>(location, operands[0],
+                                                       operands[1]);
     }
-   if(callee == "fft1DRealSymm"){
-      if(call.getArgs().size() != 1){
-        emitError(location, "MLIR codegen encountered an error: dsp.FFT1DRealSymmOp "
-                            "accepts only 1 arguments");
+    if (callee == "fft1DRealSymm") {
+      if (call.getArgs().size() != 1) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.FFT1DRealSymmOp "
+                  "accepts only 1 arguments");
         return nullptr;
       }
-      return builder.create<FFT1DRealSymmOp>(location, operands[0] );
-    } //FFT1DImgConjSymmOpLowering
-   if(callee == "fft1DimgConjSymm"){
-      if(call.getArgs().size() != 1){
-        emitError(location, "MLIR codegen encountered an error: dsp.FFT1DImgConjSymmOp "
-                            "accepts only 1 arguments");
+      return builder.create<FFT1DRealSymmOp>(location, operands[0]);
+    } // FFT1DImgConjSymmOpLowering
+    if (callee == "fft1DimgConjSymm") {
+      if (call.getArgs().size() != 1) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.FFT1DImgConjSymmOp "
+                  "accepts only 1 arguments");
         return nullptr;
       }
-      return builder.create<FFT1DImgConjSymmOp>(location, operands[0] );
+      return builder.create<FFT1DImgConjSymmOp>(location, operands[0]);
     }
     // Builtin calls have their custom operation, meaning this is a
     // straightforward emission.

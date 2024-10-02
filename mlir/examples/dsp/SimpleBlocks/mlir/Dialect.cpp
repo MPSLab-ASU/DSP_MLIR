@@ -10,9 +10,9 @@
 // operation verification.
 //
 //===----------------------------------------------------------------------===//
-#include <iostream>
 #include "toy/Dialect.h"
 #include "toy/DebugConfig.h"
+#include <iostream>
 
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
@@ -216,7 +216,8 @@ void ConstantOp::print(mlir::OpAsmPrinter &printer) {
 mlir::LogicalResult ConstantOp::verify() {
   // If the return type of the constant is not an unranked tensor, the shape
   // must match the shape of the attribute holding the data.
-  auto resultType = llvm::dyn_cast<mlir::RankedTensorType>(getResult().getType());
+  auto resultType =
+      llvm::dyn_cast<mlir::RankedTensorType>(getResult().getType());
   if (!resultType)
     return success();
 
@@ -415,20 +416,20 @@ void DivOp::inferShapes() { getResult().setType(getLhs().getType()); }
 //===----------------------------------------------------------------------===//
 
 void BitwiseAndOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                  mlir::Value lhs, mlir::Value rhs) {
+                         mlir::Value lhs, mlir::Value rhs) {
   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
   state.addOperands({lhs, rhs});
 }
 
 mlir::ParseResult BitwiseAndOp::parse(mlir::OpAsmParser &parser,
-                               mlir::OperationState &result) {
+                                      mlir::OperationState &result) {
   return parseBinaryOp(parser, result);
 }
 
 void BitwiseAndOp::print(mlir::OpAsmPrinter &p) { printBinaryOp(p, *this); }
 
-/// Infer the output shape of the BitwiseAndOp, this is required by the shape inference
-/// interface.
+/// Infer the output shape of the BitwiseAndOp, this is required by the shape
+/// inference interface.
 void BitwiseAndOp::inferShapes() { getResult().setType(getLhs().getType()); }
 
 //===----------------------------------------------------------------------===//
@@ -459,7 +460,8 @@ mlir::LogicalResult ReturnOp::verify() {
   auto resultType = results.front();
 
   // Check that the result type of the function matches the operand type.
-  if (inputType == resultType || llvm::isa<mlir::UnrankedTensorType>(inputType) ||
+  if (inputType == resultType ||
+      llvm::isa<mlir::UnrankedTensorType>(inputType) ||
       llvm::isa<mlir::UnrankedTensorType>(resultType))
     return mlir::success();
 
@@ -499,40 +501,40 @@ mlir::LogicalResult TransposeOp::verify() {
   return mlir::success();
 }
 
-
 //===----------------------------------------------------------------------===//
 // DelayOp
 //===----------------------------------------------------------------------===//
 // void DelayOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
 //                          mlir::Value lhs, unsigned rhs){
 void DelayOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                         mlir::Value lhs, mlir::Value rhs){    
-    //
-    // state.addTypes(UnrankedTensorType::get(builder.getF64Type()), builder.getI32Type());
-    state.addTypes(UnrankedTensorType::get(builder.getF64Type())); //working
-    state.addOperands({lhs, rhs});
-    // state.addOperands(value);
+                    mlir::Value lhs, mlir::Value rhs) {
+  //
+  // state.addTypes(UnrankedTensorType::get(builder.getF64Type()),
+  // builder.getI32Type());
+  state.addTypes(UnrankedTensorType::get(builder.getF64Type())); // working
+  state.addOperands({lhs, rhs});
+  // state.addOperands(value);
+}
 
- }
+mlir::LogicalResult DelayOp::verify() {
+  // auto inputType1 =
+  // llvm::dyn_cast<RankedTensorType>(getOperand(0).getType()); auto inputType2
+  // = llvm::dyn_cast<RankedTensorType>(getOperand(1).getType()); auto
+  // resultType = llvm::dyn_cast<RankedTensorType>(getType()); if(!inputType ||
+  // !resultType)
+  //   return mlir::success();
 
- mlir::LogicalResult DelayOp::verify(){
-    // auto inputType1 = llvm::dyn_cast<RankedTensorType>(getOperand(0).getType());
-    // auto inputType2 = llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
-    // auto resultType = llvm::dyn_cast<RankedTensorType>(getType());
-    // if(!inputType || !resultType)
-    //   return mlir::success();
-
-    return mlir::success();
- }
+  return mlir::success();
+}
 
 // void DelayOp::inferShapes() { getResult().setType(getOperand(0).getType()) ;}
-//getLHS defined with Operation as :
-//   fro addOp 
+// getLHS defined with Operation as :
+//   fro addOp
 //     ::mlir::TypedValue<::mlir::TensorType> AddOp::getLhs() {
-//   return ::llvm::cast<::mlir::TypedValue<::mlir::TensorType>>(*getODSOperands(0).begin());
+//   return
+//   ::llvm::cast<::mlir::TypedValue<::mlir::TensorType>>(*getODSOperands(0).begin());
 // }
-void DelayOp::inferShapes() { getResult().setType(getLhs().getType()) ;}
-
+void DelayOp::inferShapes() { getResult().setType(getLhs().getType()); }
 
 //===----------------------------------------------------------------------===//
 // GainOp
@@ -540,27 +542,31 @@ void DelayOp::inferShapes() { getResult().setType(getLhs().getType()) ;}
 // void GainOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
 //                          mlir::Value lhs, unsigned rhs){
 // void GainOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-//                          mlir::Value lhs, mlir::Float64Type rhs){    
+//                          mlir::Value lhs, mlir::Float64Type rhs){
 void GainOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                         mlir::Value lhs, mlir::Value rhs){ 
-    // state.addTypes(UnrankedTensorType::get(builder.getF64Type()), builder.getI32Type());
-    // state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
-    // state.addTypes({UnrankedTensorType::get(builder.getF64Type()), builder.getF64Type()}); //working
-    state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
-    state.addOperands({lhs, rhs});
-    // state.addOperands({rhs});
-    // state.addTypes();
-    // state.addAttribute("rhs", rhs);
-    // state.addAttribute("rhs", builder.getF64FloatAttr(builder.getF64Type()));
-    // state.addAttribute("rhs", builder.getF64Type());
-    // state.addAttribute("rhs", builder.getFloatAttr(builder.getF64Type() , rhs));
-    // state.addOperands(value);
- }
+                   mlir::Value lhs, mlir::Value rhs) {
+  // state.addTypes(UnrankedTensorType::get(builder.getF64Type()),
+  // builder.getI32Type());
+  // state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  // state.addTypes({UnrankedTensorType::get(builder.getF64Type()),
+  // builder.getF64Type()}); //working
+  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  state.addOperands({lhs, rhs});
+  // state.addOperands({rhs});
+  // state.addTypes();
+  // state.addAttribute("rhs", rhs);
+  // state.addAttribute("rhs", builder.getF64FloatAttr(builder.getF64Type()));
+  // state.addAttribute("rhs", builder.getF64Type());
+  // state.addAttribute("rhs", builder.getFloatAttr(builder.getF64Type() ,
+  // rhs)); state.addOperands(value);
+}
 
 //  mlir::LogicalResult GainOp::verify(){
-//     auto inputType1 = llvm::dyn_cast<RankedTensorType>(getOperand(0).getType());
-//     auto inputType2 = llvm::dyn_cast<Float64Type>(getOperand(1).getType());
-//     // auto inputType2 = llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
+//     auto inputType1 =
+//     llvm::dyn_cast<RankedTensorType>(getOperand(0).getType()); auto
+//     inputType2 = llvm::dyn_cast<Float64Type>(getOperand(1).getType());
+//     // auto inputType2 =
+//     llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
 //     // auto resultType = llvm::dyn_cast<RankedTensorType>(getType());
 //     // if(!inputType || !resultType)
 //     //   return mlir::success();
@@ -569,33 +575,34 @@ void GainOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
 //  }
 
 // void GainOp::inferShapes() { getResult().setType(getOperand(0).getType()) ;}
-//getLHS defined with Operation as :
-//   fro addOp 
+// getLHS defined with Operation as :
+//   fro addOp
 //     ::mlir::TypedValue<::mlir::TensorType> AddOp::getLhs() {
-//   return ::llvm::cast<::mlir::TypedValue<::mlir::TensorType>>(*getODSOperands(0).begin());
+//   return
+//   ::llvm::cast<::mlir::TypedValue<::mlir::TensorType>>(*getODSOperands(0).begin());
 // }
-void GainOp::inferShapes() { getResult().setType(getLhs().getType()) ;}
+void GainOp::inferShapes() { getResult().setType(getLhs().getType()); }
 
 //===----------------------------------------------------------------------===//
- // SubOp
- //===----------------------------------------------------------------------===//
+// SubOp
+//===----------------------------------------------------------------------===//
 
- void SubOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                   mlir::Value lhs, mlir::Value rhs) {
-   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
-   state.addOperands({lhs, rhs});
- }
+void SubOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                  mlir::Value lhs, mlir::Value rhs) {
+  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  state.addOperands({lhs, rhs});
+}
 
- // mlir::ParseResult SubOp::parse(mlir::OpAsmParser &parser,
- //                                mlir::OperationState &result) {
- //   return parseBinaryOp(parser, result);
- // }
+// mlir::ParseResult SubOp::parse(mlir::OpAsmParser &parser,
+//                                mlir::OperationState &result) {
+//   return parseBinaryOp(parser, result);
+// }
 
- // void SubOp::print(mlir::OpAsmPrinter &p) { printBinaryOp(p, *this); }
+// void SubOp::print(mlir::OpAsmPrinter &p) { printBinaryOp(p, *this); }
 
- /// Infer the output shape of the SubOp, this is required by the shape inference
- /// interface.
- void SubOp::inferShapes() { getResult().setType(getLhs().getType()); }
+/// Infer the output shape of the SubOp, this is required by the shape inference
+/// interface.
+void SubOp::inferShapes() { getResult().setType(getLhs().getType()); }
 
 //===----------------------------------------------------------------------===//
 // FFTRealOp
@@ -633,52 +640,53 @@ void zeroCrossCountOp::build(mlir::OpBuilder &builder, mlir::OperationState &sta
   state.addOperands({lhs});
 }
 
-/// Infer the output shape of the zeroCrossCountOp, this is required by the shape inference
- /// interface.
- void zeroCrossCountOp::inferShapes() { getResult().setType(getLhs().getType()); }
-
+/// Infer the output shape of the ZeroCrossCountOp, this is required by the
+/// shape inference interface.
+void ZeroCrossCountOp::inferShapes() {
+  getResult().setType(getLhs().getType());
+}
 
 //===----------------------------------------------------------------------===//
 // FIRFilterResponseOp
 //===----------------------------------------------------------------------===//
 
-void FIRFilterResponseOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                  mlir::Value lhs, mlir::Value rhs) {
+void FIRFilterResponseOp::build(mlir::OpBuilder &builder,
+                                mlir::OperationState &state, mlir::Value lhs,
+                                mlir::Value rhs) {
   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
   state.addOperands({lhs, rhs});
 }
 
-
-
-/// Infer the output shape of the FIRFilterResponseOp, this is required by the shape inference
-/// interface.
-//ToDo -- shape should be the length of Lhs + Rhs - 1
-void FIRFilterResponseOp::inferShapes() { 
-  //get the shape of Lhs & rhs 
-  //add the shape for each dimension
-  // auto tensorInput =  llvm::cast<RankedTensorType>(getLhs().getType());
-  auto tensorInput =  getLhs().getType();
+/// Infer the output shape of the FIRFilterResponseOp, this is required by the
+/// shape inference interface.
+// ToDo -- shape should be the length of Lhs + Rhs - 1
+void FIRFilterResponseOp::inferShapes() {
+  // get the shape of Lhs & rhs
+  // add the shape for each dimension
+  //  auto tensorInput =  llvm::cast<RankedTensorType>(getLhs().getType());
+  auto tensorInput = getLhs().getType();
   auto shapeOfInput = tensorInput.getShape();
 
   auto tensorFilter = getRhs().getType();
   auto shapeOfFilter = tensorFilter.getShape();
-  std::vector<int64_t> shapeForOutput ;
+  std::vector<int64_t> shapeForOutput;
 
-  for(size_t i=0; i < shapeOfInput.size() ; i++){
+  for (size_t i = 0; i < shapeOfInput.size(); i++) {
     shapeForOutput.push_back(shapeOfInput[i] + shapeOfFilter[i] - 1);
   }
-  
-  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(shapeForOutput, 
-          getLhs().getType().getElementType());
 
-  // getResult().setType(getLhs().getType()); 
+  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(
+      shapeForOutput, getLhs().getType().getElementType());
+
+  // getResult().setType(getLhs().getType());
   getResult().setType(manipulatedType);
-  }
+}
 
-//get rank of Input & Filter -- make sure it is of rank 1 
+// get rank of Input & Filter -- make sure it is of rank 1
 mlir::LogicalResult FIRFilterResponseOp::verify() {
   // auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand(0).getType());
-  // auto filterType = llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
+  // auto filterType =
+  // llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
   // // auto resultType = llvm::dyn_cast<RankedTensorType>(getType());
 
   // auto inputRank = inputType.getRank();
@@ -691,41 +699,39 @@ mlir::LogicalResult FIRFilterResponseOp::verify() {
   // }
 
   return mlir::success();
-} 
-
+}
 
 //===----------------------------------------------------------------------===//
 // SlidingWindowAvgOp
 //===----------------------------------------------------------------------===//
 
-void SlidingWindowAvgOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value value) {
+void SlidingWindowAvgOp::build(mlir::OpBuilder &builder,
+                               mlir::OperationState &state, mlir::Value value) {
   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
   state.addOperands(value);
 }
 
 void SlidingWindowAvgOp::inferShapes() {
-  //for each rank
-  //Get the shape/size of input 
-  //output size = input_size - 2
+  // for each rank
+  // Get the shape/size of input
+  // output size = input_size - 2
   auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand().getType());
 
   auto shapeOfInput = inputType.getShape();
 
   std::vector<int64_t> shapeForOutput;
 
-  //Iterate for each rank : tensor<1x2x3x2> = rank 4
-  for(size_t i=0; i < shapeOfInput.size() ; i++){
+  // Iterate for each rank : tensor<1x2x3x2> = rank 4
+  for (size_t i = 0; i < shapeOfInput.size(); i++) {
     shapeForOutput.push_back(shapeOfInput[i] - 2);
   }
 
-  mlir::TensorType outputType = mlir::RankedTensorType::get(shapeForOutput, 
-    getInput().getType().getElementType());
-    // getOperand().getType());
-    // getOperand().getType().getElementType());
+  mlir::TensorType outputType = mlir::RankedTensorType::get(
+      shapeForOutput, getInput().getType().getElementType());
+  // getOperand().getType());
+  // getOperand().getType().getElementType());
 
   getResult().setType(outputType);
-
 }
 
 mlir::LogicalResult SlidingWindowAvgOp::verify() {
@@ -740,7 +746,8 @@ mlir::LogicalResult SlidingWindowAvgOp::verify() {
 
   // for(size_t i=0; i < shapeOfInput.size() ; i++){
   //   if(shapeOfInput[i] < 3){
-  //     llvm::errs() << "Warning:SlidingWindowAvgOp = Input size < 3 " << "size= " << shapeOfInput[i] << "\n"  ;
+  //     llvm::errs() << "Warning:SlidingWindowAvgOp = Input size < 3 " <<
+  //     "size= " << shapeOfInput[i] << "\n"  ;
   //   }
   // }
 
@@ -751,221 +758,226 @@ mlir::LogicalResult SlidingWindowAvgOp::verify() {
 // DownsamplingOp
 //===----------------------------------------------------------------------===//
 
-void DownsamplingOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                  mlir::Value lhs, mlir::Value rhs) {
+void DownsamplingOp::build(mlir::OpBuilder &builder,
+                           mlir::OperationState &state, mlir::Value lhs,
+                           mlir::Value rhs) {
   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
   state.addOperands({lhs, rhs});
 }
 
-
-
-/// Infer the output shape of the DownsamplingOp, this is required by the shape inference
-/// interface.
-//ToDo -- shape should be the length of Lhs + Rhs - 1
-void DownsamplingOp::inferShapes() { 
-  //get the shape of Lhs & rhs 
-  //add the shape for each dimension
-  // auto tensorInput =  llvm::cast<RankedTensorType>(getLhs().getType());
-  auto tensorInput =  getLhs().getType();
+/// Infer the output shape of the DownsamplingOp, this is required by the shape
+/// inference interface.
+// ToDo -- shape should be the length of Lhs + Rhs - 1
+void DownsamplingOp::inferShapes() {
+  // get the shape of Lhs & rhs
+  // add the shape for each dimension
+  //  auto tensorInput =  llvm::cast<RankedTensorType>(getLhs().getType());
+  auto tensorInput = getLhs().getType();
   auto shapeOfInput = tensorInput.getShape();
 
-  // auto tensorDownsampling = getRhs().getType(); 
-  // auto shapeOfDownsampling = tensorDownsampling.getShape(); //shape is the dimension
-  
+  // auto tensorDownsampling = getRhs().getType();
+  // auto shapeOfDownsampling = tensorDownsampling.getShape(); //shape is the
+  // dimension
 
-  std::vector<int64_t> shapeForOutput ;
+  std::vector<int64_t> shapeForOutput;
 
   int64_t SecondValueInt = 1;
 
-  //To extract value from the SSA value:
-    //get the Operand 
-    //convert it to ConstantOp
-    //convert it to corresponding elements attribute
-    //extract the value as float then convert to int
+  // To extract value from the SSA value:
+  // get the Operand
+  // convert it to ConstantOp
+  // convert it to corresponding elements attribute
+  // extract the value as float then convert to int
   Value downsampling2ndArg = getOperand(1);
-  dsp::ConstantOp constantOp2ndArg = downsampling2ndArg.getDefiningOp<dsp::ConstantOp>();
-  DenseElementsAttr constantRhsValue = constantOp2ndArg.getValue();;
+  dsp::ConstantOp constantOp2ndArg =
+      downsampling2ndArg.getDefiningOp<dsp::ConstantOp>();
+  DenseElementsAttr constantRhsValue = constantOp2ndArg.getValue();
+  ;
   auto elements = constantRhsValue.getValues<FloatAttr>();
   float SecondValue = elements[0].getValueAsDouble();
-  SecondValueInt = (int64_t) SecondValue;
-  // llvm::errs() << "Downsampling: SamplingRate: " << SecondValueInt << " \n"; //downsamplingRate
-    
+  SecondValueInt = (int64_t)SecondValue;
+  // llvm::errs() << "Downsampling: SamplingRate: " << SecondValueInt << " \n";
+  // //downsamplingRate
 
-  for(size_t i=0; i < shapeOfInput.size() ; i++){
-    double GetLenForOutput  = static_cast<double>(shapeOfInput[i] )/ SecondValueInt ;
-    if(fmod(GetLenForOutput, 1.0) != 0) {
-      //if remainder remains
+  for (size_t i = 0; i < shapeOfInput.size(); i++) {
+    double GetLenForOutput =
+        static_cast<double>(shapeOfInput[i]) / SecondValueInt;
+    if (fmod(GetLenForOutput, 1.0) != 0) {
+      // if remainder remains
       GetLenForOutput = ceil(GetLenForOutput);
     }
-    int64_t OutlenInt = static_cast<int64_t> (GetLenForOutput);
+    int64_t OutlenInt = static_cast<int64_t>(GetLenForOutput);
     llvm::errs() << "Downsampling: OutlenInt: " << OutlenInt << " \n";
     shapeForOutput.push_back(OutlenInt);
   }
-  
-  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(shapeForOutput, 
-          getLhs().getType().getElementType());
 
-  // getResult().setType(getLhs().getType()); 
+  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(
+      shapeForOutput, getLhs().getType().getElementType());
+
+  // getResult().setType(getLhs().getType());
   getResult().setType(manipulatedType);
-  }
+}
 
-//get rank of Input & Downsampling -- make sure it is of rank 1 
+// get rank of Input & Downsampling -- make sure it is of rank 1
 mlir::LogicalResult DownsamplingOp::verify() {
   // auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand(0).getType());
-  // auto samplingRateType = llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
+  // auto samplingRateType =
+  // llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
   // // auto resultType = llvm::dyn_cast<RankedTensorType>(getType());
 
   // auto inputRank = inputType.getRank();
   // auto samplingRateRank = samplingRateType.getRank();
 
-  // // llvm::errs() << "inputRank: " << inputRank << " samplingRateRank: " << samplingRateRank << "\n";
-  // //once ensured only 1 rank from above -- also make sure there is just 1 elem  
-  // if( inputRank != 1 || samplingRateRank != 0 )
+  // // llvm::errs() << "inputRank: " << inputRank << " samplingRateRank: " <<
+  // samplingRateRank << "\n";
+  // //once ensured only 1 rank from above -- also make sure there is just 1
+  // elem if( inputRank != 1 || samplingRateRank != 0 )
   // {
-  //   llvm::errs() << "inputRank: " << inputRank << " samplingRateRank: " << samplingRateRank << "\n";
-  //   return emitError()
+  //   llvm::errs() << "inputRank: " << inputRank << " samplingRateRank: " <<
+  //   samplingRateRank << "\n"; return emitError()
   //          << "expected rank of input & Downsampling is 1";
   // }
   return mlir::success();
-} 
+}
 
 //===----------------------------------------------------------------------===//
 // UpsamplingOp
 //===----------------------------------------------------------------------===//
 
 void UpsamplingOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                  mlir::Value lhs, mlir::Value rhs) {
+                         mlir::Value lhs, mlir::Value rhs) {
   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
   state.addOperands({lhs, rhs});
 }
 
-
-
-/// Infer the output shape of the UpsamplingOp, this is required by the shape inference
-/// interface.
-//ToDo -- shape should be the length of input * UpsamplingRate ie, Rhs
-void UpsamplingOp::inferShapes() { 
-  //get the shape of Lhs & rhs 
-  //add the shape for each dimension
-  // auto tensorInput =  llvm::cast<RankedTensorType>(getLhs().getType());
-  auto tensorInput =  getLhs().getType();
+/// Infer the output shape of the UpsamplingOp, this is required by the shape
+/// inference interface.
+// ToDo -- shape should be the length of input * UpsamplingRate ie, Rhs
+void UpsamplingOp::inferShapes() {
+  // get the shape of Lhs & rhs
+  // add the shape for each dimension
+  //  auto tensorInput =  llvm::cast<RankedTensorType>(getLhs().getType());
+  auto tensorInput = getLhs().getType();
   auto shapeOfInput = tensorInput.getShape();
 
-  // auto tensorUpsampling = getRhs().getType(); 
+  // auto tensorUpsampling = getRhs().getType();
   // auto shapeOfUpsampling = tensorUpsampling.getShape(); //shape is the length
-  
 
-  std::vector<int64_t> shapeForOutput ;
+  std::vector<int64_t> shapeForOutput;
 
   int64_t SecondValueInt = 1;
 
-  //To extract value from the SSA value:
-    //get the Operand 
-    //convert it to ConstantOp
-    //convert it to corresponding elements attribute
-    //extract the value as float then convert to int
+  // To extract value from the SSA value:
+  // get the Operand
+  // convert it to ConstantOp
+  // convert it to corresponding elements attribute
+  // extract the value as float then convert to int
   Value upsampling2ndArg = getOperand(1);
-  dsp::ConstantOp constantOp2ndArg = upsampling2ndArg.getDefiningOp<dsp::ConstantOp>();
-  DenseElementsAttr constantRhsValue = constantOp2ndArg.getValue();;
+  dsp::ConstantOp constantOp2ndArg =
+      upsampling2ndArg.getDefiningOp<dsp::ConstantOp>();
+  DenseElementsAttr constantRhsValue = constantOp2ndArg.getValue();
+  ;
   auto elements = constantRhsValue.getValues<FloatAttr>();
   float SecondValue = elements[0].getValueAsDouble();
-  SecondValueInt = (int64_t) SecondValue;
-  // llvm::errs() << "Upsampling: SamplingRate: " << SecondValueInt << " \n"; //downsamplingRate
-    
+  SecondValueInt = (int64_t)SecondValue;
+  // llvm::errs() << "Upsampling: SamplingRate: " << SecondValueInt << " \n";
+  // //downsamplingRate
 
-  for(size_t i=0; i < shapeOfInput.size() ; i++){
-    double GetLenForOutput  = static_cast<double>(shapeOfInput[i] ) * SecondValueInt ;
-    int64_t OutlenInt = static_cast<int64_t> (GetLenForOutput);
+  for (size_t i = 0; i < shapeOfInput.size(); i++) {
+    double GetLenForOutput =
+        static_cast<double>(shapeOfInput[i]) * SecondValueInt;
+    int64_t OutlenInt = static_cast<int64_t>(GetLenForOutput);
     llvm::errs() << "Upsampling: OutlenInt: " << OutlenInt << " \n";
     shapeForOutput.push_back(OutlenInt);
   }
-  
-  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(shapeForOutput, 
-          getLhs().getType().getElementType());
 
-  // getResult().setType(getLhs().getType()); 
+  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(
+      shapeForOutput, getLhs().getType().getElementType());
+
+  // getResult().setType(getLhs().getType());
   getResult().setType(manipulatedType);
-  }
+}
 
-//get rank of Input & Upsampling -- make sure it is of rank 1 
+// get rank of Input & Upsampling -- make sure it is of rank 1
 mlir::LogicalResult UpsamplingOp::verify() {
   // auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand(0).getType());
-  // auto samplingRateType = llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
+  // auto samplingRateType =
+  // llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
   // // auto resultType = llvm::dyn_cast<RankedTensorType>(getType());
 
   // auto inputRank = inputType.getRank();
   // auto samplingRateRank = samplingRateType.getRank();
 
-  // // llvm::errs() << "inputRank: " << inputRank << " samplingRateRank: " << samplingRateRank << "\n";
-  // //once ensured only 1 rank from above -- also make sure there is just 1 elem  
-  // if( inputRank != 1 || samplingRateRank != 0 )
+  // // llvm::errs() << "inputRank: " << inputRank << " samplingRateRank: " <<
+  // samplingRateRank << "\n";
+  // //once ensured only 1 rank from above -- also make sure there is just 1
+  // elem if( inputRank != 1 || samplingRateRank != 0 )
   // {
-  //   llvm::errs() << "inputRank: " << inputRank << " samplingRateRank: " << samplingRateRank << "\n";
-  //   return emitError()
+  //   llvm::errs() << "inputRank: " << inputRank << " samplingRateRank: " <<
+  //   samplingRateRank << "\n"; return emitError()
   //          << "expected rank of input is 1 & Upsampling is 0";
   // }
   return mlir::success();
-} 
-
+}
 
 //===----------------------------------------------------------------------===//
 // LowPassFilter1stOrderOp
 //===----------------------------------------------------------------------===//
 
-void LowPassFilter1stOrderOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                  mlir::Value lhs, mlir::Value rhs) {
+void LowPassFilter1stOrderOp::build(mlir::OpBuilder &builder,
+                                    mlir::OperationState &state,
+                                    mlir::Value lhs, mlir::Value rhs) {
   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
   state.addOperands({lhs, rhs});
 }
 
-
-
-/// Infer the output shape of the LowPassFilter1stOrderOp, this is required by the shape inference
-/// interface.
-void LowPassFilter1stOrderOp::inferShapes() { 
-  //get the shape of Lhs & rhs 
-  // auto tensorInput =  llvm::cast<RankedTensorType>(getLhs().getType());
-  auto tensorInput =  getLhs().getType(); 
+/// Infer the output shape of the LowPassFilter1stOrderOp, this is required by
+/// the shape inference interface.
+void LowPassFilter1stOrderOp::inferShapes() {
+  // get the shape of Lhs & rhs
+  //  auto tensorInput =  llvm::cast<RankedTensorType>(getLhs().getType());
+  auto tensorInput = getLhs().getType();
   getResult().setType(tensorInput);
 }
 
-//get rank of Input & alphaValue -- make sure it is of rank 1 
+// get rank of Input & alphaValue -- make sure it is of rank 1
 mlir::LogicalResult LowPassFilter1stOrderOp::verify() {
   // auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand(0).getType());
-  // auto alphaValueType = llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
+  // auto alphaValueType =
+  // llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
   // // auto resultType = llvm::dyn_cast<RankedTensorType>(getType());
 
   // auto inputRank = inputType.getRank();
   // auto alphaValueRank = alphaValueType.getRank();
 
-  // // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " << alphaValueRank << "\n";
-  // //once ensured only 1 rank from above -- also make sure there is just 1 elem  
-  // if( inputRank != 1 || alphaValueRank != 0 )
+  // // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " <<
+  // alphaValueRank << "\n";
+  // //once ensured only 1 rank from above -- also make sure there is just 1
+  // elem if( inputRank != 1 || alphaValueRank != 0 )
   // {
-  //   llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " << alphaValueRank << "\n";
-  //   return emitError()
+  //   llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " <<
+  //   alphaValueRank << "\n"; return emitError()
   //          << "expected rank of input & Upsampling is 1";
   // }
   return mlir::success();
-} 
+}
 
 //===----------------------------------------------------------------------===//
 // HighPassFilterOp
 //===----------------------------------------------------------------------===//
 
-void HighPassFilterOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value value) {
+void HighPassFilterOp::build(mlir::OpBuilder &builder,
+                             mlir::OperationState &state, mlir::Value value) {
   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
   state.addOperands(value);
 }
 
 void HighPassFilterOp::inferShapes() {
-  //for each rank
-  //Get the shape/size of input 
-  //output size = input_size 
-  auto tensorInput =  getInput().getType(); 
+  // for each rank
+  // Get the shape/size of input
+  // output size = input_size
+  auto tensorInput = getInput().getType();
   getResult().setType(tensorInput);
-
 }
 
 mlir::LogicalResult HighPassFilterOp::verify() {
@@ -973,7 +985,7 @@ mlir::LogicalResult HighPassFilterOp::verify() {
   // auto inputRank = inputType.getRank();
 
   // llvm::errs() << "inputRank: " << inputRank <<  "\n";
-  // //once ensured only 1 rank from above --   
+  // //once ensured only 1 rank from above --
   // if( inputRank != 1 )
   // {
   //   llvm::errs() << "inputRank: " << inputRank <<  "\n";
@@ -983,25 +995,24 @@ mlir::LogicalResult HighPassFilterOp::verify() {
   return mlir::success();
 }
 
-
 //===----------------------------------------------------------------------===//
 // FFT1DOp
 //===----------------------------------------------------------------------===//
 
 void FFT1DOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value value) {
-  DEBUG_PRINT_NO_ARGS() ;
-  state.addTypes({UnrankedTensorType::get(builder.getF64Type()), 
-                UnrankedTensorType::get(builder.getF64Type())});
+                    mlir::Value value) {
+  DEBUG_PRINT_NO_ARGS();
+  state.addTypes({UnrankedTensorType::get(builder.getF64Type()),
+                  UnrankedTensorType::get(builder.getF64Type())});
   state.addOperands(value);
-  DEBUG_PRINT_NO_ARGS() ;
+  DEBUG_PRINT_NO_ARGS();
 }
 
 void FFT1DOp::inferShapes() {
-  //for each rank
-  //Get the shape/size of input 
-  //output size = input_size 
-  auto tensorInput =  getInput().getType(); 
+  // for each rank
+  // Get the shape/size of input
+  // output size = input_size
+  auto tensorInput = getInput().getType();
   // getResult().setType(tensorInput);
   getResult(0).setType(tensorInput);
   getResult(1).setType(tensorInput);
@@ -1009,12 +1020,13 @@ void FFT1DOp::inferShapes() {
 }
 
 mlir::LogicalResult FFT1DOp::verify() {
-  DEBUG_PRINT_NO_ARGS() ;
+  DEBUG_PRINT_NO_ARGS();
   // auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand().getType());
   // auto inputRank = inputType.getRank();
 
-  // // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " << alphaValueRank << "\n";
-  // //once ensured only 1 rank from above --   
+  // // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " <<
+  // alphaValueRank << "\n";
+  // //once ensured only 1 rank from above --
   // if( inputRank != 1 )
   // {
   //   llvm::errs() << "inputRank: " << inputRank <<  "\n";
@@ -1024,36 +1036,36 @@ mlir::LogicalResult FFT1DOp::verify() {
   return mlir::success();
 }
 
-
 //===----------------------------------------------------------------------===//
 // IFFT1DOp
 //===----------------------------------------------------------------------===//
 
 void IFFT1DOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value real, mlir::Value img) {
-  DEBUG_PRINT_NO_ARGS() ;
+                     mlir::Value real, mlir::Value img) {
+  DEBUG_PRINT_NO_ARGS();
   state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
-  state.addOperands({real , img});
-  DEBUG_PRINT_NO_ARGS() ;
+  state.addOperands({real, img});
+  DEBUG_PRINT_NO_ARGS();
 }
 
 void IFFT1DOp::inferShapes() {
-  //for each rank
-  //Get the shape/size of input 
-  //output size = input_size 
-  auto tensorInput =  getReal().getType(); 
+  // for each rank
+  // Get the shape/size of input
+  // output size = input_size
+  auto tensorInput = getReal().getType();
   getResult().setType(tensorInput);
   // getResult(0).setType(tensorInput);
   // getResult(1).setType(tensorInput);
 }
 
 mlir::LogicalResult IFFT1DOp::verify() {
-  DEBUG_PRINT_NO_ARGS() ;
+  DEBUG_PRINT_NO_ARGS();
   // auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand().getType());
   // auto inputRank = inputType.getRank();
 
-  // // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " << alphaValueRank << "\n";
-  // //once ensured only 1 rank from above --   
+  // // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " <<
+  // alphaValueRank << "\n";
+  // //once ensured only 1 rank from above --
   // if( inputRank != 1 )
   // {
   //   llvm::errs() << "inputRank: " << inputRank <<  "\n";
@@ -1067,55 +1079,54 @@ mlir::LogicalResult IFFT1DOp::verify() {
 // HammingWindowOp
 //===----------------------------------------------------------------------===//
 
-void HammingWindowOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value value) {
+void HammingWindowOp::build(mlir::OpBuilder &builder,
+                            mlir::OperationState &state, mlir::Value value) {
   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
   state.addOperands(value);
 }
 
 void HammingWindowOp::inferShapes() {
-  //for each rank
-  //Get the shape/size of input 
-  //output size = input_size 
-  // auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand().getType());
+  // for each rank
+  // Get the shape/size of input
+  // output size = input_size
+  //  auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand().getType());
 
   // auto shapeOfInput = inputType.getShape();
 
-  std::vector<int64_t> shapeForOutput ;
+  std::vector<int64_t> shapeForOutput;
 
   int64_t FirstOpInt = 1;
 
-  //To extract value from the SSA value:
-    //get the Operand 
-    //convert it to ConstantOp
-    //convert it to corresponding elements attribute
-    //extract the value as float then convert to int
+  // To extract value from the SSA value:
+  // get the Operand
+  // convert it to ConstantOp
+  // convert it to corresponding elements attribute
+  // extract the value as float then convert to int
   // llvm::errs() << "LINE " << __LINE__ << " file= " << __FILE__ << "\n" ;
   Value hammingLen = getOperand();
-  dsp::ConstantOp constantOp1stArg = hammingLen.getDefiningOp<dsp::ConstantOp>();
+  dsp::ConstantOp constantOp1stArg =
+      hammingLen.getDefiningOp<dsp::ConstantOp>();
   // llvm::errs() << "LINE " << __LINE__ << " file= " << __FILE__ << "\n" ;
   DenseElementsAttr constantLhsValue = constantOp1stArg.getValue();
   // llvm::errs() << "LINE " << __LINE__ << " file= " << __FILE__ << "\n" ;
   auto elements = constantLhsValue.getValues<FloatAttr>();
   float FirstValue = elements[0].getValueAsDouble();
-  FirstOpInt = (int64_t) FirstValue;
+  FirstOpInt = (int64_t)FirstValue;
   // llvm::errs() << "FirstOpInt " << FirstOpInt << "\n" ;
   // llvm::errs() << "shapeOfInput.size() " << shapeOfInput.size() << "\n" ;
 
   // for(size_t i=0; i < shapeOfInput.size() ; i++){
-    // llvm::errs() << "LINE " << __LINE__ << " file= " << __FILE__ << "\n" ;
-    shapeForOutput.push_back(FirstOpInt);
+  // llvm::errs() << "LINE " << __LINE__ << " file= " << __FILE__ << "\n" ;
+  shapeForOutput.push_back(FirstOpInt);
   // }
 
-  mlir::TensorType outputType = mlir::RankedTensorType::get(shapeForOutput, 
-    getInput().getType().getElementType());
-    // getOperand().getType());
-    // getOperand().getType().getElementType());
+  mlir::TensorType outputType = mlir::RankedTensorType::get(
+      shapeForOutput, getInput().getType().getElementType());
+  // getOperand().getType());
+  // getOperand().getType().getElementType());
 
   getResult().setType(outputType);
   // llvm::errs() << "LINE " << __LINE__ << " file= " << __FILE__ << "\n" ;
-  
-
 }
 
 mlir::LogicalResult HammingWindowOp::verify() {
@@ -1130,7 +1141,8 @@ mlir::LogicalResult HammingWindowOp::verify() {
 
   // for(size_t i=0; i < shapeOfInput.size() ; i++){
   //   if(shapeOfInput[i] < 3){
-  //     llvm::errs() << "Warning:HammingWindowOp = Input size < 3 " << "size= " << shapeOfInput[i] << "\n"  ;
+  //     llvm::errs() << "Warning:HammingWindowOp = Input size < 3 " << "size= "
+  //     << shapeOfInput[i] << "\n"  ;
   //   }
   // }
 
@@ -1142,7 +1154,7 @@ mlir::LogicalResult HammingWindowOp::verify() {
 //===----------------------------------------------------------------------===//
 
 void DCTOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value value) {
+                  mlir::Value value) {
   // DEBUG_PRINT_NO_ARGS() ;
   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
   state.addOperands(value);
@@ -1150,10 +1162,10 @@ void DCTOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
 }
 
 void DCTOp::inferShapes() {
-  //for each rank
-  //Get the shape/size of input 
-  //output size = input_size 
-  auto tensorInput =  getInput().getType(); 
+  // for each rank
+  // Get the shape/size of input
+  // output size = input_size
+  auto tensorInput = getInput().getType();
   getResult().setType(tensorInput);
   // getResult(0).setType(tensorInput);
   // getResult(1).setType(tensorInput);
@@ -1164,46 +1176,42 @@ mlir::LogicalResult DCTOp::verify() {
   auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand().getType());
   auto inputRank = inputType.getRank();
 
-  // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " << alphaValueRank << "\n";
-  //once ensured only 1 rank from above --   
-  if( inputRank != 1 )
-  {
-    llvm::errs() << "inputRank: " << inputRank <<  "\n";
-    return emitError()
-           << "expected rank of input  is 1";
+  // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " <<
+  // alphaValueRank << "\n";
+  // once ensured only 1 rank from above --
+  if (inputRank != 1) {
+    llvm::errs() << "inputRank: " << inputRank << "\n";
+    return emitError() << "expected rank of input  is 1";
   }
   return mlir::success();
 }
-
-
 
 //===----------------------------------------------------------------------===//
 // filterOp
 //===----------------------------------------------------------------------===//
 
 void filterOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                  mlir::Value b, mlir::Value a, mlir::Value x) {
+                     mlir::Value b, mlir::Value a, mlir::Value x) {
   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
   state.addOperands({b, a, x});
 }
 
+/// Infer the output shape of the filterOp, this is required by the shape
+/// inference interface.
+// ToDo -- shape should be the length of Lhs + Rhs - 1
+void filterOp::inferShapes() {
+  // get the shape of Lhs & rhs
+  // add the shape for each dimension
+  //  auto tensorInput =  llvm::cast<RankedTensorType>(getLhs().getType());
+  auto tensorInput = getX().getType();
+  getResult().setType(tensorInput);
+}
 
-
-/// Infer the output shape of the filterOp, this is required by the shape inference
-/// interface.
-//ToDo -- shape should be the length of Lhs + Rhs - 1
-void filterOp::inferShapes() { 
-  //get the shape of Lhs & rhs 
-  //add the shape for each dimension
-  // auto tensorInput =  llvm::cast<RankedTensorType>(getLhs().getType());
-  auto tensorInput =  getX().getType();
-  getResult().setType(tensorInput );
-  }
-
-//get rank of Input & Filter -- make sure it is of rank 1 
+// get rank of Input & Filter -- make sure it is of rank 1
 mlir::LogicalResult filterOp::verify() {
   // auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand(0).getType());
-  // auto filterType = llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
+  // auto filterType =
+  // llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
   // // auto resultType = llvm::dyn_cast<RankedTensorType>(getType());
 
   // auto inputRank = inputType.getRank();
@@ -1216,15 +1224,14 @@ mlir::LogicalResult filterOp::verify() {
   // }
 
   return mlir::success();
-} 
-
+}
 
 //===----------------------------------------------------------------------===//
 // SumOp
 //===----------------------------------------------------------------------===//
 
 void SumOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value value) {
+                  mlir::Value value) {
   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
   state.addOperands(value);
 }
@@ -1236,8 +1243,8 @@ void SumOp::inferShapes() {
 
   shapeForOutput.push_back(1);
 
-  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(shapeForOutput, 
-          getInput().getType().getElementType());
+  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(
+      shapeForOutput, getInput().getType().getElementType());
   getResult().setType(manipulatedType);
 }
 
@@ -1256,96 +1263,99 @@ mlir::LogicalResult SumOp::verify() {
   return mlir::success();
 }
 
- //===----------------------------------------------------------------------===//
- // CosOp
- //===----------------------------------------------------------------------===//
+//===----------------------------------------------------------------------===//
+// CosOp
+//===----------------------------------------------------------------------===//
 
- void CosOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                         mlir::Value value) {
-   // DEBUG_PRINT_NO_ARGS() ;
-   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
-   state.addOperands(value);
-   // DEBUG_PRINT_NO_ARGS() ;
- }
+void CosOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                  mlir::Value value) {
+  // DEBUG_PRINT_NO_ARGS() ;
+  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  state.addOperands(value);
+  // DEBUG_PRINT_NO_ARGS() ;
+}
 
- void CosOp::inferShapes() {
-   //for each rank
-   //Get the shape/size of input 
-   //output size = input_size 
-   auto tensorInput =  getInput().getType(); 
-   getResult().setType(tensorInput);
-   // getResult(0).setType(tensorInput);
-   // getResult(1).setType(tensorInput);
- }
+void CosOp::inferShapes() {
+  // for each rank
+  // Get the shape/size of input
+  // output size = input_size
+  auto tensorInput = getInput().getType();
+  getResult().setType(tensorInput);
+  // getResult(0).setType(tensorInput);
+  // getResult(1).setType(tensorInput);
+}
 
- mlir::LogicalResult CosOp::verify() {
-   // DEBUG_PRINT_NO_ARGS() ;
+mlir::LogicalResult CosOp::verify() {
+  // DEBUG_PRINT_NO_ARGS() ;
   //  auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand().getType());
   //  auto inputRank = inputType.getRank();
 
-  //  // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " << alphaValueRank << "\n";
-  //  //once ensured only 1 rank from above --   
+  //  // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " <<
+  //  alphaValueRank << "\n";
+  //  //once ensured only 1 rank from above --
   //  if( inputRank != 1 )
   //  {
   //    llvm::errs() << "inputRank: " << inputRank <<  "\n";
   //    return emitError()
   //           << "expected rank of input  is 1";
   //  }
-   return mlir::success();
- }
+  return mlir::success();
+}
 
- //===----------------------------------------------------------------------===//
- // SinOp
- //===----------------------------------------------------------------------===//
+//===----------------------------------------------------------------------===//
+// SinOp
+//===----------------------------------------------------------------------===//
 
- void SinOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                         mlir::Value value) {
-   // DEBUG_PRINT_NO_ARGS() ;
-   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
-   state.addOperands(value);
-   // DEBUG_PRINT_NO_ARGS() ;
- }
+void SinOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                  mlir::Value value) {
+  // DEBUG_PRINT_NO_ARGS() ;
+  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  state.addOperands(value);
+  // DEBUG_PRINT_NO_ARGS() ;
+}
 
- void SinOp::inferShapes() {
-   //for each rank
-   //Get the shape/size of input 
-   //output size = input_size 
-   auto tensorInput =  getInput().getType(); 
-   getResult().setType(tensorInput);
-   // getResult(0).setType(tensorInput);
-   // getResult(1).setType(tensorInput);
- }
+void SinOp::inferShapes() {
+  // for each rank
+  // Get the shape/size of input
+  // output size = input_size
+  auto tensorInput = getInput().getType();
+  getResult().setType(tensorInput);
+  // getResult(0).setType(tensorInput);
+  // getResult(1).setType(tensorInput);
+}
 
- mlir::LogicalResult SinOp::verify() {
-   // DEBUG_PRINT_NO_ARGS() ;
+mlir::LogicalResult SinOp::verify() {
+  // DEBUG_PRINT_NO_ARGS() ;
   //  auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand().getType());
   //  auto inputRank = inputType.getRank();
 
-  //  // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " << alphaValueRank << "\n";
-  //  //once ensured only 1 rank from above --   
+  //  // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " <<
+  //  alphaValueRank << "\n";
+  //  //once ensured only 1 rank from above --
   //  if( inputRank != 1 )
   //  {
   //    llvm::errs() << "inputRank: " << inputRank <<  "\n";
   //    return emitError()
   //           << "expected rank of input  is 1";
   //  }
-   return mlir::success();
- }
+  return mlir::success();
+}
 
 //===----------------------------------------------------------------------===//
 // SquareOp
 //===----------------------------------------------------------------------===//
 
 void SquareOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value value) {
+                     mlir::Value value) {
   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
   state.addOperands(value);
 }
 
 void SquareOp::inferShapes() {
-  auto tensorInput =  getInput().getType();
-  // mlir::TensorType manipulatedType = mlir::RankedTensorType::get(shapeForOutput, 
-          // getInput().getType().getElementType());
+  auto tensorInput = getInput().getType();
+  // mlir::TensorType manipulatedType =
+  // mlir::RankedTensorType::get(shapeForOutput,
+  // getInput().getType().getElementType());
   getResult().setType(tensorInput);
 }
 
@@ -1370,17 +1380,17 @@ mlir::LogicalResult SquareOp::verify() {
 
 void FFT1DRealOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                         mlir::Value value) {
-  DEBUG_PRINT_NO_ARGS() ;
+  DEBUG_PRINT_NO_ARGS();
   state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
   state.addOperands(value);
-  DEBUG_PRINT_NO_ARGS() ;
+  DEBUG_PRINT_NO_ARGS();
 }
 
 void FFT1DRealOp::inferShapes() {
-  //for each rank
-  //Get the shape/size of input 
-  //output size = input_size 
-  auto tensorInput =  getInput().getType(); 
+  // for each rank
+  // Get the shape/size of input
+  // output size = input_size
+  auto tensorInput = getInput().getType();
   // getResult().setType(tensorInput);
   getResult().setType(tensorInput);
   // getResult(2).setType(tensorInput);
@@ -1391,8 +1401,9 @@ mlir::LogicalResult FFT1DRealOp::verify() {
   // auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand().getType());
   // auto inputRank = inputType.getRank();
 
-  // // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " << alphaValueRank << "\n";
-  // //once ensured only 1 rank from above --   
+  // // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " <<
+  // alphaValueRank << "\n";
+  // //once ensured only 1 rank from above --
   // if( inputRank != 1 )
   // {
   //   llvm::errs() << "inputRank: " << inputRank <<  "\n";
@@ -1407,30 +1418,31 @@ mlir::LogicalResult FFT1DRealOp::verify() {
 //===----------------------------------------------------------------------===//
 
 void FFT1DImgOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value value) {
-  DEBUG_PRINT_NO_ARGS() ;
+                       mlir::Value value) {
+  DEBUG_PRINT_NO_ARGS();
   state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
   state.addOperands(value);
-  DEBUG_PRINT_NO_ARGS() ;
+  DEBUG_PRINT_NO_ARGS();
 }
 
 void FFT1DImgOp::inferShapes() {
-  //for each rank
-  //Get the shape/size of input 
-  //output size = input_size 
-  auto tensorInput =  getInput().getType(); 
+  // for each rank
+  // Get the shape/size of input
+  // output size = input_size
+  auto tensorInput = getInput().getType();
   // getResult().setType(tensorInput);
   getResult().setType(tensorInput);
   // getResult(2).setType(tensorInput);
 }
 
 mlir::LogicalResult FFT1DImgOp::verify() {
-  DEBUG_PRINT_NO_ARGS() ;
+  DEBUG_PRINT_NO_ARGS();
   // auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand().getType());
   // auto inputRank = inputType.getRank();
 
-  // // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " << alphaValueRank << "\n";
-  // //once ensured only 1 rank from above --   
+  // // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " <<
+  // alphaValueRank << "\n";
+  // //once ensured only 1 rank from above --
   // if( inputRank != 1 )
   // {
   //   llvm::errs() << "inputRank: " << inputRank <<  "\n";
@@ -1445,30 +1457,30 @@ mlir::LogicalResult FFT1DImgOp::verify() {
 //===----------------------------------------------------------------------===//
 
 void SincOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value wc, mlir::Value n) {
-  DEBUG_PRINT_NO_ARGS() ;
+                   mlir::Value wc, mlir::Value n) {
+  DEBUG_PRINT_NO_ARGS();
   state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
   state.addOperands({wc, n});
-  DEBUG_PRINT_NO_ARGS() ;
+  DEBUG_PRINT_NO_ARGS();
 }
 
 void SincOp::inferShapes() {
-  //for each rank
-  //Get the shape/size of input 
-  //output size = input_size 
-  // auto inputType = llvm::dyn_cast<RankedTensorType>(getN().getType());
+  // for each rank
+  // Get the shape/size of input
+  // output size = input_size
+  //  auto inputType = llvm::dyn_cast<RankedTensorType>(getN().getType());
 
   // auto shapeOfInput = inputType.getShape();
 
-  std::vector<int64_t> shapeForOutput ;
+  std::vector<int64_t> shapeForOutput;
 
   int64_t GetLen = 1;
 
-  //To extract value from the SSA value:
-    //get the Operand 
-    //convert it to ConstantOp
-    //convert it to corresponding elements attribute
-    //extract the value as float then convert to int
+  // To extract value from the SSA value:
+  // get the Operand
+  // convert it to ConstantOp
+  // convert it to corresponding elements attribute
+  // extract the value as float then convert to int
   DEBUG_PRINT_NO_ARGS();
   Value inputLen = getOperand(1);
   dsp::ConstantOp constantOp1stArg = inputLen.getDefiningOp<dsp::ConstantOp>();
@@ -1476,26 +1488,25 @@ void SincOp::inferShapes() {
   DenseElementsAttr constantLhsValue = constantOp1stArg.getValue();
   auto elements = constantLhsValue.getValues<FloatAttr>();
   float LenN = elements[0].getValueAsDouble();
-  GetLen = (int64_t) LenN;
+  GetLen = (int64_t)LenN;
   DEBUG_PRINT_WITH_ARGS(GetLen);
-  DEBUG_PRINT_WITH_ARGS("GetLen= " , GetLen);
+  DEBUG_PRINT_WITH_ARGS("GetLen= ", GetLen);
 
   shapeForOutput.push_back(GetLen);
-  mlir::TensorType outputType = mlir::RankedTensorType::get(shapeForOutput, 
-    getWc().getType().getElementType());
-
+  mlir::TensorType outputType = mlir::RankedTensorType::get(
+      shapeForOutput, getWc().getType().getElementType());
 
   getResult().setType(outputType);
-
 }
 
 mlir::LogicalResult SincOp::verify() {
-  DEBUG_PRINT_NO_ARGS() ;
+  DEBUG_PRINT_NO_ARGS();
   // auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand().getType());
   // auto inputRank = inputType.getRank();
 
-  // // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " << alphaValueRank << "\n";
-  // //once ensured only 1 rank from above --   
+  // // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " <<
+  // alphaValueRank << "\n";
+  // //once ensured only 1 rank from above --
   // if( inputRank != 1 )
   // {
   //   llvm::errs() << "inputRank: " << inputRank <<  "\n";
@@ -1509,11 +1520,12 @@ mlir::LogicalResult SincOp::verify() {
 // GetElemAtIndxOp
 //===----------------------------------------------------------------------===//
 
-void GetElemAtIndxOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value input, mlir::Value indx) {
+void GetElemAtIndxOp::build(mlir::OpBuilder &builder,
+                            mlir::OperationState &state, mlir::Value input,
+                            mlir::Value indx) {
   DEBUG_PRINT_NO_ARGS();
   state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
-  state.addOperands({input, indx} );
+  state.addOperands({input, indx});
   DEBUG_PRINT_NO_ARGS();
 }
 
@@ -1524,8 +1536,8 @@ void GetElemAtIndxOp::inferShapes() {
   DEBUG_PRINT_NO_ARGS();
   shapeForOutput.push_back(1);
 
-  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(shapeForOutput, 
-          getInput().getType().getElementType());
+  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(
+      shapeForOutput, getInput().getType().getElementType());
   getResult().setType(manipulatedType);
   DEBUG_PRINT_NO_ARGS();
 }
@@ -1545,16 +1557,16 @@ mlir::LogicalResult GetElemAtIndxOp::verify() {
   return mlir::success();
 }
 
-
 //===----------------------------------------------------------------------===//
 // SetElemAtIndxOp
 //===----------------------------------------------------------------------===//
 
-void SetElemAtIndxOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value input, mlir::Value indx, mlir::Value val) {
+void SetElemAtIndxOp::build(mlir::OpBuilder &builder,
+                            mlir::OperationState &state, mlir::Value input,
+                            mlir::Value indx, mlir::Value val) {
   DEBUG_PRINT_NO_ARGS();
   state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
-  state.addOperands({input, indx, val} );
+  state.addOperands({input, indx, val});
   DEBUG_PRINT_NO_ARGS();
 }
 
@@ -1565,45 +1577,44 @@ void SetElemAtIndxOp::inferShapes() {
   DEBUG_PRINT_NO_ARGS();
   shapeForOutput.push_back(1);
 
-  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(shapeForOutput, 
-          getInput().getType().getElementType());
+  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(
+      shapeForOutput, getInput().getType().getElementType());
   getResult().setType(manipulatedType);
   DEBUG_PRINT_NO_ARGS();
 }
 
-mlir::LogicalResult SetElemAtIndxOp::verify() {
-  return mlir::success();
-}
+mlir::LogicalResult SetElemAtIndxOp::verify() { return mlir::success(); }
 
 //===----------------------------------------------------------------------===//
 // LowPassFIRFilterOp
 //===----------------------------------------------------------------------===//
 
-void LowPassFIRFilterOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value wc, mlir::Value n) {
-  DEBUG_PRINT_NO_ARGS() ;
+void LowPassFIRFilterOp::build(mlir::OpBuilder &builder,
+                               mlir::OperationState &state, mlir::Value wc,
+                               mlir::Value n) {
+  DEBUG_PRINT_NO_ARGS();
   state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
   state.addOperands({wc, n});
-  DEBUG_PRINT_NO_ARGS() ;
+  DEBUG_PRINT_NO_ARGS();
 }
 
 void LowPassFIRFilterOp::inferShapes() {
-  //for each rank
-  //Get the shape/size of input 
-  //output size = input_size 
-  // auto inputType = llvm::dyn_cast<RankedTensorType>(getN().getType());
+  // for each rank
+  // Get the shape/size of input
+  // output size = input_size
+  //  auto inputType = llvm::dyn_cast<RankedTensorType>(getN().getType());
 
   // auto shapeOfInput = inputType.getShape();
 
-  std::vector<int64_t> shapeForOutput ;
+  std::vector<int64_t> shapeForOutput;
 
   uint64_t GetLen = 1;
 
-  //To extract value from the SSA value:
-    //get the Operand 
-    //convert it to ConstantOp
-    //convert it to corresponding elements attribute
-    //extract the value as float then convert to int
+  // To extract value from the SSA value:
+  // get the Operand
+  // convert it to ConstantOp
+  // convert it to corresponding elements attribute
+  // extract the value as float then convert to int
   DEBUG_PRINT_NO_ARGS();
   Value inputLen = getOperand(1);
   dsp::ConstantOp constantOp1stArg = inputLen.getDefiningOp<dsp::ConstantOp>();
@@ -1611,30 +1622,27 @@ void LowPassFIRFilterOp::inferShapes() {
   DenseElementsAttr constantLhsValue = constantOp1stArg.getValue();
   auto elements = constantLhsValue.getValues<FloatAttr>();
   float LenN = elements[0].getValueAsDouble();
-  GetLen = (uint64_t) LenN;
+  GetLen = (uint64_t)LenN;
   DEBUG_PRINT_WITH_ARGS(GetLen);
-  DEBUG_PRINT_WITH_ARGS("GetLen= " , GetLen);
-  
-  //int64_t N = tensorType.getShape()[0];  
+  DEBUG_PRINT_WITH_ARGS("GetLen= ", GetLen);
 
+  // int64_t N = tensorType.getShape()[0];
 
   shapeForOutput.push_back(GetLen);
-  mlir::TensorType outputType = mlir::RankedTensorType::get(shapeForOutput, 
-    getWc().getType().getElementType());
-
+  mlir::TensorType outputType = mlir::RankedTensorType::get(
+      shapeForOutput, getWc().getType().getElementType());
 
   getResult().setType(outputType);
-
 }
 
 mlir::LogicalResult LowPassFIRFilterOp::verify() {
   uint64_t GetLen = 1;
 
-  //To extract value from the SSA value:
-    //get the Operand 
-    //convert it to ConstantOp
-    //convert it to corresponding elements attribute
-    //extract the value as float then convert to int
+  // To extract value from the SSA value:
+  // get the Operand
+  // convert it to ConstantOp
+  // convert it to corresponding elements attribute
+  // extract the value as float then convert to int
   DEBUG_PRINT_NO_ARGS();
   Value inputLen = getOperand(1);
   dsp::ConstantOp constantOp1stArg = inputLen.getDefiningOp<dsp::ConstantOp>();
@@ -1642,17 +1650,16 @@ mlir::LogicalResult LowPassFIRFilterOp::verify() {
   DenseElementsAttr constantLhsValue = constantOp1stArg.getValue();
   auto elements = constantLhsValue.getValues<FloatAttr>();
   float LenN = elements[0].getValueAsDouble();
-  GetLen = (uint64_t) LenN;
+  GetLen = (uint64_t)LenN;
   DEBUG_PRINT_WITH_ARGS(GetLen);
-  DEBUG_PRINT_WITH_ARGS("GetLen= " , GetLen);
-  
-  //filter-order even not supported -- so making it odd
-  if(GetLen % 2 == 0 )
-  {
+  DEBUG_PRINT_WITH_ARGS("GetLen= ", GetLen);
+
+  // filter-order even not supported -- so making it odd
+  if (GetLen % 2 == 0) {
     // GetLen = GetLen + 1;
     llvm::errs() << "N for lowPassFilter must be odd but is " << GetLen << "\n";
-    // DEBUG_PRINT_WITH_ARGS("Making LowPassFilterLen Odd= " , GetLen); 
-    return mlir::failure(); 
+    // DEBUG_PRINT_WITH_ARGS("Making LowPassFilterLen Odd= " , GetLen);
+    return mlir::failure();
   }
   return mlir::success();
 }
@@ -1662,19 +1669,20 @@ mlir::LogicalResult LowPassFIRFilterOp::verify() {
 //===----------------------------------------------------------------------===//
 
 void LMSFilterOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                   mlir::Value lhs, mlir::Value rhs, mlir::Value mu, mlir::Value filterLen, mlir::Value iters) {
-  
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
-   state.addOperands({lhs, rhs, mu, filterLen, iters});
-}
+                        mlir::Value lhs, mlir::Value rhs, mlir::Value mu,
+                        mlir::Value filterLen, mlir::Value iters) {
 
+  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  state.addOperands({lhs, rhs, mu, filterLen, iters});
+}
 
 void LMSFilterOp::inferShapes() { getResult().setType(getLhs().getType()); }
 
 mlir::LogicalResult LMSFilterOp::verify() {
-  DEBUG_PRINT_NO_ARGS() ;
+  DEBUG_PRINT_NO_ARGS();
   // auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand(0).getType());
-  // auto filterType = llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
+  // auto filterType =
+  // llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
   // // auto resultType = llvm::dyn_cast<RankedTensorType>(getType());
 
   // auto inputRank = inputType.getRank();
@@ -1689,36 +1697,36 @@ mlir::LogicalResult LMSFilterOp::verify() {
   return mlir::success();
 }
 
-
 //===----------------------------------------------------------------------===//
 // HighPassFIRFilterOp
 //===----------------------------------------------------------------------===//
 
-void HighPassFIRFilterOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value wc, mlir::Value n) {
-  DEBUG_PRINT_NO_ARGS() ;
+void HighPassFIRFilterOp::build(mlir::OpBuilder &builder,
+                                mlir::OperationState &state, mlir::Value wc,
+                                mlir::Value n) {
+  DEBUG_PRINT_NO_ARGS();
   state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
   state.addOperands({wc, n});
-  DEBUG_PRINT_NO_ARGS() ;
+  DEBUG_PRINT_NO_ARGS();
 }
 
 void HighPassFIRFilterOp::inferShapes() {
-  //for each rank
-  //Get the shape/size of input 
-  //output size = input_size 
-  // auto inputType = llvm::dyn_cast<RankedTensorType>(getN().getType());
+  // for each rank
+  // Get the shape/size of input
+  // output size = input_size
+  //  auto inputType = llvm::dyn_cast<RankedTensorType>(getN().getType());
 
   // auto shapeOfInput = inputType.getShape();
 
-  std::vector<int64_t> shapeForOutput ;
+  std::vector<int64_t> shapeForOutput;
 
   int64_t GetLen = 1;
 
-  //To extract value from the SSA value:
-    //get the Operand 
-    //convert it to ConstantOp
-    //convert it to corresponding elements attribute
-    //extract the value as float then convert to int
+  // To extract value from the SSA value:
+  // get the Operand
+  // convert it to ConstantOp
+  // convert it to corresponding elements attribute
+  // extract the value as float then convert to int
   DEBUG_PRINT_NO_ARGS();
   Value inputLen = getOperand(1);
   dsp::ConstantOp constantOp1stArg = inputLen.getDefiningOp<dsp::ConstantOp>();
@@ -1726,26 +1734,25 @@ void HighPassFIRFilterOp::inferShapes() {
   DenseElementsAttr constantLhsValue = constantOp1stArg.getValue();
   auto elements = constantLhsValue.getValues<FloatAttr>();
   float LenN = elements[0].getValueAsDouble();
-  GetLen = (int64_t) LenN;
+  GetLen = (int64_t)LenN;
   DEBUG_PRINT_WITH_ARGS(GetLen);
-  DEBUG_PRINT_WITH_ARGS("GetLen= " , GetLen);
+  DEBUG_PRINT_WITH_ARGS("GetLen= ", GetLen);
 
   shapeForOutput.push_back(GetLen);
-  mlir::TensorType outputType = mlir::RankedTensorType::get(shapeForOutput, 
-    getWc().getType().getElementType());
-
+  mlir::TensorType outputType = mlir::RankedTensorType::get(
+      shapeForOutput, getWc().getType().getElementType());
 
   getResult().setType(outputType);
-
 }
 
 mlir::LogicalResult HighPassFIRFilterOp::verify() {
-  DEBUG_PRINT_NO_ARGS() ;
+  DEBUG_PRINT_NO_ARGS();
   // auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand().getType());
   // auto inputRank = inputType.getRank();
 
-  // // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " << alphaValueRank << "\n";
-  // //once ensured only 1 rank from above --   
+  // // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " <<
+  // alphaValueRank << "\n";
+  // //once ensured only 1 rank from above --
   // if( inputRank != 1 )
   // {
   //   llvm::errs() << "inputRank: " << inputRank <<  "\n";
@@ -1759,31 +1766,32 @@ mlir::LogicalResult HighPassFIRFilterOp::verify() {
 // GetRangeOfVectorOp
 //===----------------------------------------------------------------------===//
 
-void GetRangeOfVectorOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value first, mlir::Value N, mlir::Value step) {
-  DEBUG_PRINT_NO_ARGS() ;
+void GetRangeOfVectorOp::build(mlir::OpBuilder &builder,
+                               mlir::OperationState &state, mlir::Value first,
+                               mlir::Value N, mlir::Value step) {
+  DEBUG_PRINT_NO_ARGS();
   state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
   state.addOperands({first, N, step});
-  DEBUG_PRINT_NO_ARGS() ;
+  DEBUG_PRINT_NO_ARGS();
 }
 
 void GetRangeOfVectorOp::inferShapes() {
-  //for each rank
-  //Get the shape/size of input 
-  //output size = input_size 
-  // auto inputType = llvm::dyn_cast<RankedTensorType>(getN().getType());
+  // for each rank
+  // Get the shape/size of input
+  // output size = input_size
+  //  auto inputType = llvm::dyn_cast<RankedTensorType>(getN().getType());
 
   // auto shapeOfInput = inputType.getShape();
 
-  std::vector<int64_t> shapeForOutput ;
+  std::vector<int64_t> shapeForOutput;
 
   int64_t GetLen = 1;
 
-  //To extract value from the SSA value:
-    //get the Operand 
-    //convert it to ConstantOp
-    //convert it to corresponding elements attribute
-    //extract the value as float then convert to int
+  // To extract value from the SSA value:
+  // get the Operand
+  // convert it to ConstantOp
+  // convert it to corresponding elements attribute
+  // extract the value as float then convert to int
   DEBUG_PRINT_NO_ARGS();
   Value inputLen = getOperand(1);
   dsp::ConstantOp constantOp1stArg = inputLen.getDefiningOp<dsp::ConstantOp>();
@@ -1791,26 +1799,25 @@ void GetRangeOfVectorOp::inferShapes() {
   DenseElementsAttr constantLhsValue = constantOp1stArg.getValue();
   auto elements = constantLhsValue.getValues<FloatAttr>();
   float LenN = elements[0].getValueAsDouble();
-  GetLen = (int64_t) LenN;
+  GetLen = (int64_t)LenN;
   DEBUG_PRINT_WITH_ARGS(GetLen);
-  DEBUG_PRINT_WITH_ARGS("GetLen= " , GetLen);
+  DEBUG_PRINT_WITH_ARGS("GetLen= ", GetLen);
 
   shapeForOutput.push_back(GetLen);
-  mlir::TensorType outputType = mlir::RankedTensorType::get(shapeForOutput, 
-    getFirst().getType().getElementType());
-
+  mlir::TensorType outputType = mlir::RankedTensorType::get(
+      shapeForOutput, getFirst().getType().getElementType());
 
   getResult().setType(outputType);
-
 }
 
 mlir::LogicalResult GetRangeOfVectorOp::verify() {
-  DEBUG_PRINT_NO_ARGS() ;
+  DEBUG_PRINT_NO_ARGS();
   // auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand().getType());
   // auto inputRank = inputType.getRank();
 
-  // // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " << alphaValueRank << "\n";
-  // //once ensured only 1 rank from above --   
+  // // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " <<
+  // alphaValueRank << "\n";
+  // //once ensured only 1 rank from above --
   // if( inputRank != 1 )
   // {
   //   llvm::errs() << "inputRank: " << inputRank <<  "\n";
@@ -1824,31 +1831,32 @@ mlir::LogicalResult GetRangeOfVectorOp::verify() {
 // FIRFilterHammingOptimizedOp
 //===----------------------------------------------------------------------===//
 
-void FIRFilterHammingOptimizedOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value wc, mlir::Value n) {
-  DEBUG_PRINT_NO_ARGS() ;
+void FIRFilterHammingOptimizedOp::build(mlir::OpBuilder &builder,
+                                        mlir::OperationState &state,
+                                        mlir::Value wc, mlir::Value n) {
+  DEBUG_PRINT_NO_ARGS();
   state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
   state.addOperands({wc, n});
-  DEBUG_PRINT_NO_ARGS() ;
+  DEBUG_PRINT_NO_ARGS();
 }
 
 void FIRFilterHammingOptimizedOp::inferShapes() {
-  //for each rank
-  //Get the shape/size of input 
-  //output size = input_size 
-  // auto inputType = llvm::dyn_cast<RankedTensorType>(getN().getType());
+  // for each rank
+  // Get the shape/size of input
+  // output size = input_size
+  //  auto inputType = llvm::dyn_cast<RankedTensorType>(getN().getType());
 
   // auto shapeOfInput = inputType.getShape();
 
-  std::vector<int64_t> shapeForOutput ;
+  std::vector<int64_t> shapeForOutput;
 
   uint64_t GetLen = 1;
 
-  //To extract value from the SSA value:
-    //get the Operand 
-    //convert it to ConstantOp
-    //convert it to corresponding elements attribute
-    //extract the value as float then convert to int
+  // To extract value from the SSA value:
+  // get the Operand
+  // convert it to ConstantOp
+  // convert it to corresponding elements attribute
+  // extract the value as float then convert to int
   DEBUG_PRINT_NO_ARGS();
   Value inputLen = getOperand(1);
   dsp::ConstantOp constantOp1stArg = inputLen.getDefiningOp<dsp::ConstantOp>();
@@ -1856,30 +1864,27 @@ void FIRFilterHammingOptimizedOp::inferShapes() {
   DenseElementsAttr constantLhsValue = constantOp1stArg.getValue();
   auto elements = constantLhsValue.getValues<FloatAttr>();
   float LenN = elements[0].getValueAsDouble();
-  GetLen = (uint64_t) LenN;
+  GetLen = (uint64_t)LenN;
   DEBUG_PRINT_WITH_ARGS(GetLen);
-  DEBUG_PRINT_WITH_ARGS("GetLen= " , GetLen);
-  
-  //int64_t N = tensorType.getShape()[0];  
+  DEBUG_PRINT_WITH_ARGS("GetLen= ", GetLen);
 
+  // int64_t N = tensorType.getShape()[0];
 
   shapeForOutput.push_back(GetLen);
-  mlir::TensorType outputType = mlir::RankedTensorType::get(shapeForOutput, 
-    getWc().getType().getElementType());
-
+  mlir::TensorType outputType = mlir::RankedTensorType::get(
+      shapeForOutput, getWc().getType().getElementType());
 
   getResult().setType(outputType);
-
 }
 
 mlir::LogicalResult FIRFilterHammingOptimizedOp::verify() {
   uint64_t GetLen = 1;
 
-  //To extract value from the SSA value:
-    //get the Operand 
-    //convert it to ConstantOp
-    //convert it to corresponding elements attribute
-    //extract the value as float then convert to int
+  // To extract value from the SSA value:
+  // get the Operand
+  // convert it to ConstantOp
+  // convert it to corresponding elements attribute
+  // extract the value as float then convert to int
   DEBUG_PRINT_NO_ARGS();
   Value inputLen = getOperand(1);
   dsp::ConstantOp constantOp1stArg = inputLen.getDefiningOp<dsp::ConstantOp>();
@@ -1887,17 +1892,16 @@ mlir::LogicalResult FIRFilterHammingOptimizedOp::verify() {
   DenseElementsAttr constantLhsValue = constantOp1stArg.getValue();
   auto elements = constantLhsValue.getValues<FloatAttr>();
   float LenN = elements[0].getValueAsDouble();
-  GetLen = (uint64_t) LenN;
+  GetLen = (uint64_t)LenN;
   DEBUG_PRINT_WITH_ARGS(GetLen);
-  DEBUG_PRINT_WITH_ARGS("GetLen= " , GetLen);
-  
-  //filter-order even not supported -- so making it odd
-  if(GetLen % 2 == 0 )
-  {
+  DEBUG_PRINT_WITH_ARGS("GetLen= ", GetLen);
+
+  // filter-order even not supported -- so making it odd
+  if (GetLen % 2 == 0) {
     // GetLen = GetLen + 1;
     llvm::errs() << "N for lowPassFilter must be odd but is " << GetLen << "\n";
-    // DEBUG_PRINT_WITH_ARGS("Making LowPassFilterLen Odd= " , GetLen); 
-    return mlir::failure(); 
+    // DEBUG_PRINT_WITH_ARGS("Making LowPassFilterLen Odd= " , GetLen);
+    return mlir::failure();
   }
   return mlir::success();
 }
@@ -1906,31 +1910,32 @@ mlir::LogicalResult FIRFilterHammingOptimizedOp::verify() {
 // HighPassFIRHammingOptimizedOp
 //===----------------------------------------------------------------------===//
 
-void HighPassFIRHammingOptimizedOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value wc, mlir::Value n) {
-  DEBUG_PRINT_NO_ARGS() ;
+void HighPassFIRHammingOptimizedOp::build(mlir::OpBuilder &builder,
+                                          mlir::OperationState &state,
+                                          mlir::Value wc, mlir::Value n) {
+  DEBUG_PRINT_NO_ARGS();
   state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
   state.addOperands({wc, n});
-  DEBUG_PRINT_NO_ARGS() ;
+  DEBUG_PRINT_NO_ARGS();
 }
 
 void HighPassFIRHammingOptimizedOp::inferShapes() {
-  //for each rank
-  //Get the shape/size of input 
-  //output size = input_size 
-  // auto inputType = llvm::dyn_cast<RankedTensorType>(getN().getType());
+  // for each rank
+  // Get the shape/size of input
+  // output size = input_size
+  //  auto inputType = llvm::dyn_cast<RankedTensorType>(getN().getType());
 
   // auto shapeOfInput = inputType.getShape();
 
-  std::vector<int64_t> shapeForOutput ;
+  std::vector<int64_t> shapeForOutput;
 
   uint64_t GetLen = 1;
 
-  //To extract value from the SSA value:
-    //get the Operand 
-    //convert it to ConstantOp
-    //convert it to corresponding elements attribute
-    //extract the value as float then convert to int
+  // To extract value from the SSA value:
+  // get the Operand
+  // convert it to ConstantOp
+  // convert it to corresponding elements attribute
+  // extract the value as float then convert to int
   DEBUG_PRINT_NO_ARGS();
   Value inputLen = getOperand(1);
   dsp::ConstantOp constantOp1stArg = inputLen.getDefiningOp<dsp::ConstantOp>();
@@ -1938,30 +1943,27 @@ void HighPassFIRHammingOptimizedOp::inferShapes() {
   DenseElementsAttr constantLhsValue = constantOp1stArg.getValue();
   auto elements = constantLhsValue.getValues<FloatAttr>();
   float LenN = elements[0].getValueAsDouble();
-  GetLen = (uint64_t) LenN;
+  GetLen = (uint64_t)LenN;
   DEBUG_PRINT_WITH_ARGS(GetLen);
-  DEBUG_PRINT_WITH_ARGS("GetLen= " , GetLen);
-  
-  //int64_t N = tensorType.getShape()[0];  
+  DEBUG_PRINT_WITH_ARGS("GetLen= ", GetLen);
 
+  // int64_t N = tensorType.getShape()[0];
 
   shapeForOutput.push_back(GetLen);
-  mlir::TensorType outputType = mlir::RankedTensorType::get(shapeForOutput, 
-    getWc().getType().getElementType());
-
+  mlir::TensorType outputType = mlir::RankedTensorType::get(
+      shapeForOutput, getWc().getType().getElementType());
 
   getResult().setType(outputType);
-
 }
 
 mlir::LogicalResult HighPassFIRHammingOptimizedOp::verify() {
   uint64_t GetLen = 1;
 
-  //To extract value from the SSA value:
-    //get the Operand 
-    //convert it to ConstantOp
-    //convert it to corresponding elements attribute
-    //extract the value as float then convert to int
+  // To extract value from the SSA value:
+  // get the Operand
+  // convert it to ConstantOp
+  // convert it to corresponding elements attribute
+  // extract the value as float then convert to int
   DEBUG_PRINT_NO_ARGS();
   Value inputLen = getOperand(1);
   dsp::ConstantOp constantOp1stArg = inputLen.getDefiningOp<dsp::ConstantOp>();
@@ -1969,21 +1971,19 @@ mlir::LogicalResult HighPassFIRHammingOptimizedOp::verify() {
   DenseElementsAttr constantLhsValue = constantOp1stArg.getValue();
   auto elements = constantLhsValue.getValues<FloatAttr>();
   float LenN = elements[0].getValueAsDouble();
-  GetLen = (uint64_t) LenN;
+  GetLen = (uint64_t)LenN;
   DEBUG_PRINT_WITH_ARGS(GetLen);
-  DEBUG_PRINT_WITH_ARGS("GetLen= " , GetLen);
-  
-  //filter-order even not supported -- so making it odd
-  if(GetLen % 2 == 0 )
-  {
+  DEBUG_PRINT_WITH_ARGS("GetLen= ", GetLen);
+
+  // filter-order even not supported -- so making it odd
+  if (GetLen % 2 == 0) {
     // GetLen = GetLen + 1;
     llvm::errs() << "N for lowPassFilter must be odd but is " << GetLen << "\n";
-    // DEBUG_PRINT_WITH_ARGS("Making LowPassFilterLen Odd= " , GetLen); 
-    return mlir::failure(); 
+    // DEBUG_PRINT_WITH_ARGS("Making LowPassFilterLen Odd= " , GetLen);
+    return mlir::failure();
   }
   return mlir::success();
 }
-
 
 //===----------------------------------------------------------------------===//
 // ThresholdOp
@@ -1993,23 +1993,23 @@ void ThresholdOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                         mlir::Value input, mlir::Value threshld) {
   DEBUG_PRINT_NO_ARGS();
   state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
-  state.addOperands({input, threshld} );
+  state.addOperands({input, threshld});
   DEBUG_PRINT_NO_ARGS();
 }
 
 void ThresholdOp::inferShapes() {
   DEBUG_PRINT_NO_ARGS();
-  auto tensorInput =  getInput().getType();
+  auto tensorInput = getInput().getType();
   getResult().setType(tensorInput);
   DEBUG_PRINT_NO_ARGS();
 }
 
 mlir::LogicalResult ThresholdOp::verify() {
-  //To extract value from the SSA value:
-    //get the Operand 
-    //convert it to ConstantOp
-    //convert it to corresponding elements attribute
-    //extract the value as float then convert to int
+  // To extract value from the SSA value:
+  // get the Operand
+  // convert it to ConstantOp
+  // convert it to corresponding elements attribute
+  // extract the value as float then convert to int
   DEBUG_PRINT_NO_ARGS();
   Value threshold = getOperand(1);
   dsp::ConstantOp constantOp1stArg = threshold.getDefiningOp<dsp::ConstantOp>();
@@ -2017,52 +2017,54 @@ mlir::LogicalResult ThresholdOp::verify() {
   DenseElementsAttr constantLhsValue = constantOp1stArg.getValue();
   auto elements = constantLhsValue.getValues<FloatAttr>();
   float GetThresholdVal = elements[0].getValueAsDouble();
-  
+
   DEBUG_PRINT_WITH_ARGS(GetThresholdVal);
-  DEBUG_PRINT_WITH_ARGS("GetThresholdVal= " , GetThresholdVal);
-  
-  //filter-order even not supported -- so making it odd
-  if(GetThresholdVal <= 0 )
-  {
+  DEBUG_PRINT_WITH_ARGS("GetThresholdVal= ", GetThresholdVal);
+
+  // filter-order even not supported -- so making it odd
+  if (GetThresholdVal <= 0) {
     // GetThresholdVal = GetThresholdVal + 1;
-    llvm::errs() << "threshold value must be >= 0 but got: " << GetThresholdVal << "\n";
-    // DEBUG_PRINT_WITH_ARGS("Making LowPassFilterLen Odd= " , GetThresholdVal); 
-    return mlir::failure(); 
+    llvm::errs() << "threshold value must be >= 0 but got: " << GetThresholdVal
+                 << "\n";
+    // DEBUG_PRINT_WITH_ARGS("Making LowPassFilterLen Odd= " , GetThresholdVal);
+    return mlir::failure();
   }
   return mlir::success();
-
 }
 
 //===----------------------------------------------------------------------===//
 // QuantizationOp
 //===----------------------------------------------------------------------===//
 
-void QuantizationOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value input, mlir::Value nLevels, mlir::Value max, mlir::Value min) {
+void QuantizationOp::build(mlir::OpBuilder &builder,
+                           mlir::OperationState &state, mlir::Value input,
+                           mlir::Value nLevels, mlir::Value max,
+                           mlir::Value min) {
   DEBUG_PRINT_NO_ARGS();
   state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
-  state.addOperands({input, nLevels, max, min} );
+  state.addOperands({input, nLevels, max, min});
   DEBUG_PRINT_NO_ARGS();
 }
 
 void QuantizationOp::inferShapes() {
   DEBUG_PRINT_NO_ARGS();
-  auto tensorInput =  getInput().getType();
+  auto tensorInput = getInput().getType();
   getResult().setType(tensorInput);
   DEBUG_PRINT_NO_ARGS();
 }
 
 mlir::LogicalResult QuantizationOp::verify() {
-  //To extract value from the SSA value:
-    //get the Operand 
-    //convert it to ConstantOp
-    //convert it to corresponding elements attribute
-    //extract the value as float then convert to int
+  // To extract value from the SSA value:
+  // get the Operand
+  // convert it to ConstantOp
+  // convert it to corresponding elements attribute
+  // extract the value as float then convert to int
   // DEBUG_PRINT_NO_ARGS();
-  // check max > min && NoOfLevels = powerOf2 
+  // check max > min && NoOfLevels = powerOf2
 
   Value maxOperand = getOperand(2);
-  dsp::ConstantOp constantOp1stArg = maxOperand.getDefiningOp<dsp::ConstantOp>();
+  dsp::ConstantOp constantOp1stArg =
+      maxOperand.getDefiningOp<dsp::ConstantOp>();
   DEBUG_PRINT_NO_ARGS();
   DenseElementsAttr constantLhsValue = constantOp1stArg.getValue();
   auto elements = constantLhsValue.getValues<FloatAttr>();
@@ -2071,45 +2073,48 @@ mlir::LogicalResult QuantizationOp::verify() {
   Value minOperand = getOperand(3);
   constantOp1stArg = minOperand.getDefiningOp<dsp::ConstantOp>();
 
-  if(!constantOp1stArg){
-    llvm::errs() << "QuantizationOp: unable to get Constant for minOp -- 4th opernad " << "\n";
-    return mlir::failure(); 
+  if (!constantOp1stArg) {
+    llvm::errs()
+        << "QuantizationOp: unable to get Constant for minOp -- 4th opernad "
+        << "\n";
+    return mlir::failure();
   }
   DEBUG_PRINT_NO_ARGS();
   constantLhsValue = constantOp1stArg.getValue();
   elements = constantLhsValue.getValues<FloatAttr>();
   float getMin = elements[0].getValueAsDouble();
 
-  if(getMax < getMin){
-    llvm::errs() << "QuantizatnOp : Max < Min --" << " Max: " << getMax ;
-    llvm::errs() << " Min: " << getMin ;
+  if (getMax < getMin) {
+    llvm::errs() << "QuantizatnOp : Max < Min --" << " Max: " << getMax;
+    llvm::errs() << " Min: " << getMin;
     return mlir::failure();
   }
-  
 
   return mlir::success();
-
 }
-
 
 //===----------------------------------------------------------------------===//
 // LMSFilterResponseOp
 //===----------------------------------------------------------------------===//
 
-void LMSFilterResponseOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                   mlir::Value lhs, mlir::Value rhs, mlir::Value mu, mlir::Value filterLen) {
-  
+void LMSFilterResponseOp::build(mlir::OpBuilder &builder,
+                                mlir::OperationState &state, mlir::Value lhs,
+                                mlir::Value rhs, mlir::Value mu,
+                                mlir::Value filterLen) {
+
   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
-   state.addOperands({lhs, rhs, mu, filterLen});
+  state.addOperands({lhs, rhs, mu, filterLen});
 }
 
-
-void LMSFilterResponseOp::inferShapes() { getResult().setType(getLhs().getType()); }
+void LMSFilterResponseOp::inferShapes() {
+  getResult().setType(getLhs().getType());
+}
 
 mlir::LogicalResult LMSFilterResponseOp::verify() {
-  DEBUG_PRINT_NO_ARGS() ;
+  DEBUG_PRINT_NO_ARGS();
   // auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand(0).getType());
-  // auto filterType = llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
+  // auto filterType =
+  // llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
   // // auto resultType = llvm::dyn_cast<RankedTensorType>(getType());
 
   // auto inputRank = inputType.getRank();
@@ -2128,90 +2133,89 @@ mlir::LogicalResult LMSFilterResponseOp::verify() {
 // RunLenEncodingOp
 //===----------------------------------------------------------------------===//
 
-void RunLenEncodingOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value input) {
+void RunLenEncodingOp::build(mlir::OpBuilder &builder,
+                             mlir::OperationState &state, mlir::Value input) {
   DEBUG_PRINT_NO_ARGS();
   state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
-  state.addOperands({input} );
+  state.addOperands({input});
   DEBUG_PRINT_NO_ARGS();
 }
 
 void RunLenEncodingOp::inferShapes() {
   DEBUG_PRINT_NO_ARGS();
-  auto tensorInput =  getInput().getType();
+  auto tensorInput = getInput().getType();
   auto shapeOfInput = tensorInput.getShape();
 
-  // auto tensorUpsampling = getRhs().getType(); 
+  // auto tensorUpsampling = getRhs().getType();
   // auto shapeOfUpsampling = tensorUpsampling.getShape(); //shape is the length
-  //Assume rank is 1 , then get the shape of output
+  // Assume rank is 1 , then get the shape of output
   // shapeOfInput
 
-  std::vector<int64_t> shapeForOutput ;
+  std::vector<int64_t> shapeForOutput;
 
   int64_t LengthOfInput = shapeOfInput[0];
   int64_t lenOfOutput = 2 * LengthOfInput;
   shapeForOutput.push_back(lenOfOutput);
-  
-  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(shapeForOutput, 
-          getInput().getType().getElementType());
+
+  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(
+      shapeForOutput, getInput().getType().getElementType());
 
   getResult().setType(manipulatedType);
   DEBUG_PRINT_NO_ARGS();
 }
 
 mlir::LogicalResult RunLenEncodingOp::verify() {
-  //To extract value from the SSA value:
-    //get the Operand 
-    //convert it to ConstantOp
-    //convert it to corresponding elements attribute
-    //extract the value as float then convert to int
+  // To extract value from the SSA value:
+  // get the Operand
+  // convert it to ConstantOp
+  // convert it to corresponding elements attribute
+  // extract the value as float then convert to int
   // DEBUG_PRINT_NO_ARGS();
-  
-  return mlir::success();
 
+  return mlir::success();
 }
 
 //===----------------------------------------------------------------------===//
 // FIRFilterResSymmOptimizedOp
 //===----------------------------------------------------------------------===//
 
-void FIRFilterResSymmOptimizedOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                  mlir::Value lhs, mlir::Value rhs) {
+void FIRFilterResSymmOptimizedOp::build(mlir::OpBuilder &builder,
+                                        mlir::OperationState &state,
+                                        mlir::Value lhs, mlir::Value rhs) {
   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
   state.addOperands({lhs, rhs});
 }
 
-
-
-/// Infer the output shape of the FIRFilterResSymmOptimizedOp, this is required by the shape inference
-/// interface.
-//ToDo -- shape should be the length of Lhs + Rhs - 1
-void FIRFilterResSymmOptimizedOp::inferShapes() { 
-  //get the shape of Lhs & rhs 
-  //add the shape for each dimension
-  // auto tensorInput =  llvm::cast<RankedTensorType>(getLhs().getType());
-  auto tensorInput =  getLhs().getType();
+/// Infer the output shape of the FIRFilterResSymmOptimizedOp, this is required
+/// by the shape inference interface.
+// ToDo -- shape should be the length of Lhs + Rhs - 1
+void FIRFilterResSymmOptimizedOp::inferShapes() {
+  // get the shape of Lhs & rhs
+  // add the shape for each dimension
+  //  auto tensorInput =  llvm::cast<RankedTensorType>(getLhs().getType());
+  auto tensorInput = getLhs().getType();
   auto shapeOfInput = tensorInput.getShape();
 
   auto tensorFilter = getRhs().getType();
   auto shapeOfFilter = tensorFilter.getShape();
-  std::vector<int64_t> shapeForOutput ;
+  std::vector<int64_t> shapeForOutput;
 
-  for(size_t i=0; i < shapeOfInput.size() ; i++){
+  for (size_t i = 0; i < shapeOfInput.size(); i++) {
     shapeForOutput.push_back(shapeOfInput[i] + shapeOfFilter[i] - 1);
   }
-  
-  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(shapeForOutput, 
-          getLhs().getType().getElementType());
 
-  // getResult().setType(getLhs().getType()); 
+  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(
+      shapeForOutput, getLhs().getType().getElementType());
+
+  // getResult().setType(getLhs().getType());
   getResult().setType(manipulatedType);
 }
 
-//get rank of Input & Filter -- make sure it is of rank 1 
+// get rank of Input & Filter -- make sure it is of rank 1
 mlir::LogicalResult FIRFilterResSymmOptimizedOp::verify() {
   // auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand(0).getType());
-  // auto filterType = llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
+  // auto filterType =
+  // llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
   // // auto resultType = llvm::dyn_cast<RankedTensorType>(getType());
 
   // auto inputRank = inputType.getRank();
@@ -2226,16 +2230,15 @@ mlir::LogicalResult FIRFilterResSymmOptimizedOp::verify() {
   return mlir::success();
 }
 
-
 //===----------------------------------------------------------------------===//
 // LengthOp
 //===----------------------------------------------------------------------===//
 
 void LengthOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value input) {
+                     mlir::Value input) {
   DEBUG_PRINT_NO_ARGS();
   state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
-  state.addOperands({input} );
+  state.addOperands({input});
   DEBUG_PRINT_NO_ARGS();
 }
 
@@ -2246,8 +2249,8 @@ void LengthOp::inferShapes() {
   DEBUG_PRINT_NO_ARGS();
   shapeForOutput.push_back(1);
 
-  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(shapeForOutput, 
-          getInput().getType().getElementType());
+  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(
+      shapeForOutput, getInput().getType().getElementType());
   getResult().setType(manipulatedType);
   DEBUG_PRINT_NO_ARGS();
 }
@@ -2271,16 +2274,17 @@ mlir::LogicalResult LengthOp::verify() {
 // ReverseInputOp
 //===----------------------------------------------------------------------===//
 
-void ReverseInputOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value input) {
+void ReverseInputOp::build(mlir::OpBuilder &builder,
+                           mlir::OperationState &state, mlir::Value input) {
   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
   state.addOperands(input);
 }
 
 void ReverseInputOp::inferShapes() {
-  auto tensorInput =  getInput().getType();
-  // mlir::TensorType manipulatedType = mlir::RankedTensorType::get(shapeForOutput, 
-          // getInput().getType().getElementType());
+  auto tensorInput = getInput().getType();
+  // mlir::TensorType manipulatedType =
+  // mlir::RankedTensorType::get(shapeForOutput,
+  // getInput().getType().getElementType());
   getResult().setType(tensorInput);
 }
 
@@ -2299,129 +2303,131 @@ mlir::LogicalResult ReverseInputOp::verify() {
   return mlir::success();
 }
 
-
 //===----------------------------------------------------------------------===//
 // PaddingOp
 //===----------------------------------------------------------------------===//
 
 void PaddingOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                  mlir::Value input, mlir::Value PadValue, mlir::Value PadLen) {
+                      mlir::Value input, mlir::Value PadValue,
+                      mlir::Value PadLen) {
   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
   state.addOperands({input, PadValue, PadLen});
 }
 
-
-
-/// Infer the output shape of the PaddingOp, this is required by the shape inference
-/// interface.
-//ToDo -- shape should be the length of input * UpsamplingRate ie, Rhs
-void PaddingOp::inferShapes() { 
-  //get the shape of Lhs & rhs 
-  //add the shape for each dimension
-  // auto tensorInput =  llvm::cast<RankedTensorType>(getLhs().getType());
-  auto tensorInput =  getInput().getType();
+/// Infer the output shape of the PaddingOp, this is required by the shape
+/// inference interface.
+// ToDo -- shape should be the length of input * UpsamplingRate ie, Rhs
+void PaddingOp::inferShapes() {
+  // get the shape of Lhs & rhs
+  // add the shape for each dimension
+  //  auto tensorInput =  llvm::cast<RankedTensorType>(getLhs().getType());
+  auto tensorInput = getInput().getType();
   auto shapeOfInput = tensorInput.getShape();
 
-  // auto tensorUpsampling = getRhs().getType(); 
+  // auto tensorUpsampling = getRhs().getType();
   // auto shapeOfUpsampling = tensorUpsampling.getShape(); //shape is the length
-  
 
-  std::vector<int64_t> shapeForOutput ;
+  std::vector<int64_t> shapeForOutput;
 
   int64_t SecondValueInt = 1;
 
-  //To extract value from the SSA value:
-    //get the Operand 
-    //convert it to ConstantOp
-    //convert it to corresponding elements attribute
-    //extract the value as float then convert to int
+  // To extract value from the SSA value:
+  // get the Operand
+  // convert it to ConstantOp
+  // convert it to corresponding elements attribute
+  // extract the value as float then convert to int
   DEBUG_PRINT_NO_ARGS();
   Value padding3rdArg = getOperand(2);
-  dsp::ConstantOp constantOp2ndArg = padding3rdArg.getDefiningOp<dsp::ConstantOp>();
+  dsp::ConstantOp constantOp2ndArg =
+      padding3rdArg.getDefiningOp<dsp::ConstantOp>();
   DEBUG_PRINT_NO_ARGS();
-  DenseElementsAttr constantRhsValue = constantOp2ndArg.getValue();;
+  DenseElementsAttr constantRhsValue = constantOp2ndArg.getValue();
+  ;
   auto elements = constantRhsValue.getValues<FloatAttr>();
   float SecondValue = elements[0].getValueAsDouble();
-  SecondValueInt = (int64_t) SecondValue;
-  // llvm::errs() << "Upsampling: SamplingRate: " << SecondValueInt << " \n"; //downsamplingRate
-    
+  SecondValueInt = (int64_t)SecondValue;
+  // llvm::errs() << "Upsampling: SamplingRate: " << SecondValueInt << " \n";
+  // //downsamplingRate
+
   DEBUG_PRINT_NO_ARGS();
-  for(size_t i=0; i < shapeOfInput.size() ; i++){
-    double GetLenForOutput  = static_cast<double>(shapeOfInput[i] ) + SecondValueInt ;
-    int64_t OutlenInt = static_cast<int64_t> (GetLenForOutput);
-    DEBUG_PRINT_WITH_ARGS("PaddingLen= " , OutlenInt);
+  for (size_t i = 0; i < shapeOfInput.size(); i++) {
+    double GetLenForOutput =
+        static_cast<double>(shapeOfInput[i]) + SecondValueInt;
+    int64_t OutlenInt = static_cast<int64_t>(GetLenForOutput);
+    DEBUG_PRINT_WITH_ARGS("PaddingLen= ", OutlenInt);
     shapeForOutput.push_back(OutlenInt);
   }
-  
-  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(shapeForOutput, 
-          getInput().getType().getElementType());
 
-  // getResult().setType(getLhs().getType()); 
+  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(
+      shapeForOutput, getInput().getType().getElementType());
+
+  // getResult().setType(getLhs().getType());
   getResult().setType(manipulatedType);
-  }
+}
 
-//get rank of Input & Upsampling -- make sure it is of rank 1 
+// get rank of Input & Upsampling -- make sure it is of rank 1
 mlir::LogicalResult PaddingOp::verify() {
   // auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand(0).getType());
-  // auto samplingRateType = llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
+  // auto samplingRateType =
+  // llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
   // // auto resultType = llvm::dyn_cast<RankedTensorType>(getType());
 
   // auto inputRank = inputType.getRank();
   // auto samplingRateRank = samplingRateType.getRank();
 
-  // // llvm::errs() << "inputRank: " << inputRank << " samplingRateRank: " << samplingRateRank << "\n";
-  // //once ensured only 1 rank from above -- also make sure there is just 1 elem  
-  // if( inputRank != 1 || samplingRateRank != 0 )
+  // // llvm::errs() << "inputRank: " << inputRank << " samplingRateRank: " <<
+  // samplingRateRank << "\n";
+  // //once ensured only 1 rank from above -- also make sure there is just 1
+  // elem if( inputRank != 1 || samplingRateRank != 0 )
   // {
-  //   llvm::errs() << "inputRank: " << inputRank << " samplingRateRank: " << samplingRateRank << "\n";
-  //   return emitError()
+  //   llvm::errs() << "inputRank: " << inputRank << " samplingRateRank: " <<
+  //   samplingRateRank << "\n"; return emitError()
   //          << "expected rank of input is 1 & Upsampling is 0";
   // }
   return mlir::success();
-} 
-
+}
 
 //===----------------------------------------------------------------------===//
 // FIRFilterYSymmOptimizedOp
 //===----------------------------------------------------------------------===//
 
-void FIRFilterYSymmOptimizedOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                  mlir::Value lhs, mlir::Value rhs) {
+void FIRFilterYSymmOptimizedOp::build(mlir::OpBuilder &builder,
+                                      mlir::OperationState &state,
+                                      mlir::Value lhs, mlir::Value rhs) {
   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
   state.addOperands({lhs, rhs});
 }
 
-
-
-/// Infer the output shape of the FIRFilterYSymmOptimizedOp, this is required by the shape inference
-/// interface.
-//ToDo -- shape should be the length of Lhs + Rhs - 1
-void FIRFilterYSymmOptimizedOp::inferShapes() { 
-  //get the shape of Lhs & rhs 
-  //add the shape for each dimension
-  // auto tensorInput =  llvm::cast<RankedTensorType>(getLhs().getType());
-  auto tensorInput =  getLhs().getType();
+/// Infer the output shape of the FIRFilterYSymmOptimizedOp, this is required by
+/// the shape inference interface.
+// ToDo -- shape should be the length of Lhs + Rhs - 1
+void FIRFilterYSymmOptimizedOp::inferShapes() {
+  // get the shape of Lhs & rhs
+  // add the shape for each dimension
+  //  auto tensorInput =  llvm::cast<RankedTensorType>(getLhs().getType());
+  auto tensorInput = getLhs().getType();
   auto shapeOfInput = tensorInput.getShape();
 
   auto tensorFilter = getRhs().getType();
   auto shapeOfFilter = tensorFilter.getShape();
-  std::vector<int64_t> shapeForOutput ;
+  std::vector<int64_t> shapeForOutput;
 
-  for(size_t i=0; i < shapeOfInput.size() ; i++){
+  for (size_t i = 0; i < shapeOfInput.size(); i++) {
     shapeForOutput.push_back(shapeOfInput[i] + shapeOfFilter[i] - 1);
   }
-  
-  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(shapeForOutput, 
-          getLhs().getType().getElementType());
 
-  // getResult().setType(getLhs().getType()); 
+  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(
+      shapeForOutput, getLhs().getType().getElementType());
+
+  // getResult().setType(getLhs().getType());
   getResult().setType(manipulatedType);
 }
 
-//get rank of Input & Filter -- make sure it is of rank 1 
+// get rank of Input & Filter -- make sure it is of rank 1
 mlir::LogicalResult FIRFilterYSymmOptimizedOp::verify() {
   // auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand(0).getType());
-  // auto filterType = llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
+  // auto filterType =
+  // llvm::dyn_cast<RankedTensorType>(getOperand(1).getType());
   // // auto resultType = llvm::dyn_cast<RankedTensorType>(getType());
 
   // auto inputRank = inputType.getRank();
@@ -2440,19 +2446,19 @@ mlir::LogicalResult FIRFilterYSymmOptimizedOp::verify() {
 // FFT1DRealSymmOp
 //===----------------------------------------------------------------------===//
 
-void FFT1DRealSymmOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value value) {
-  DEBUG_PRINT_NO_ARGS() ;
+void FFT1DRealSymmOp::build(mlir::OpBuilder &builder,
+                            mlir::OperationState &state, mlir::Value value) {
+  DEBUG_PRINT_NO_ARGS();
   state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
   state.addOperands(value);
-  DEBUG_PRINT_NO_ARGS() ;
+  DEBUG_PRINT_NO_ARGS();
 }
 
 void FFT1DRealSymmOp::inferShapes() {
-  //for each rank
-  //Get the shape/size of input 
-  //output size = input_size 
-  auto tensorInput =  getInput().getType(); 
+  // for each rank
+  // Get the shape/size of input
+  // output size = input_size
+  auto tensorInput = getInput().getType();
   // getResult().setType(tensorInput);
   getResult().setType(tensorInput);
   // getResult(2).setType(tensorInput);
@@ -2463,8 +2469,9 @@ mlir::LogicalResult FFT1DRealSymmOp::verify() {
   // auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand().getType());
   // auto inputRank = inputType.getRank();
 
-  // // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " << alphaValueRank << "\n";
-  // //once ensured only 1 rank from above --   
+  // // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " <<
+  // alphaValueRank << "\n";
+  // //once ensured only 1 rank from above --
   // if( inputRank != 1 )
   // {
   //   llvm::errs() << "inputRank: " << inputRank <<  "\n";
@@ -2478,31 +2485,32 @@ mlir::LogicalResult FFT1DRealSymmOp::verify() {
 // FFT1DImgConjSymmOp
 //===----------------------------------------------------------------------===//
 
-void FFT1DImgConjSymmOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                        mlir::Value value) {
-  DEBUG_PRINT_NO_ARGS() ;
+void FFT1DImgConjSymmOp::build(mlir::OpBuilder &builder,
+                               mlir::OperationState &state, mlir::Value value) {
+  DEBUG_PRINT_NO_ARGS();
   state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
   state.addOperands(value);
-  DEBUG_PRINT_NO_ARGS() ;
+  DEBUG_PRINT_NO_ARGS();
 }
 
 void FFT1DImgConjSymmOp::inferShapes() {
-  //for each rank
-  //Get the shape/size of input 
-  //output size = input_size 
-  auto tensorInput =  getInput().getType(); 
+  // for each rank
+  // Get the shape/size of input
+  // output size = input_size
+  auto tensorInput = getInput().getType();
   // getResult().setType(tensorInput);
   getResult().setType(tensorInput);
   // getResult(2).setType(tensorInput);
 }
 
 mlir::LogicalResult FFT1DImgConjSymmOp::verify() {
-  DEBUG_PRINT_NO_ARGS() ;
+  DEBUG_PRINT_NO_ARGS();
   // auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand().getType());
   // auto inputRank = inputType.getRank();
 
-  // // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " << alphaValueRank << "\n";
-  // //once ensured only 1 rank from above --   
+  // // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " <<
+  // alphaValueRank << "\n";
+  // //once ensured only 1 rank from above --
   // if( inputRank != 1 )
   // {
   //   llvm::errs() << "inputRank: " << inputRank <<  "\n";
@@ -2511,7 +2519,6 @@ mlir::LogicalResult FFT1DImgConjSymmOp::verify() {
   // }
   return mlir::success();
 }
-
 
 //===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
