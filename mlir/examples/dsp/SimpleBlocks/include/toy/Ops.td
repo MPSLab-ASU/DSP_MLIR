@@ -541,13 +541,13 @@ def SubOp : Dsp_Op<"sub", [Pure , DeclareOpInterfaceMethods<ShapeInferenceOpInte
  }
 
 //===----------------------------------------------------------------------===//
-// zeroCrossCountOp
+// ZeroCrossCountOp
 //===----------------------------------------------------------------------===//
-def zeroCrossCountOp : Dsp_Op<"zeroCrossCount" ,
+def ZeroCrossCountOp : Dsp_Op<"zeroCrossCount" ,
     [Pure , DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
-  let summary = "shifting tensor by given number";
+  let summary = "count the crosses through zero";
   let description = [{
-    The "zeroCrossCountOp" operation detects no of zero crosses in a given array -- 
+    The "zeroCrossCount" operation detects no of zero crosses in a given array -- 
     ex: [-1 , -2 , 3, 0 , 0, -2] has 2 zero-crosses 
   }];
 
@@ -560,7 +560,7 @@ def zeroCrossCountOp : Dsp_Op<"zeroCrossCount" ,
   // let assemblyFormat = [{
   //   `(` $input `:` type($input1 , $input2) `)` attr-dict `to` type(results)
   // }];
-  // Allow building a zeroCrossCountOp with from the one input operands.
+  // Allow building a ZeroCrossCountOp with from the one input operands.
   let builders = [
     OpBuilder<(ins "Value":$lhs)>
   ];
