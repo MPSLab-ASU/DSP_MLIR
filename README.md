@@ -1,44 +1,47 @@
-# The LLVM Compiler Infrastructure
+# DSP-MLIR Compiler
 
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/llvm/llvm-project/badge)](https://securityscorecards.dev/viewer/?uri=github.com/llvm/llvm-project)
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8273/badge)](https://www.bestpractices.dev/projects/8273)
-[![libc++](https://github.com/llvm/llvm-project/actions/workflows/libcxx-build-and-test.yaml/badge.svg?branch=main&event=schedule)](https://github.com/llvm/llvm-project/actions/workflows/libcxx-build-and-test.yaml?query=event%3Aschedule)
+This repository contains the source code for **DSP-MLIR**, a compiler tailored for Digital Signal Processing (DSP) applications. It provides highly optimized tools and environments for building, optimizing, and running DSP operations like Fast Fourier Transforms (FFT), Finite Impulse Response (FIR) filters, and more.
 
-Welcome to the LLVM project!
+The project is built on top of the **LLVM** infrastructure and leverages the **MLIR** (Multi-Level Intermediate Representation) framework for implementing DSP-specific operations and transformations.
 
-This repository contains the source code for LLVM, a toolkit for the
-construction of highly optimized compilers, optimizers, and run-time
-environments.
 
-The LLVM project has multiple components. The core of the project is
-itself called "LLVM". This contains all of the tools, libraries, and header
-files needed to process intermediate representations and convert them into
-object files. Tools include an assembler, disassembler, bitcode analyzer, and
-bitcode optimizer.
 
-C-like languages use the [Clang](https://clang.llvm.org/) frontend. This
-component compiles C, C++, Objective-C, and Objective-C++ code into LLVM bitcode
--- and from there into object files, using LLVM.
 
-Other components include:
-the [libc++ C++ standard library](https://libcxx.llvm.org),
-the [LLD linker](https://lld.llvm.org), and more.
+## Build Instructions
 
-## Getting the Source Code and Building LLVM
+To build the DSP-MLIR compiler, follow these steps:
 
-Consult the
-[Getting Started with LLVM](https://llvm.org/docs/GettingStarted.html#getting-the-source-code-and-building-llvm)
-page for information on building and running LLVM.
+### Step 1: Clone this repository and cd into the DSP-MLIR folder.
 
-For information on how to contribute to the LLVM project, please take a look at
-the [Contributing to LLVM](https://llvm.org/docs/Contributing.html) guide.
 
-## Getting in touch
+### Step 2: Make and cd into the build directory using the following command:
 
-Join the [LLVM Discourse forums](https://discourse.llvm.org/), [Discord
-chat](https://discord.gg/xS7Z362),
-[LLVM Office Hours](https://llvm.org/docs/GettingInvolved.html#office-hours) or
-[Regular sync-ups](https://llvm.org/docs/GettingInvolved.html#online-sync-ups).
+```bash
+mkdir build
+cd build
 
-The LLVM project has adopted a [code of conduct](https://llvm.org/docs/CodeOfConduct.html) for
-participants to all modes of communication within the project.
+```
+### Step 3: To build the project, run the following command:
+```bash
+cmake -G Ninja ../llvm \
+   -DLLVM_ENABLE_PROJECTS=mlir \
+   -DLLVM_BUILD_EXAMPLES=ON \
+   -DLLVM_TARGETS_TO_BUILD="Native" \
+   -DCMAKE_BUILD_TYPE=Release \
+   -DLLVM_ENABLE_ASSERTIONS=ON
+```
+
+### Step 4: After configuring the build, compile the project by running:
+```bash
+ninja
+```
+
+## Running an Example
+
+After the build completes, you can run an example to test the DSP operations. From the build directory:
+
+```bash
+ninja && ./bin/dsp1 ../mlir/test/Examples/DspExample/dsp_gain_op.py -emit=mlir-affine
+ninja && ./bin/dsp1 ../mlir/test/Examples/DspExample/dsp_gain_op.py -emit=jit
+```
+

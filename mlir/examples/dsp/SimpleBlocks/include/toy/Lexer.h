@@ -149,7 +149,7 @@ private:
     }
 
     // Number: [0-9.]+
-    if (isdigit(lastChar) || lastChar == '.') {
+    if (lastChar == '-' || isdigit(lastChar) || lastChar == '.') {
       std::string numStr;
       do {
         numStr += lastChar;
