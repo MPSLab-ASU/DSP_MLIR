@@ -370,6 +370,35 @@ private:
        return builder.create<SubOp>(location, operands[0], operands[1]);
     }
 
+    // Modulo Op
+
+    if (callee == "modulo") {
+      if (call.getArgs().size() != 2) {
+        emitError(location, "MLIR codegen encountered an error: dsp.modulo "
+                             "accepts only 2 arguments");
+        return nullptr;
+      }
+      return builder.create<ModuloOp>(location, operands[0], operands[1]);
+    }
+
+    if (callee == "fftReal") {
+      if (call.getArgs().size() != 1) {
+        emitError(location, "MLIR codegen encountered an error: dsp.zeroCrossCount "
+                            "accepts only 1 arguments");
+        return nullptr;
+      }
+      return builder.create<FFTRealOp>(location, operands[0]);
+    }
+
+    if (callee == "fftImag") {
+      if (call.getArgs().size() != 1) {
+        emitError(location, "MLIR codegen encountered an error: dsp.zeroCrossCount "
+                            "accepts only 1 arguments");
+        return nullptr;
+      }
+      return builder.create<FFTImagOp>(location, operands[0]);
+    }
+
     if(callee == "zeroCrossCount"){
       if(call.getArgs().size() != 1){
         emitError(location, "MLIR codegen encountered an error: dsp.zeroCrossCount "
