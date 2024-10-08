@@ -287,6 +287,30 @@ def DivOp : Dsp_Op<"div",
 }
 
 //===----------------------------------------------------------------------===//
+// BitwiseAndOp
+//===----------------------------------------------------------------------===//
+
+def BitwiseAndOp : Dsp_Op<"bitwiseand",
+    [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+  let summary = "bit-wise and operation";
+  let description = [{
+    The "bitwiseand" operation performs bit-wise and between two
+    tensors. The shapes of the tensor operands are expected to match.
+  }];
+
+  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);
+  let results = (outs F64Tensor);
+
+  // Indicate that the operation has a custom parser and printer method.
+  let hasCustomAssemblyFormat = 1;
+
+  // Allow building a BitwiseAndOp with from the two input operands.
+  let builders = [
+    OpBuilder<(ins "Value":$lhs, "Value":$rhs)>
+  ];
+}
+
+//===----------------------------------------------------------------------===//
 // PrintOp
 //===----------------------------------------------------------------------===//
 
@@ -517,13 +541,13 @@ def SubOp : Dsp_Op<"sub", [Pure , DeclareOpInterfaceMethods<ShapeInferenceOpInte
  }
 
 //===----------------------------------------------------------------------===//
-// zeroCrossCountOp
+// ZeroCrossCountOp
 //===----------------------------------------------------------------------===//
-def zeroCrossCountOp : Dsp_Op<"zeroCrossCount" ,
+def ZeroCrossCountOp : Dsp_Op<"zeroCrossCount" ,
     [Pure , DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
-  let summary = "shifting tensor by given number";
+  let summary = "count the crosses through zero";
   let description = [{
-    The "zeroCrossCountOp" operation detects no of zero crosses in a given array -- 
+    The "zeroCrossCount" operation detects no of zero crosses in a given array -- 
     ex: [-1 , -2 , 3, 0 , 0, -2] has 2 zero-crosses 
   }];
 
@@ -536,7 +560,7 @@ def zeroCrossCountOp : Dsp_Op<"zeroCrossCount" ,
   // let assemblyFormat = [{
   //   `(` $input `:` type($input1 , $input2) `)` attr-dict `to` type(results)
   // }];
-  // Allow building a zeroCrossCountOp with from the one input operands.
+  // Allow building a ZeroCrossCountOp with from the one input operands.
   let builders = [
     OpBuilder<(ins "Value":$lhs)>
   ];
