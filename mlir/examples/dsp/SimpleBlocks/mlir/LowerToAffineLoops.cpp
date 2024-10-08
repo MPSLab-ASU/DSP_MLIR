@@ -6738,9 +6738,11 @@ struct ZeroCrossCountOpLowering : public ConversionPattern {
     // Get the location of ZeroCrossCountOp
     auto loc = op->getLoc();
 
-    // Pseudo-code:
-    //   y = zerocrosscount(lhs) for  0<=i<N
-    //
+    // Pseudo-code is based on the C++ implementation here:
+    // https://toto-share.com/2011/05/cc-zero-crossing-code/
+    //   for 1<=i<N
+    //      if sign of operand[i] is not equal to sign of operand[i-1]
+    //         increment zero-cross count
 
     // output for result type
     auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
@@ -6753,20 +6755,9 @@ struct ZeroCrossCountOpLowering : public ConversionPattern {
         MemRefType::get(ArrayRef<int64_t>(1), tensorType.getElementType()), loc,
         rewriter);
 
-    // construct affine loops for the input
-    SmallVector<int64_t, 4> lowerBounds(tensorType.getRank(), /*Value*/ 0);
-    SmallVector<int64_t, 4> steps(tensorType.getRank(), /*Value=*/1);
-    ZeroCrossCountOpAdaptor zeroCrossCountOpAdaptor(operands);
-
     DEBUG_PRINT_NO_ARGS();
 
-    // first from 0 <= i < N
-    // int64_t lb = 1;
-    // int64_t ub = tensorType.getShape()[0];
-    // int64_t step = 1;
-
-    DEBUG_PRINT_NO_ARGS();
-
+    // Define constants
     Value constant0 = rewriter.create<arith::ConstantOp>(
         loc, rewriter.getI64Type(),
         rewriter.getIntegerAttr(rewriter.getI64Type(), 0));
@@ -6775,6 +6766,7 @@ struct ZeroCrossCountOpLowering : public ConversionPattern {
         rewriter.getIntegerAttr(rewriter.getI64Type(), 1));
     Value Indx0 = rewriter.create<arith::ConstantIndexOp>(loc, 0);
 
+    // Define bounds
     Value lb = rewriter.create<arith::ConstantOp>(
         loc, rewriter.getIndexType(),
         rewriter.getIntegerAttr(rewriter.getIndexType(), 1));
@@ -6783,39 +6775,45 @@ struct ZeroCrossCountOpLowering : public ConversionPattern {
         rewriter.getIntegerAttr(rewriter.getIndexType(),
                                 tensorType.getShape()[0]));
     Value step = rewriter.create<arith::ConstantIndexOp>(loc, 1);
-    // DEBUG_PRINT_WITH_ARGS("step=", step);
+
+    // Set up for loop
     auto forOpY =
         rewriter.create<scf::ForOp>(loc, lb, ub, step, ValueRange{constant0});
-    // DEBUG_PRINT_WITH_ARGS("forOpY=", forOpY);
     auto ivY = forOpY.getInductionVar();
     rewriter.setInsertionPointToStart(forOpY.getBody());
     auto countArg = forOpY.getRegionIterArgs()[0];
 
-    // DEBUG_PRINT_WITH_ARGS("ivY=", ivY);
-    // DEBUG_PRINT_WITH_ARGS("countArg=", countArg);
+    // Get the current and previous elements
     Value ivYPrev = rewriter.create<arith::SubIOp>(loc, ivY, step);
     Value getLhsPrev = rewriter.create<memref::LoadOp>(
         loc, zeroCrossCountOpAdaptor.getLhs(), ivYPrev);
     Value getLhs = rewriter.create<memref::LoadOp>(
         loc, zeroCrossCountOpAdaptor.getLhs(), ivY);
+
+    // Convert from float to integer
     Value lhsPrevInt = rewriter.create<arith::FPToSIOp>(
         loc, rewriter.getI64Type(), getLhsPrev);
     Value lhsInt =
         rewriter.create<arith::FPToSIOp>(loc, rewriter.getI64Type(), getLhs);
+
+    // Check whether the elements are less than zero
     Value signLhsPrev = rewriter.create<arith::CmpIOp>(
         loc, arith::CmpIPredicate::slt, lhsPrevInt, constant0);
     Value signLhs = rewriter.create<arith::CmpIOp>(
         loc, arith::CmpIPredicate::slt, lhsInt, constant0);
     Value equal = rewriter.create<arith::CmpIOp>(loc, arith::CmpIPredicate::eq,
                                                  signLhsPrev, signLhs);
+
+    // If the signs aren't the same, increment the zero cross counter
     auto ifOp =
         rewriter.create<scf::IfOp>(loc, TypeRange{integerType}, equal, true);
-    // DEBUG_PRINT_WITH_ARGS("ifOp=", ifOp);
+
+    // If block
     rewriter.setInsertionPointToStart(ifOp.thenBlock());
-    // DEBUG_PRINT_WITH_ARGS("Then");
     rewriter.create<scf::YieldOp>(loc, ValueRange{countArg});
+
+    // Else block
     rewriter.setInsertionPointToStart(ifOp.elseBlock());
-    // DEBUG_PRINT_WITH_ARGS("Else");
     auto countPlusOne =
         rewriter.create<arith::AddIOp>(loc, countArg, constant1);
     rewriter.create<scf::YieldOp>(loc, ValueRange{countPlusOne});
@@ -6823,16 +6821,37 @@ struct ZeroCrossCountOpLowering : public ConversionPattern {
     rewriter.setInsertionPointAfter(ifOp);
     auto countRes = ifOp.getResults()[0];
     rewriter.create<scf::YieldOp>(loc, ValueRange{countRes});
-    // DEBUG_PRINT_WITH_ARGS("countRes=", countRes);
 
     rewriter.setInsertionPointAfter(forOpY);
 
     // debug
     // forOpY->dump();
+    // %15 = "scf.for"(%12, %13, %14, %9) ({
+    //     ^bb0(%arg0: index, %arg1: i64):
+    //     %17 = "arith.subi"(%arg0, %14) <{overflowFlags =
+    //     #arith.overflow<none>}>
+    // : (index, index) -> index %18 = "memref.load"(%1, %17) <{nontemporal =
+    // false}> : (memref<3xf64>, index) -> f64 %19 = "memref.load"(%1, %arg0)
+    // <{nontemporal = false}> : (memref<3xf64>, index) -> f64 %20 =
+    // "arith.fptosi"(%18) : (f64) -> i64 %21 = "arith.fptosi"(%19) : (f64) ->
+    // i64
+    //     %22 = "arith.cmpi"(%20, %9) <{predicate = 2 : i64}> : (i64, i64) ->
+    //     i1 %23 = "arith.cmpi"(%21, %9) <{predicate = 2 : i64}> : (i64, i64)
+    //     -> i1 %24 = "arith.cmpi"(%22, %23) <{predicate = 0 : i64}> : (i1, i1)
+    //     -> i1 %25 = "scf.if"(%24) ({
+    //         "scf.yield"(%arg1) : (i64) -> ()
+    //     }, {
+    //         %26 = "arith.addi"(%arg1, %10) <{overflowFlags =
+    // #arith.overflow<none>}> : (i64, i64) -> i64 "scf.yield"(%26) : (i64) ->
+    // ()
+    //     }) : (i1) -> i64
+    //     "scf.yield"(%25) : (i64) -> ()
+    // }) : (index, index, index, i64) -> i64
+
     auto finalCountArg = forOpY.getResults()[0];
     Value finalCountArgFloat = rewriter.create<arith::SIToFPOp>(
         loc, rewriter.getF64Type(), finalCountArg);
-    // DEBUG_PRINT_WITH_ARGS("finalCountArgFloat=", finalCountArgFloat);
+
     rewriter.create<AffineStoreOp>(loc, finalCountArgFloat, alloc, Indx0);
     rewriter.replaceOp(op, alloc);
 
