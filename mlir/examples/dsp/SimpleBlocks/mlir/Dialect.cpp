@@ -628,6 +628,73 @@ void FFTImagOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
 
 void FFTImagOp::inferShapes(){ getResult().setType(getLhs().getType()); }
 
+
+
+
+
+//===----------------------------------------------------------------------===//
+ // MatmulOp
+ //===----------------------------------------------------------------------===//
+
+ void MatmulOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                   mlir::Value lhs, mlir::Value rhs) {
+   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+   state.addOperands({lhs, rhs});
+ }
+
+ // mlir::ParseResult MatmulOp::parse(mlir::OpAsmParser &parser,
+ //                                mlir::OperationState &result) {
+ //   return parseBinaryOp(parser, result);
+ // }
+
+ // void MatmulOp::print(mlir::OpAsmPrinter &p) { printBinaryOp(p, *this); }
+
+mlir::LogicalResult MatmulOp::verify() {
+
+  //auto resultType = llvm::dyn_cast<mlir::RankedTensorType>(getResult().getType());
+
+  auto tensorLhs =  getLhs().getType();
+  auto shapeOfLhs = tensorLhs.getShape();
+
+  auto tensorRhs = getRhs().getType();
+  auto shapeOfRhs = tensorRhs.getShape();
+  
+  
+  if (shapeOfLhs[1] != shapeOfRhs[0])
+      return emitOpError(
+                 "Matmul: the second dimension of LHS should be equal to the first dimention of RHS.");
+  return mlir::success();
+}
+
+
+ /// Infer the output shape of the MatmulOp, this is required by the shape inference
+ /// interface.
+ void MatmulOp::inferShapes() {
+  
+	 
+  //get the shape of Lhs & rhs 
+  //add the shape for each dimension
+  // auto tensorInput =  llvm::cast<RankedTensorType>(getLhs().getType());
+  auto tensorLhs =  getLhs().getType();
+  auto shapeOfLhs = tensorLhs.getShape();
+
+  auto tensorRhs = getRhs().getType();
+  auto shapeOfRhs = tensorRhs.getShape();
+  
+  std::vector<int64_t> shapeForOutput ;
+
+  shapeForOutput.push_back(shapeOfLhs[0]);
+  shapeForOutput.push_back(shapeOfRhs[1]);
+  
+  
+
+  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(shapeForOutput, 
+          getLhs().getType().getElementType());
+
+  //getResult().setType(getLhs().getType());
+  getResult().setType(manipulatedType);
+}
+
 //===----------------------------------------------------------------------===//
 // zeroCrossCountOp
 //===----------------------------------------------------------------------===//
@@ -2519,6 +2586,30 @@ mlir::LogicalResult FFT1DImgConjSymmOp::verify() {
   // }
   return mlir::success();
 }
+
+
+
+//===----------------------------------------------------------------------===//
+ // ShiftRightOp
+ //===----------------------------------------------------------------------===//
+
+ void ShiftRightOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                   mlir::Value lhs, mlir::Value rhs) {
+   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+   state.addOperands({lhs, rhs});
+ }
+
+ // mlir::ParseResult SubOp::parse(mlir::OpAsmParser &parser,
+ //                                mlir::OperationState &result) {
+ //   return parseBinaryOp(parser, result);
+ // }
+
+ // void SubOp::print(mlir::OpAsmPrinter &p) { printBinaryOp(p, *this); }
+
+ /// Infer the output shape of the ShiftRightOp, this is required by the shape inference
+ /// interface.
+ void ShiftRightOp::inferShapes() { getResult().setType(getLhs().getType()); }
+
 
 //===----------------------------------------------------------------------===//
 // Conv2DOp

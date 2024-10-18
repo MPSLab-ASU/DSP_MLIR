@@ -1989,6 +1989,70 @@ def FFT1DImgConjSymmOp : Dsp_Op<"fft1DimgConjSymm",
   let hasVerifier = 1;
 }
 
+
+
+//===----------------------------------------------------------------------===//
+// ShiftRightOp
+//===----------------------------------------------------------------------===//
+
+def ShiftRightOp : Dsp_Op<"shiftRight", [Pure , DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+   let summary = "Bit-wise shift right a by b";
+   let description = [{
+     The shift right block shifts each element of a vector by right-hand side integer. 
+   }]; 
+
+   let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs); //Problem: how can we do logical shift with floating point tensor?
+   let results = (outs F64Tensor);
+
+   // Indicate that the operation has a custom parser and printer method.
+   // let hasCustomAssemblyFormat = 1;
+   // let assemblyFormat = [{
+   //   `(` $input `:` type($input1 , $input2) `)` attr-dict `to` type(results)
+   // }];
+   // Allow building a MulOp with from the two input operands.
+   let builders = [
+     OpBuilder<(ins "Value":$lhs, "Value":$rhs)>
+   ];
+
+   // Indicate that the operation has a custom parser and printer method.
+   // let hasCustomAssemblyFormat = 1;
+
+   // let hasVerifier = 1;
+ }
+
+
+//===----------------------------------------------------------------------===//
+// MatmulOp
+//===----------------------------------------------------------------------===//
+
+def MatmulOp : Dsp_Op<"matmul", [Pure , DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+   let summary = "Matrix multiplication a * b";
+   let description = [{
+     Matrix multiplication between the left-hand side and right-hand side.
+   }]; 
+
+   let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs); //Problem: how can we do logical shift with floating point tensor?
+   let results = (outs F64Tensor);
+
+   // Indicate that the operation has a custom parser and printer method.
+   // let hasCustomAssemblyFormat = 1;
+   // let assemblyFormat = [{
+   //   `(` $input `:` type($input1 , $input2) `)` attr-dict `to` type(results)
+   // }];
+   // Allow building a MulOp with from the two input operands.
+   let builders = [
+     OpBuilder<(ins "Value":$lhs, "Value":$rhs)>
+   ];
+
+   // Indicate that the operation has a custom parser and printer method.
+   // let hasCustomAssemblyFormat = 1;
+
+   let hasVerifier = 1;
+ }
+
+
+
+
 //===----------------------------------------------------------------------===//
 // Conv2DOp
 //===----------------------------------------------------------------------===//
@@ -2017,3 +2081,6 @@ def Conv2DOp : Dsp_Op<"conv2d",
 }
 
 #endif // TOY_OPS
+
+
+

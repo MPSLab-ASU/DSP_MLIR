@@ -406,6 +406,26 @@ private:
       }
       return builder.create<FFTImagOp>(location, operands[0]);
     }
+	
+    // Shift right Op
+    if(callee == "shiftRight"){
+       if(call.getArgs().size() != 2){
+         emitError(location, "MLIR codegen encountered an error: dsp.shiftRight "
+                             "accepts only 2 arguments");
+         return nullptr;
+       }
+       return builder.create<ShiftRightOp>(location, operands[0], operands[1]);
+    }
+	
+    // Matmul Op
+    if(callee == "matmul"){
+       if(call.getArgs().size() != 2){
+         emitError(location, "MLIR codegen encountered an error: dsp.matmul "
+                             "accepts only 2 arguments");
+         return nullptr;
+       }
+       return builder.create<MatmulOp>(location, operands[0], operands[1]);
+    }
 
     if(callee == "zeroCrossCount"){
       if(call.getArgs().size() != 1){

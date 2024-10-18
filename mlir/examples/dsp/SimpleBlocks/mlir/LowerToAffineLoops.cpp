@@ -6896,6 +6896,172 @@ struct BinaryOpLowering : public ConversionPattern {
   }
 };
 
+
+
+//===----------------------------------------------------------------------===//
+// ToyToAffine AdditionalPatterns: Shift operations
+//===----------------------------------------------------------------------===//
+
+struct ShiftRightOpLowering : public ConversionPattern {
+  ShiftRightOpLowering(MLIRContext *ctx)
+      : ConversionPattern(dsp::ShiftRightOp::getOperationName(), 1, ctx) {}
+
+  LogicalResult
+  matchAndRewrite(Operation *op, ArrayRef<Value> operands,
+                  ConversionPatternRewriter &rewriter) const final {
+    
+	//Get the location of GainOp
+	auto loc = op->getLoc();
+	
+    // output for result type
+    auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));  
+
+    // allocation & deallocation for the result of this operation
+    auto memRefType = convertTensorToMemRef(tensorType);
+    auto alloc = insertAllocAndDealloc(memRefType, loc, rewriter);
+	
+	
+    //first from 1 <= i < N
+    int64_t lb = 0 ;
+    int64_t ub = tensorType.getShape()[0];   
+    int64_t step = 1;
+
+	typename dsp::ShiftRightOp::Adaptor binaryAdaptor(operands);
+	
+    affine::AffineForOp forOpY = rewriter.create<AffineForOp>(loc, lb, ub, step);
+    auto ivY = forOpY.getInductionVar();
+    rewriter.setInsertionPointToStart(forOpY.getBody());
+
+	auto loadedLhs = rewriter.create<affine::AffineLoadOp>(loc, binaryAdaptor.getLhs(), ivY);
+	Value IntegerLhs = rewriter.create<arith::FPToSIOp>(loc, rewriter.getI64Type(),  loadedLhs);      
+
+    auto loadedRhs = rewriter.create<affine::AffineLoadOp>(loc, binaryAdaptor.getRhs(), ivY);
+    Value IntegerRhs = rewriter.create<arith::FPToSIOp>(loc, rewriter.getI64Type(),  loadedRhs);
+
+	auto LoweredOp = rewriter.create<arith::ShRSIOp>(loc, IntegerLhs, IntegerRhs); 
+	
+	Value FloatOp = rewriter.create<arith::SIToFPOp>(loc, rewriter.getF64Type(),  LoweredOp);
+    
+	rewriter.create<AffineStoreOp>(loc, FloatOp, alloc, ValueRange{ivY}); 
+
+	rewriter.setInsertionPointAfter(forOpY);
+                                     
+    
+	DEBUG_PRINT_NO_ARGS();
+	
+	
+	//rewriter.replaceOp(op, FloatOp);
+	rewriter.replaceOp(op, alloc);
+	
+    return success();
+  }
+};
+
+
+
+
+
+//===----------------------------------------------------------------------===//
+// ToyToAffine AdditionalPatterns: Matmul operations
+//===----------------------------------------------------------------------===//
+
+//template <typename BinaryOp>
+
+
+
+struct MatmulOpLowering : public ConversionPattern {
+  MatmulOpLowering(MLIRContext *ctx)
+      : ConversionPattern(dsp::MatmulOp::getOperationName(), 1, ctx) {}
+
+  LogicalResult
+  matchAndRewrite(Operation *op, ArrayRef<Value> operands,
+                  ConversionPatternRewriter &rewriter) const final {
+    
+	//Get the location of GainOp
+	auto loc = op->getLoc();
+	
+    // output for result type
+    auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));  
+
+
+    // allocation & deallocation for the result of this operation
+    auto memRefType = convertTensorToMemRef(tensorType);
+    auto alloc_output = insertAllocAndDealloc(memRefType, loc, rewriter);
+	
+	typename dsp::MatmulOp::Adaptor binaryAdaptor(operands);
+
+	auto lhsType = llvm::dyn_cast<RankedTensorType>(op->getOperand(0).getType());
+	//auto rhsType = llvm::dyn_cast<RankedTensorType>(op->getOperand(1).getType());
+
+    //first from 1 <= i < N
+    int64_t lb = 0 ;
+	int64_t ub_0 = lhsType.getShape()[0];
+	int64_t ub_1 = lhsType.getShape()[1];
+    int64_t step = 1;
+
+
+
+    Value constantZero = rewriter.create<arith::ConstantOp>(loc, rewriter.getF64Type(),
+                                                         rewriter.getF64FloatAttr(0));		
+
+	
+	//NOTE: matrix [y, x] --> y means row, x means column
+    affine::AffineForOp forOpY = rewriter.create<AffineForOp>(loc, lb, ub_0, step);
+    auto ivY = forOpY.getInductionVar();
+    rewriter.setInsertionPointToStart(forOpY.getBody());
+	
+    affine::AffineForOp forOpX = rewriter.create<AffineForOp>(loc, lb, ub_1, step);
+    auto ivX = forOpX.getInductionVar();
+	//auto getIterArg =  forOpX.getBody()->getArgument(1); //HWISOO: Find this to check how previous codes did
+    rewriter.setInsertionPointToStart(forOpX.getBody());	
+
+	rewriter.create<AffineStoreOp>(loc, constantZero, alloc_output, ValueRange{ivY,ivX});
+
+    affine::AffineForOp forOpIndex = rewriter.create<AffineForOp>(loc, lb, ub_1, step);
+    auto ivIndex = forOpIndex.getInductionVar();
+    rewriter.setInsertionPointToStart(forOpIndex.getBody());
+
+	auto loadedLhs = rewriter.create<affine::AffineLoadOp>(loc, binaryAdaptor.getLhs(), ValueRange{ivY,ivIndex});
+
+    auto loadedRhs = rewriter.create<affine::AffineLoadOp>(loc, binaryAdaptor.getRhs(), ValueRange{ivIndex,ivX});
+	
+	Value mulLhsRhs = rewriter.create<arith::MulFOp>(loc, loadedLhs, loadedRhs );
+	
+	auto loadedResult = rewriter.create<affine::AffineLoadOp>(loc, alloc_output, ValueRange{ivY, ivX});
+
+	Value addResultAndMul = rewriter.create<arith::AddFOp>(loc, loadedResult, mulLhsRhs);
+	
+	rewriter.create<AffineStoreOp>(loc, addResultAndMul, alloc_output, ValueRange{ivY,ivX});
+	
+	/*
+	auto loadedLhs = rewriter.create<affine::AffineLoadOp>(loc, binaryAdaptor.getLhs(), ivY);
+	Value IntegerLhs = rewriter.create<arith::FPToSIOp>(loc, rewriter.getI64Type(),  loadedLhs);      
+
+    auto loadedRhs = rewriter.create<affine::AffineLoadOp>(loc, binaryAdaptor.getRhs(), ivY);
+    Value IntegerRhs = rewriter.create<arith::FPToSIOp>(loc, rewriter.getI64Type(),  loadedRhs);
+
+	auto LoweredOp = rewriter.create<LoweredBinaryOp>(loc, IntegerLhs, IntegerRhs); 
+	
+	Value FloatOp = rewriter.create<arith::SIToFPOp>(loc, rewriter.getF64Type(),  LoweredOp);
+    
+	rewriter.create<AffineStoreOp>(loc, FloatOp, alloc, ValueRange{ivY}); 
+	
+	*/
+
+	rewriter.setInsertionPointAfter(forOpY);
+                                     
+	DEBUG_PRINT_NO_ARGS();
+	
+	
+	//rewriter.replaceOp(op, FloatOp);
+	rewriter.replaceOp(op, alloc_output);
+	
+    return success();
+  }
+};
+
+
+
 //===----------------------------------------------------------------------===//
 // ToyToAffine RewritePatterns: Unary operations
 //===----------------------------------------------------------------------===//
@@ -7281,7 +7447,7 @@ void ToyToAffineLoweringPass::runOnOperation() {
       RunLenEncodingOpLowering, FIRFilterResSymmOptimizedOpLowering,
       LengthOpLowering, ReverseInputOpLowering, PaddingOpLowering,
       FIRFilterYSymmOptimizedOpLowering, FFT1DRealSymmOpLowering,
-      FFT1DImgConjSymmOpLowering, FFTRealOpLowering, FFTImagOpLowering, Conv2DOpLowering>(&getContext());
+      FFT1DImgConjSymmOpLowering, FFTRealOpLowering, FFTImagOpLowering, Conv2DOpLowering, ShiftRightOpLowering, MatmulOpLowering>(&getContext());
 
     // With the target and rewrite patterns defined, we can now attempt the
     // conversion. The conversion will signal failure if any of our `illegal`
