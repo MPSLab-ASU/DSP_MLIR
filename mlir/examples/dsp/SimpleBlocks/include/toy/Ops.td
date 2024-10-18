@@ -597,9 +597,9 @@ def FFTImagOp : Dsp_Op<"fftImag", [Pure, DeclareOpInterfaceMethods<ShapeInferenc
 }
 
 //===----------------------------------------------------------------------===//
-// ZeroCrossCountOp
+// zeroCrossCountOp
 //===----------------------------------------------------------------------===//
-def ZeroCrossCountOp : Dsp_Op<"zeroCrossCount" ,
+def zeroCrossCountOp : Dsp_Op<"zeroCrossCount" ,
     [Pure , DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
   let summary = "count the crosses through zero";
   let description = [{
@@ -616,7 +616,7 @@ def ZeroCrossCountOp : Dsp_Op<"zeroCrossCount" ,
   // let assemblyFormat = [{
   //   `(` $input `:` type($input1 , $input2) `)` attr-dict `to` type(results)
   // }];
-  // Allow building a ZeroCrossCountOp with from the one input operands.
+  // Allow building a zeroCrossCountOp with from the one input operands.
   let builders = [
     OpBuilder<(ins "Value":$lhs)>
   ];

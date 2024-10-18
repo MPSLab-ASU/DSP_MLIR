@@ -6726,16 +6726,16 @@ struct BitwiseAndOpLowering : public ConversionPattern {
 // ToyToAffine RewritePatterns: BitwiseAndOp operations
 //===----------------------------------------------------------------------===//
 
-struct ZeroCrossCountOpLowering : public ConversionPattern {
-  ZeroCrossCountOpLowering(MLIRContext *ctx)
-      : ConversionPattern(dsp::ZeroCrossCountOp::getOperationName(), 1, ctx) {}
+struct zeroCrossCountOpLowering : public ConversionPattern {
+  zeroCrossCountOpLowering(MLIRContext *ctx)
+      : ConversionPattern(dsp::zeroCrossCountOp::getOperationName(), 1, ctx) {}
 
   LogicalResult
   matchAndRewrite(Operation *op, ArrayRef<Value> operands,
                   ConversionPatternRewriter &rewriter) const final {
     // dsp.zerocrosscount has 1 operand -- of type tensor f64
 
-    // Get the location of ZeroCrossCountOp
+    // Get the location of zeroCrossCountOp
     auto loc = op->getLoc();
 
     // Pseudo-code is based on the C++ implementation here:
@@ -6754,7 +6754,7 @@ struct ZeroCrossCountOpLowering : public ConversionPattern {
     auto alloc = insertAllocAndDealloc(
         MemRefType::get(ArrayRef<int64_t>(1), tensorType.getElementType()), loc,
         rewriter);
-
+    zeroCrossCountOpAdaptor zeroCrossCountOpAdaptor(operands);
     DEBUG_PRINT_NO_ARGS();
 
     // Define constants
@@ -7165,7 +7165,7 @@ void ToyToAffineLoweringPass::runOnOperation() {
       LowPassFilter1stOrderOpLowering, HighPassFilterOpLowering,
       FFT1DOpLowering, IFFT1DOpLowering, HammingWindowOpLowering, DCTOpLowering,
       filterOpLowering, DivOpLowering, BitwiseAndOpLowering,
-      ZeroCrossCountOpLowering, SumOpLowering, SinOpLowering, CosOpLowering,
+      zeroCrossCountOpLowering, SumOpLowering, SinOpLowering, CosOpLowering,
       SquareOpLowering, FFT1DRealOpLowering, FFT1DImgOpLowering, SincOpLowering,
       GetElemAtIndxOpLowering, SetElemAtIndxOpLowering,
       LowPassFIRFilterOpLowering, HighPassFIRFilterOpLowering,

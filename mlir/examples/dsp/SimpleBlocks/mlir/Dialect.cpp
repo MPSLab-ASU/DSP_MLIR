@@ -640,9 +640,9 @@ void zeroCrossCountOp::build(mlir::OpBuilder &builder, mlir::OperationState &sta
   state.addOperands({lhs});
 }
 
-/// Infer the output shape of the ZeroCrossCountOp, this is required by the
+/// Infer the output shape of the zeroCrossCountOp, this is required by the
 /// shape inference interface.
-void ZeroCrossCountOp::inferShapes() {
+void zeroCrossCountOp::inferShapes() {
   getResult().setType(getLhs().getType());
 }
 
