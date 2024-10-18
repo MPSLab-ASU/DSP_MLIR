@@ -35,6 +35,7 @@
 # Explicit files to ignore (only matches one).
 #==============================================================================#
 # Various tag programs
+tags
 /tags
 /TAGS
 /GPATH

@@ -2521,6 +2521,73 @@ mlir::LogicalResult FFT1DImgConjSymmOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
+// Conv2DOp
+//===----------------------------------------------------------------------===//
+
+void Conv2DOp::build(mlir::OpBuilder &builder, mlir::OperationState &state, 
+        mlir::Value input, mlir::Value weight, mlir::Value bias) {
+    state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
+    state.addOperands({input, weight, bias});
+}
+void Conv2DOp::inferShapes() {
+    auto inputType = llvm::dyn_cast<RankedTensorType>(getInput().getType());
+    auto kernelType = llvm::dyn_cast<RankedTensorType>(getKernel().getType());
+
+    int64_t IH = inputType.getShape()[0];
+    int64_t IW = inputType.getShape()[1];
+    int64_t KH = kernelType.getShape()[0];
+    int64_t KW = kernelType.getShape()[1];
+    int64_t OH = IH-KH+1, OW=IW-KW+1;
+
+    SmallVector<int64_t, 2> dims = {OH, OW};
+    getResult().setType(RankedTensorType::get(dims, inputType.getElementType()));
+}
+
+mlir::LogicalResult Conv2DOp::verify() {
+
+    auto inputType = llvm::dyn_cast<RankedTensorType>(getInput().getType());
+    auto kernelType = llvm::dyn_cast<RankedTensorType>(getKernel().getType());
+    auto biasType = llvm::dyn_cast<RankedTensorType>(getBias().getType());
+
+    if(!inputType) {
+        llvm::errs() << "expect a ranked tensor for input, get " << getInput();
+        return mlir::failure();
+    }
+    if(!kernelType) {
+        llvm::errs() << "expect a ranked tensor for kernel, get " << getKernel();
+        return mlir::failure();
+    }
+    if(!biasType) {
+        llvm::errs() << "expect a one dimensional ranked tensor for bias, get " << getBias();
+        return mlir::failure();
+    }
+
+    auto inputRank = inputType.getRank();
+    auto kernelRank = kernelType.getRank();
+
+    if(inputRank != 2 ) {
+        llvm::errs() << "expect 2 dimensional input, format N IH IW IC, get " << inputRank;
+        return mlir::failure();
+    }
+    if(kernelRank != 2 ) {
+        llvm::errs() << "expect 2 dimensional kernel, format OC KH KW IC.";
+        return mlir::failure();
+    }
+
+    if(inputType.getShape()[0] < kernelType.getShape()[0]) {
+        llvm::errs() << "input shape < kernel shape at 1st dimension";
+        return mlir::failure();
+    }
+
+    if(inputType.getShape()[1] < kernelType.getShape()[1]) {
+        llvm::errs() << "input shape < kernel shape at 2nd dimension";
+        return mlir::failure();
+    }
+    
+  return mlir::success();
+}
+
+//===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//
 

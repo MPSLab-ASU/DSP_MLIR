@@ -7106,6 +7106,112 @@ struct TransposeOpLowering : public ConversionPattern {
   }
 };
 
+//===----------------------------------------------------------------------===//
+// ToyToAffine RewritePatterns: Transpose operations
+//===----------------------------------------------------------------------===//
+
+struct Conv2DOpLowering : public ConversionPattern {
+    Conv2DOpLowering(MLIRContext *ctx)
+        : ConversionPattern(dsp::Conv2DOp::getOperationName(), 1, ctx) {}
+
+    LogicalResult
+        matchAndRewrite(Operation *op, ArrayRef<Value> operands,
+                ConversionPatternRewriter &rewriter) const final {
+
+            auto loc = op->getLoc();
+            // output mem alloc and dealloc
+            auto output = llvm::dyn_cast<RankedTensorType>((*op->result_type_begin()));
+            auto outputMem = convertTensorToMemRef(output);
+            auto alloc = insertAllocAndDealloc(outputMem, loc, rewriter);
+
+            Conv2DOpAdaptor conv2dAdaptor(operands);
+            Value input = conv2dAdaptor.getInput();
+            Value kernel = conv2dAdaptor.getKernel();
+            
+            // ranked tensor type
+            auto inputType = llvm::dyn_cast<RankedTensorType>(op->getOperand(0).getType());
+            auto kernelType = llvm::dyn_cast<RankedTensorType>(op->getOperand(1).getType());
+
+            ArrayRef<int64_t> inputShape = inputType.getShape();
+            ArrayRef<int64_t> kernelShape = kernelType.getShape();
+            
+            // input layout
+            int64_t IH = inputShape[0];
+            int64_t IW = inputShape[1];
+
+            // kernel layout
+            int64_t KH = kernelShape[0];
+            int64_t KW = kernelShape[1];
+
+            // output layout
+            ArrayRef<int64_t> outputShape = output.getShape();
+            int64_t OH = outputShape[0];
+            int64_t OW = outputShape[1];
+
+
+            AffineExpr d0, d1, d2, d3; // declare affine expression: i, j, p, q
+            bindDims(rewriter.getContext(), d0, d1, d2, d3); // bind affine expr d0, d1 to current input dimension i, j, p, q
+            
+            // input affine map
+            AffineMap inputMap = AffineMap::get(4, 0, ArrayRef<AffineExpr>{d0+d2, d1+d3}, rewriter.getContext());
+            // kernel affine map
+            AffineMap kernelMap = AffineMap::get(4, 0, ArrayRef<AffineExpr>{d2, d3}, rewriter.getContext());
+
+            // loops
+            int64_t lb=0, step=1;
+            /* looping i*/
+            AffineForOp forOpI = rewriter.create<AffineForOp>(loc, lb, OH, step);
+            rewriter.setInsertionPointToStart(forOpI.getBody());
+            auto ivI = forOpI.getInductionVar();
+
+            /* looping j*/
+            AffineForOp forOpJ = rewriter.create<AffineForOp>(loc, lb, OW, step);
+            rewriter.setInsertionPointToStart(forOpJ.getBody());
+            auto ivJ = forOpJ.getInductionVar();
+
+            // initilize output val
+            Value zeroVal = rewriter.create<arith::ConstantOp>(loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(0));
+            rewriter.create<AffineStoreOp>(loc, zeroVal, alloc, ValueRange{ivI, ivJ});
+
+            /* looping p*/
+            AffineForOp forOpP = rewriter.create<AffineForOp>(loc, lb, KH, step);
+            rewriter.setInsertionPointToStart(forOpP.getBody());
+            auto ivP = forOpP.getInductionVar();
+
+            /* looping q*/
+            AffineForOp forOpQ = rewriter.create<AffineForOp>(loc, lb, KW, step);
+            rewriter.setInsertionPointToStart(forOpQ.getBody());
+            auto ivQ = forOpQ.getInductionVar();
+
+            // input bound check
+            Value inputRow = rewriter.create<AffineApplyOp>(loc, inputMap.getSubMap(0), ValueRange{ivI, ivJ, ivP, ivQ});
+            Value inputCol = rewriter.create<AffineApplyOp>(loc, inputMap.getSubMap(1), ValueRange{ivI, ivJ, ivP, ivQ});
+            Value rowUB = rewriter.create<arith::CmpIOp>(loc, arith::CmpIPredicate::slt, inputRow, rewriter.create<arith::ConstantIndexOp>(loc, IH));
+            Value colUB = rewriter.create<arith::CmpIOp>(loc, arith::CmpIPredicate::slt, inputCol, rewriter.create<arith::ConstantIndexOp>(loc, IW));
+            Value bound = rewriter.create<arith::AndIOp>(loc, rowUB, colUB);
+
+            // bound condition
+            rewriter.create<scf::IfOp>(loc, bound, [&](OpBuilder &builder, Location loc) {
+                    // load input
+                    Value inputVal = builder.create<AffineLoadOp>(loc, input, inputMap,ValueRange{ivI, ivJ, ivP, ivQ});
+                    Value kernelVal = builder.create<AffineLoadOp>(loc, kernel, kernelMap, ValueRange{ivI, ivJ, ivP, ivQ});
+                    // mul
+                    Value prod = builder.create<arith::MulFOp>(loc, inputVal, kernelVal);
+                    Value outputVal = builder.create<AffineLoadOp>(loc, alloc, ValueRange{ivI, ivJ});
+                    Value sum = builder.create<arith::AddFOp>(loc, prod, outputVal);
+
+                    // store the computed output
+                    builder.create<AffineStoreOp>(loc, sum, alloc, ValueRange{ivI, ivJ});
+
+                    builder.create<scf::YieldOp>(loc);
+                    });
+
+            rewriter.replaceOp(op, alloc);
+
+            return success();
+        }
+}; // conv2d
+
 } // namespace
 
 //===----------------------------------------------------------------------===//
@@ -7116,9 +7222,9 @@ struct TransposeOpLowering : public ConversionPattern {
 /// computationally intensive (like matmul for example...) while keeping the
 /// rest of the code in the Toy dialect.
 namespace {
-struct ToyToAffineLoweringPass
-    : public PassWrapper<ToyToAffineLoweringPass, OperationPass<ModuleOp>> {
-  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ToyToAffineLoweringPass)
+    struct ToyToAffineLoweringPass
+        : public PassWrapper<ToyToAffineLoweringPass, OperationPass<ModuleOp>> {
+            MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(ToyToAffineLoweringPass)
 
   void getDependentDialects(DialectRegistry &registry) const override {
     registry
@@ -7130,29 +7236,29 @@ struct ToyToAffineLoweringPass
 } // namespace
 
 void ToyToAffineLoweringPass::runOnOperation() {
-  // The first thing to define is the conversion target. This will define the
-  // final target for this lowering.
-  ConversionTarget target(getContext());
+    // The first thing to define is the conversion target. This will define the
+    // final target for this lowering.
+    ConversionTarget target(getContext());
 
-  // We define the specific operations, or dialects, that are legal targets for
-  // this lowering. In our case, we are lowering to a combination of the
-  // `Affine`, `Arith`, `Func`, and `MemRef` dialects.
-  target.addLegalDialect<affine::AffineDialect, BuiltinDialect,
-                         arith::ArithDialect, func::FuncDialect,
-                         memref::MemRefDialect, math::MathDialect,
-                         scf::SCFDialect>();
+    // We define the specific operations, or dialects, that are legal targets for
+    // this lowering. In our case, we are lowering to a combination of the
+    // `Affine`, `Arith`, `Func`, and `MemRef` dialects.
+    target.addLegalDialect<affine::AffineDialect, BuiltinDialect,
+        arith::ArithDialect, func::FuncDialect,
+        memref::MemRefDialect, math::MathDialect,
+        scf::SCFDialect>();
 
-  // We also define the Toy dialect as Illegal so that the conversion will fail
-  // if any of these operations are *not* converted. Given that we actually want
-  // a partial lowering, we explicitly mark the Toy operations that don't want
-  // to lower, `dsp.print`, as `legal`. `dsp.print` will still need its operands
-  // to be updated though (as we convert from TensorType to MemRefType), so we
-  // only treat it as `legal` if its operands are legal.
-  target.addIllegalDialect<dsp::DspDialect>();
-  target.addDynamicallyLegalOp<dsp::PrintOp>([](dsp::PrintOp op) {
-    return llvm::none_of(op->getOperandTypes(),
-                         [](Type type) { return llvm::isa<TensorType>(type); });
-  });
+    // We also define the Toy dialect as Illegal so that the conversion will fail
+    // if any of these operations are *not* converted. Given that we actually want
+    // a partial lowering, we explicitly mark the Toy operations that don't want
+    // to lower, `dsp.print`, as `legal`. `dsp.print` will still need its operands
+    // to be updated though (as we convert from TensorType to MemRefType), so we
+    // only treat it as `legal` if its operands are legal.
+    target.addIllegalDialect<dsp::DspDialect>();
+    target.addDynamicallyLegalOp<dsp::PrintOp>([](dsp::PrintOp op) {
+            return llvm::none_of(op->getOperandTypes(),
+                    [](Type type) { return llvm::isa<TensorType>(type); });
+            });
 
   // Now that the conversion target has been defined, we just need to provide
   // the set of patterns that will lower the Toy operations.
@@ -7175,20 +7281,20 @@ void ToyToAffineLoweringPass::runOnOperation() {
       RunLenEncodingOpLowering, FIRFilterResSymmOptimizedOpLowering,
       LengthOpLowering, ReverseInputOpLowering, PaddingOpLowering,
       FIRFilterYSymmOptimizedOpLowering, FFT1DRealSymmOpLowering,
-      FFT1DImgConjSymmOpLowering, FFTRealOpLowering, FFTImagOpLowering>(&getContext());
+      FFT1DImgConjSymmOpLowering, FFTRealOpLowering, FFTImagOpLowering, Conv2DOpLowering>(&getContext());
 
-  // With the target and rewrite patterns defined, we can now attempt the
-  // conversion. The conversion will signal failure if any of our `illegal`
-  // operations were not converted successfully.
-  if (failed(
-          applyPartialConversion(getOperation(), target, std::move(patterns))))
-    signalPassFailure();
+    // With the target and rewrite patterns defined, we can now attempt the
+    // conversion. The conversion will signal failure if any of our `illegal`
+    // operations were not converted successfully.
+    if (failed(
+                applyPartialConversion(getOperation(), target, std::move(patterns))))
+        signalPassFailure();
 }
 
 /// Create a pass for lowering operations in the `Affine` and `Std` dialects,
 /// for a subset of the Toy IR (e.g. matmul).
 std::unique_ptr<Pass> mlir::dsp::createLowerToAffinePass() {
-  return std::make_unique<ToyToAffineLoweringPass>();
+    return std::make_unique<ToyToAffineLoweringPass>();
 }
 
 #pragma GCC diagnostic pop

@@ -801,6 +801,15 @@ private:
       }
       return builder.create<FFT1DImgConjSymmOp>(location, operands[0]);
     }
+
+   if(callee == "conv2d") {
+       if(call.getArgs().size() != 3) {
+           emitError(location, "MLIR codegen encountered an error: dsp.Conv2DOp "
+                   "accepts 3 arguments");
+           return nullptr;
+       }
+       return builder.create<Conv2DOp>(location, operands[0], operands[1], operands[2]);
+   }
     // Builtin calls have their custom operation, meaning this is a
     // straightforward emission.
     // if(callee == "delay"){

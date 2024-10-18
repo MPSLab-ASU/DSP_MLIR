@@ -1989,4 +1989,31 @@ def FFT1DImgConjSymmOp : Dsp_Op<"fft1DimgConjSymm",
   let hasVerifier = 1;
 }
 
+//===----------------------------------------------------------------------===//
+// Conv2DOp
+//===----------------------------------------------------------------------===//
+
+def Conv2DOp : Dsp_Op<"conv2d", 
+    [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+    let summary = "Dsp dialect convolution 2d operation";
+    let description = [{
+        Performs a 2D convolution on the input tensor using specified kernel.
+    }];
+
+    let arguments = (ins F64Tensor:$input, F64Tensor:$kernel, F64Tensor:$bias);
+
+    let results = (outs F64Tensor:$output);
+
+    let builders = [
+        OpBuilder<(ins "Value":$input, "Value":$kernel, "Value":$bias)>
+    ];
+
+    let extraClassDeclaration = [{
+        static StringRef getStrideName() { return "stride"; }
+        static StringRef getPaddingName() { return "padding"; }
+    }];
+
+    let hasVerifier = 1;
+}
+
 #endif // TOY_OPS
