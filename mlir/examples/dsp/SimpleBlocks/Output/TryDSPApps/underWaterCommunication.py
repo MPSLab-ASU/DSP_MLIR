@@ -26,7 +26,7 @@ def main() {
   var FIRfilterResponse = FIRFilterResponse(noisy_sig, lpf_w);
  
   var threshold = 0.5;
-  var GetThresholdReal = convertbinary(FIRfilterResponse , threshold);
+  var GetThresholdReal = thresholdUp(FIRfilterResponse, threshold, 0);
   print(GetThresholdReal);
 
 }

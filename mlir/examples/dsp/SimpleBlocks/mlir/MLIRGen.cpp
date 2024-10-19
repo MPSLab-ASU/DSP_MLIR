@@ -380,10 +380,10 @@ private:
     }
 
     // Modulo Op
-    if(callee == "modulo"){
-       if(call.getArgs().size() != 2){
-         emitError(location, "MLIR codegen encountered an error: dsp.modulo "
-                             "accepts only 2 arguments");
+    if (callee == "modulo") {
+      if (call.getArgs().size() != 2) {
+        emitError(location, "MLIR codegen encountered an error: dsp.modulo "
+                            "accepts only 2 arguments");
         return nullptr;
       }
       return builder.create<ModuloOp>(location, operands[0], operands[1]);
@@ -391,8 +391,9 @@ private:
 
     if (callee == "fftReal") {
       if (call.getArgs().size() != 1) {
-        emitError(location, "MLIR codegen encountered an error: dsp.zeroCrossCount "
-                            "accepts only 1 arguments");
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.zeroCrossCount "
+                  "accepts only 1 arguments");
         return nullptr;
       }
       return builder.create<FFTRealOp>(location, operands[0]);
@@ -400,46 +401,49 @@ private:
 
     if (callee == "fftImag") {
       if (call.getArgs().size() != 1) {
-        emitError(location, "MLIR codegen encountered an error: dsp.zeroCrossCount "
-                            "accepts only 1 arguments");
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.zeroCrossCount "
+                  "accepts only 1 arguments");
         return nullptr;
       }
       return builder.create<FFTImagOp>(location, operands[0]);
     }
-	
+
     // Shift right Op
-    if(callee == "shiftRight"){
-       if(call.getArgs().size() != 2){
-         emitError(location, "MLIR codegen encountered an error: dsp.shiftRight "
-                             "accepts only 2 arguments");
-         return nullptr;
-       }
-       return builder.create<ShiftRightOp>(location, operands[0], operands[1]);
-    }
-	
-    // Matmul Op
-    if(callee == "matmul"){
-       if(call.getArgs().size() != 2){
-         emitError(location, "MLIR codegen encountered an error: dsp.matmul "
-                             "accepts only 2 arguments");
-         return nullptr;
-       }
-       return builder.create<MatmulOp>(location, operands[0], operands[1]);
+    if (callee == "shiftRight") {
+      if (call.getArgs().size() != 2) {
+        emitError(location, "MLIR codegen encountered an error: dsp.shiftRight "
+                            "accepts only 2 arguments");
+        return nullptr;
+      }
+      return builder.create<ShiftRightOp>(location, operands[0], operands[1]);
     }
 
-    if(callee == "zeroCrossCount"){
-      if(call.getArgs().size() != 1){
-        emitError(location, "MLIR codegen encountered an error: dsp.zeroCrossCount "
-                            "accepts only 1 arguments");
+    // Matmul Op
+    if (callee == "matmul") {
+      if (call.getArgs().size() != 2) {
+        emitError(location, "MLIR codegen encountered an error: dsp.matmul "
+                            "accepts only 2 arguments");
+        return nullptr;
+      }
+      return builder.create<MatmulOp>(location, operands[0], operands[1]);
+    }
+
+    if (callee == "zeroCrossCount") {
+      if (call.getArgs().size() != 1) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.zeroCrossCount "
+                  "accepts only 1 arguments");
         return nullptr;
       }
       return builder.create<zeroCrossCountOp>(location, operands[0]);
     }
 
-    if(callee == "FIRFilterResponse"){
-      if(call.getArgs().size() != 2){
-        emitError(location, "MLIR codegen encountered an error: dsp.FIRFilterResponse "
-                            "accepts only 2 arguments");
+    if (callee == "FIRFilterResponse") {
+      if (call.getArgs().size() != 2) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.FIRFilterResponse "
+                  "accepts only 2 arguments");
         return nullptr;
       }
       return builder.create<FIRFilterResponseOp>(location, operands[0],
@@ -822,22 +826,26 @@ private:
       return builder.create<FFT1DImgConjSymmOp>(location, operands[0]);
     }
 
-   if(callee == "conv2d") {
-       if(call.getArgs().size() != 3) {
-           emitError(location, "MLIR codegen encountered an error: dsp.Conv2DOp "
-                   "accepts 3 arguments");
-           return nullptr;
-       }
-       return builder.create<Conv2DOp>(location, operands[0], operands[1], operands[2]);
-   }
-   if(callee == "convertbinary") {
-       if(call.getArgs().size() != 2) {
-           emitError(location, "MLIR codegen encountered an error: dsp.convertbinary "
-                   "accepts 2 arguments");
-           return nullptr;
-       }
-       return builder.create<BinaryConversionOp>(location, operands[0], operands[1]);
-   }
+    if (callee == "conv2d") {
+      if (call.getArgs().size() != 3) {
+        emitError(location, "MLIR codegen encountered an error: dsp.Conv2DOp "
+                            "accepts 3 arguments");
+        return nullptr;
+      }
+      return builder.create<Conv2DOp>(location, operands[0], operands[1],
+                                      operands[2]);
+    }
+
+    if (callee == "thresholdUp") {
+      if (call.getArgs().size() != 3) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.thresholdUp "
+                  "accepts 3 arguments");
+        return nullptr;
+      }
+      return builder.create<ThresholdUpOp>(location, operands[0], operands[1],
+                                           operands[2]);
+    }
     // Builtin calls have their custom operation, meaning this is a
     // straightforward emission.
     // if(callee == "delay"){

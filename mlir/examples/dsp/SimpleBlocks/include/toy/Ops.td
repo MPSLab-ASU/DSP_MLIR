@@ -2081,24 +2081,24 @@ def Conv2DOp : Dsp_Op<"conv2d",
 }
 
 //===----------------------------------------------------------------------===//
-// BinaryConversionOp
+// ThresholdUpOp
 //===----------------------------------------------------------------------===//
 
-def BinaryConversionOp : Dsp_Op<"convertbinary", 
+def ThresholdUpOp : Dsp_Op<"thresholdUp", 
     [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
     let summary = "Converts all the values above threhold to 1 else 0";
     let description = [{
-        COnverts all the values above threhold to 1 aand rest all as zero.
+        Converts all the values above threhold to 1 if returnoriginal is false, returns original value if returnoriginal is true else 0
     }];
 
-    let arguments = (ins F64Tensor:$input, F64Tensor:$threshold);
+    let arguments = (ins F64Tensor:$input, F64Tensor:$threshold, F64Tensor:$returnoriginal);
 
     let results = (outs F64Tensor:$output);
 
     let builders = [
-        OpBuilder<(ins "Value":$input, "Value":$threshold)>
+        OpBuilder<(ins "Value":$input, "Value":$threshold, "Value":$returnoriginal)>
     ];
-
+    let hasVerifier = 1;
 }
 
 
