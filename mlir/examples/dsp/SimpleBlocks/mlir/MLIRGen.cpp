@@ -846,6 +846,18 @@ private:
       return builder.create<ThresholdUpOp>(location, operands[0], operands[1],
                                            operands[2]);
     }
+
+    if (callee == "generateDtmf") {
+      if (call.getArgs().size() != 3) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.GenerateDTMFOp "
+                  "accepts 3 argument");
+        return nullptr;
+      }
+      return builder.create<GenerateDTMFOp>(location, operands[0], operands[1],
+                                            operands[2]);
+    }
+
     // Builtin calls have their custom operation, meaning this is a
     // straightforward emission.
     // if(callee == "delay"){

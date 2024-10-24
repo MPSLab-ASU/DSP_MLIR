@@ -7459,7 +7459,7 @@ struct Conv2DOpLowering : public ConversionPattern {
 }; // conv2d
 
 //===----------------------------------------------------------------------===//
-// ToyToAffine RewritePatterns: BinaryConversion operations
+// ToyToAffine RewritePatterns: ThresholdUpOpLowering operations
 //===----------------------------------------------------------------------===//
 
 struct ThresholdUpOpLowering : public ConversionPattern {
@@ -7493,7 +7493,7 @@ struct ThresholdUpOpLowering : public ConversionPattern {
     // loop from 0 to len
 
     // load from X,
-    ThresholdUpOpAdaptor binaryConversionAdaptor(operands);
+    ThresholdUpOpAdaptor thresholdUpAdaptor(operands);
 
     int64_t lb = 0;
     int64_t ub = tensorType.getShape()[0];
@@ -7505,12 +7505,12 @@ struct ThresholdUpOpLowering : public ConversionPattern {
     auto ivY = forOpY.getInductionVar();
     rewriter.setInsertionPointToStart(forOpY.getBody());
 
-    Value inputX = rewriter.create<AffineLoadOp>(
-        loc, binaryConversionAdaptor.getInput(), ivY);
+    Value inputX =
+        rewriter.create<AffineLoadOp>(loc, thresholdUpAdaptor.getInput(), ivY);
 
     // Load the threshold value from the memref
-    auto thresholdMemRef = binaryConversionAdaptor.getThreshold();
-    auto returnOriginalMemRef = binaryConversionAdaptor.getReturnoriginal();
+    auto thresholdMemRef = thresholdUpAdaptor.getThreshold();
+    auto returnOriginalMemRef = thresholdUpAdaptor.getReturnoriginal();
     auto threshold =
         rewriter.create<AffineLoadOp>(loc, thresholdMemRef, ValueRange{});
     auto returnOriginal =
@@ -7543,6 +7543,97 @@ struct ThresholdUpOpLowering : public ConversionPattern {
     //  affine.store %0, %alloc[0] : memref<1xf64>
 
     rewriter.replaceOp(op, alloc);
+
+    return success();
+  }
+};
+
+//===----------------------------------------------------------------------===//
+// ToyToAffine RewritePatterns: GenerateDTMFOpLowering operations
+//===----------------------------------------------------------------------===//
+
+struct GenerateDTMFOpLowering : public ConversionPattern {
+  GenerateDTMFOpLowering(MLIRContext *ctx)
+      : ConversionPattern(dsp::GenerateDTMFOp::getOperationName(), 1, ctx) {}
+
+  LogicalResult
+  matchAndRewrite(Operation *op, ArrayRef<Value> operands,
+                  ConversionPatternRewriter &rewriter) const final {
+    auto loc = op->getLoc();
+
+    auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
+
+    // allocation & deallocation for the result of this operation
+    auto memRefType = convertTensorToMemRef(tensorType);
+
+    auto alloc = insertAllocAndDealloc(memRefType, loc, rewriter);
+
+    GenerateDTMFOpAdaptor generatedtmfAdaptor(operands);
+    std::vector<std::vector<int64_t>> freqPairs = {
+        {697, 1209}, {697, 1336}, {697, 1477}, {770, 1209},
+        {770, 1336}, {770, 1477}, {852, 1209}, {852, 1336},
+        {852, 1477}, {941, 1209}, {941, 1336}, {941, 1477}};
+
+
+
+//     auto inputval = generatedtmfAdaptor.getInput();
+
+//     Value GetDigitInput = op->getOperand(0);
+//     dsp::ConstantOp inputvl = inputval.getDefiningOp<dsp::ConstantOp>();
+//     DenseElementsAttr inputvalue = inputvl.getValue();
+//     auto elements1 = inputvalue.getValues<FloatAttr>();
+//     float input = elements1[0].getValueAsDouble();
+
+//     Value GetDurationOp = op->getOperand(1);
+//     dsp::ConstantOp constantOp2ndArg =
+//         GetDurationOp.getDefiningOp<dsp::ConstantOp>();
+//     DenseElementsAttr constant2ndValue = constantOp2ndArg.getValue();
+//     auto elements2 = constant2ndValue.getValues<FloatAttr>();
+//     float duration = elements2[0].getValueAsDouble();
+
+//     Value GetFreqOp = op->getOperand(2);
+//     dsp::ConstantOp constantOp3rdArg =
+//         GetFreqOp.getDefiningOp<dsp::ConstantOp>();
+//     DenseElementsAttr constant3rdValue = constantOp3rdArg.getValue();
+//     auto elements3 = constant3rdValue.getValues<FloatAttr>();
+//     float freq = elements3[0].getValueAsDouble();
+
+
+//     const std::vector<int64_t> &pair = freqPairs[input];
+//     int64_t f1 = pair[0];
+//     int64_t f2 = pair[1];
+// int64_t lb = 0;
+//     int64_t ub = tensorType.getShape()[0];
+//     int64_t step = 1;
+   
+//     Value const2pi = rewriter.create<arith::ConstantOp>(
+//         loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(6.28318530718));
+    
+//     Value mulProd = rewriter.create<arith::MulFOp>(loc, getLhs, getRhs);
+// auto yMemRefType = MemRefType::get({ub}, rewriter.getF64Type());
+//     auto tAlloc = rewriter.create<memref::AllocOp>(loc, yMemRefType);
+
+
+    
+
+// // for loop from 0 to len(Output)
+//     affine::AffineForOp forOpY =
+//         rewriter.create<AffineForOp>(loc, lb, ub, step);
+//     auto ivY = forOpY.getInductionVar();
+//     rewriter.setInsertionPointToStart(forOpY.getBody());
+
+//     Value inputX =
+//         rewriter.create<AffineLoadOp>(loc, thresholdUpAdaptor.getInput(), ivY);
+
+
+//     // Store the result
+//     rewriter.create<AffineStoreOp>(loc, selectOp, alloc, ivY);
+
+//     rewriter.setInsertionPointAfter(forOpY);
+
+
+
+//     rewriter.replaceOp(op, alloc);
 
     return success();
   }

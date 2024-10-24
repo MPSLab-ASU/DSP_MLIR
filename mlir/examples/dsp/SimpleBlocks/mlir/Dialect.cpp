@@ -2698,6 +2698,66 @@ void ThresholdUpOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
 void ThresholdUpOp::inferShapes() { getResult().setType(getInput().getType()); }
 
 //===----------------------------------------------------------------------===//
+// GenerateDTMFOp
+//===----------------------------------------------------------------------===//
+
+mlir::LogicalResult GenerateDTMFOp::verify() {
+  int64_t returnOriginal = 5;
+  Value returnoriginal = getOperand(0);
+  dsp::ConstantOp constantOp1stArg =
+      returnoriginal.getDefiningOp<dsp::ConstantOp>();
+  DenseElementsAttr constantLhsValue = constantOp1stArg.getValue();
+  auto elements = constantLhsValue.getValues<FloatAttr>();
+  float LenN = elements[0].getValueAsDouble();
+  returnOriginal = (int64_t)LenN;
+
+  // DTMF created only for numbers 0-9
+  if (returnOriginal != 0 && returnOriginal != 1 && returnOriginal != 2 &&
+      returnOriginal != 3 && returnOriginal != 4 && returnOriginal != 5 &&
+      returnOriginal != 6 && returnOriginal != 7 && returnOriginal != 8 &&
+      returnOriginal != 9) {
+    return mlir::failure();
+  }
+  return mlir::success();
+}
+
+void GenerateDTMFOp::build(mlir::OpBuilder &builder,
+                           mlir::OperationState &state, mlir::Value input,
+                           mlir::Value duration, mlir::Value freq) {
+  state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
+  state.addOperands({input, duration, freq});
+}
+void GenerateDTMFOp::inferShapes() {
+  std::vector<int64_t> shapeForOutput;
+  double duration = 1;
+  int64_t freq = 1;
+
+  // To extract value from the SSA value:
+  // get the Operand
+  // convert it to ConstantOp
+  // convert it to corresponding elements attribute
+  // extract the value as float then convert to int
+  Value durationval = getOperand(1);
+  dsp::ConstantOp constantOp1stArg = durationval.getDefiningOp<dsp::ConstantOp>();
+  DenseElementsAttr constantLhsValue = constantOp1stArg.getValue();
+  auto elements = constantLhsValue.getValues<FloatAttr>();
+  duration = elements[0].getValueAsDouble();
+
+  Value freqval = getOperand(2);
+  dsp::ConstantOp constantOp2ndArg = freqval.getDefiningOp<dsp::ConstantOp>();
+  DenseElementsAttr constantRhsValue = constantOp2ndArg.getValue();
+  auto elements2 = constantRhsValue.getValues<FloatAttr>();
+  float LenN2 = elements2[0].getValueAsDouble();
+  freq = (int64_t)LenN2;
+auto finalShape = freq * duration;
+  shapeForOutput.push_back(finalShape);
+  mlir::TensorType outputType = mlir::RankedTensorType::get(
+      shapeForOutput, getInput().getType().getElementType());
+
+  getResult().setType(outputType);
+}
+
+//===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//
 
