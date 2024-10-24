@@ -9,7 +9,7 @@ def main() {
     
     # var a10 = [ 3.2, 1.5,  0.8, 2.9,  4.5,10 , 0,5,5.5, 1.1];
     # var a10 = getRangeOfVector(3.2, 10, 1);
-    var input = getRangeOfVector(0, 20000, 10);
+	var input = getRangeOfVector(0, 50000, 1);
     var nlevels = 16; #powerOf2
     var min = 0;
     var max = 8;

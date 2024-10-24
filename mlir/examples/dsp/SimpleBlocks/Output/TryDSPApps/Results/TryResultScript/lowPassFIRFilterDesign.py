@@ -8,7 +8,7 @@ def main() {
   # var a10 = getRangeOfVector(0, 400, 0.000125);
   # var orig = sin(a10);
 
-    var N = 20000001 ;
+    var N = 11 ;
 
   # for cut-off freq
   var pi = 3.14159265359;

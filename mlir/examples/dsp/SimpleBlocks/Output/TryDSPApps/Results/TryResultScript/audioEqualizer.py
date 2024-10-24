@@ -5,7 +5,7 @@
 def main() {
 
   # var input = [1,2,3,4,5];
-	var input = getRangeOfVector(0, 5000000, 1);
+	var input = getRangeOfVector(0, 100000000, 1);
   var pi = 3.14159265359;
   var fc = 300;
   var Fs = 8000;
@@ -32,15 +32,13 @@ def main() {
   var lpf2 = lowPassFIRFilter(wc2, N);
   var lpf2_w = lpf2 * hamming(N);
   # var bpf = lpf2 - lpf;
-  var bpf_w = lpf2_w - lpf_w;
+  var bpf_w = sub(lpf2_w,lpf_w);
   var FIRfilterResponseForBpf = FIRFilterResponse(input, bpf_w);
   var gainWithBpf = gain(FIRfilterResponseForBpf , gainForTreble);
-
-  
   var final_audio = gainWithLpf + gainWithHpf + gainWithBpf ;
   var final1 = getElemAtIndx(final_audio , [3]); 
   print(final1);
-  # print(final_audio);
+  print(final_audio);
 }
 
   

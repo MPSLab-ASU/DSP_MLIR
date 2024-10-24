@@ -14,7 +14,7 @@ def main() {
 
   #size 10
   # var a10 = [ 10,20,30,40,50,60,70,80,90,100];
-	var input = getRangeOfVector(0, 10, 1);
+	var input = getRangeOfVector(0, 20000, 1);
   # var input = [1,2,3,4];
   # print(a10);
 

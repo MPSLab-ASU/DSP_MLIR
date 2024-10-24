@@ -1,6 +1,0 @@
-audioCompression.c: 	89 
-energyOfSignal.c: 	62 
-lowPassFIRFilterDesign.c: 	42 
-lowPassFull1.c: 	89 
-noisecancelling.c: 	73 
-periodogram2Conv.c: 	64 

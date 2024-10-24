@@ -15,7 +15,7 @@ def main() {
 
   #size 10
   # var a10 = [ 10,20,30,40,50,60,70,80,90,100];
-	var input = getRangeOfVector(0, 100, 1);
+	var input = getRangeOfVector(0, 30000, 1);
   #calculate x[l] 
   #calculate fft : fft1 = fft(conv1)
   var fft_real = fft1dreal(input);
@@ -31,8 +31,8 @@ def main() {
   var res = sum1 / len1;
 
   print(res);
-  # var final1 = getElemAtIndx(fft_real , [6]); 
-  # print(final1);
+  var final1 = getElemAtIndx(fft_real , [6]); 
+  print(final1);
 
 
 

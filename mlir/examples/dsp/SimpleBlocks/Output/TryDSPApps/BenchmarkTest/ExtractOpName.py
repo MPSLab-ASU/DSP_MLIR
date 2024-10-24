@@ -2,9 +2,9 @@ import re
 import os
 
 fileNamePath = "mlir/examples/dsp/SimpleBlocks/include/toy/Ops.td"
-BasePathForLLVM = "/mnt/sharedDrive/SourceCode/llvm-project/"
+# BasePathForLLVM = "/mnt/sharedDrive/SourceCode/llvm-project/"
 # OutputScriptPath = "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/Results/TryResultScript/"
-
+BasePathForLLVM = "/home/local/ASURITE/apkhedka/ForLLVM/"
 fileName = BasePathForLLVM + fileNamePath
 print(fileName)
 # Create 'Output' folder if it doesn't exist

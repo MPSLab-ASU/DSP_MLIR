@@ -12,7 +12,7 @@ def main() {
   # var step = 1/8000; 
   # print(step);
   var duration = 0.05 ; # 50 milli-secs
-	var input = getRangeOfVector(0, 30000000, 0.000125);
+	var input = getRangeOfVector(0, 100000000, 0.000125);
   # print(c);
   # var c = getRangeOfVector(0,10, 0.000125);
   var f_sig = 500;

@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <math.h>
 
-void getRangeOfVector(double* input, int start, int NoOfElements, double Increment) {
-    for (int i = 0; i < NoOfElements; i++) {
-        input[i] = start + i * Increment;
+// Define INPUT_LENGTH globally
+#define INPUT_LENGTH 50000
+
+void getRangeOfVector(double* vector, double start, int length, double increment) {
+    for (int i = 0; i < length; i++) {
+        vector[i] = start + i * increment;
     }
 }
 
@@ -51,25 +54,25 @@ void squareMagnitude(double* output, double* real, double* imag, int length) {
 }
 
 int main() {
-    int length = 10;
-    double input[10];
-    getRangeOfVector(input, 0, length, 1);
+    // Use INPUT_LENGTH instead of hard-coded value
+    double input[INPUT_LENGTH];
+    getRangeOfVector(input, 0.0, INPUT_LENGTH, 1.0);
 
-    double reverse_input[10];
-    reverseInput(reverse_input, input, length);
+    double reverse_input[INPUT_LENGTH];
+    reverseInput(reverse_input, input, INPUT_LENGTH);
 
-    double conv1d[10];
-    FIRFilterResponse(conv1d, input, reverse_input, length);
+    double conv1d[INPUT_LENGTH];
+    FIRFilterResponse(conv1d, input, reverse_input, INPUT_LENGTH);
 
-    double fft_real[10];
-    double fft_img[10];
-    dftReal(fft_real, conv1d, length);
-    dftImag(fft_img, conv1d, length);
+    double fft_real[INPUT_LENGTH];
+    double fft_img[INPUT_LENGTH];
+    dftReal(fft_real, conv1d, INPUT_LENGTH);
+    dftImag(fft_img, conv1d, INPUT_LENGTH);
 
-    double sq[10];
-    squareMagnitude(sq, fft_real, fft_img, length);
+    double sq[INPUT_LENGTH];
+    squareMagnitude(sq, fft_real, fft_img, INPUT_LENGTH);
 
-    for (int i = 0; i < length; i++) {
+    for (int i = 0; i < INPUT_LENGTH; i++) {
         printf("%f\n", sq[i]);
     }
 

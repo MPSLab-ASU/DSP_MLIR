@@ -1,6 +1,0 @@
-audioCompression.py: 	19
-energyOfSignal.py: 	10
-lowPassFIRFilterDesign1.py: 	12
-lowPassFull1.py: 	20
-noisecancelling.py: 	19
-periodogram2Conv.py: 	11
