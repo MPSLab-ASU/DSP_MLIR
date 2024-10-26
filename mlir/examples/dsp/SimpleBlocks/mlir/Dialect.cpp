@@ -629,21 +629,21 @@ void FFTImagOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
 void FFTImagOp::inferShapes() { getResult().setType(getLhs().getType()); }
 
 //===----------------------------------------------------------------------===//
-// MatmulOp
-//===----------------------------------------------------------------------===//
+ // MatmulOp
+ //===----------------------------------------------------------------------===//
 
-void MatmulOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                     mlir::Value lhs, mlir::Value rhs) {
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
-  state.addOperands({lhs, rhs});
-}
+ void MatmulOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                   mlir::Value lhs, mlir::Value rhs) {
+   state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+   state.addOperands({lhs, rhs});
+ }
 
-// mlir::ParseResult MatmulOp::parse(mlir::OpAsmParser &parser,
-//                                mlir::OperationState &result) {
-//   return parseBinaryOp(parser, result);
-// }
+ // mlir::ParseResult MatmulOp::parse(mlir::OpAsmParser &parser,
+ //                                mlir::OperationState &result) {
+ //   return parseBinaryOp(parser, result);
+ // }
 
-// void MatmulOp::print(mlir::OpAsmPrinter &p) { printBinaryOp(p, *this); }
+ // void MatmulOp::print(mlir::OpAsmPrinter &p) { printBinaryOp(p, *this); }
 
 mlir::LogicalResult MatmulOp::verify() {
 
@@ -655,7 +655,7 @@ mlir::LogicalResult MatmulOp::verify() {
 
   auto tensorRhs = getRhs().getType();
   auto shapeOfRhs = tensorRhs.getShape();
-
+  
   if (shapeOfLhs[1] != shapeOfRhs[0])
     return emitOpError("Matmul: the second dimension of LHS should be equal to the first dimention of RHS.");
   return mlir::success();
@@ -663,8 +663,8 @@ mlir::LogicalResult MatmulOp::verify() {
 
 /// Infer the output shape of the MatmulOp, this is required by the shape
 /// inference interface.
-void MatmulOp::inferShapes() {
-
+ void MatmulOp::inferShapes() {
+  
   // get the shape of Lhs & rhs
   // add the shape for each dimension
   //  auto tensorInput =  llvm::cast<RankedTensorType>(getLhs().getType());
@@ -673,18 +673,40 @@ void MatmulOp::inferShapes() {
 
   auto tensorRhs = getRhs().getType();
   auto shapeOfRhs = tensorRhs.getShape();
-
+  
   std::vector<int64_t> shapeForOutput;
 
   shapeForOutput.push_back(shapeOfLhs[0]);
   shapeForOutput.push_back(shapeOfRhs[1]);
-
+  
   mlir::TensorType manipulatedType = mlir::RankedTensorType::get(
       shapeForOutput, getLhs().getType().getElementType());
 
   // getResult().setType(getLhs().getType());
   getResult().setType(manipulatedType);
 }
+
+
+//===----------------------------------------------------------------------===//
+ // FindPeaksOp
+ //===----------------------------------------------------------------------===//
+
+ void FindPeaksOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                   mlir::Value signal, mlir::Value height, mlir::Value distance) {
+    state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+    state.addOperands({signal, height, distance});
+ }
+
+
+ /// Infer the output shape of the FindPeaksOp, this is required by the shape inference
+ /// interface.
+ void FindPeaksOp::inferShapes() {
+   getResult().setType(getSignal().getType());
+   
+}
+
+
+
 
 //===----------------------------------------------------------------------===//
 // zeroCrossCountOp

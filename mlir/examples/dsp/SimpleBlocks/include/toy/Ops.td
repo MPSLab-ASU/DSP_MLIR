@@ -2192,6 +2192,54 @@ def QamDemodulateOp : Dsp_Op<"qam_demodulate",
 
     let hasVerifier = 1;
 }
+
+//===----------------------------------------------------------------------===//
+// FindPeaksOp
+//===----------------------------------------------------------------------===//
+
+def FindPeaksOp : Dsp_Op<"find_peaks", [Pure , DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+   let summary = "Find peaks from the signal. Since the number of peaks vary, the output is initialized as -1.";
+   let description = [{
+		Input: signal, height, distance
+		Output: indices of peaks. All of none-used values are initialized as -1, so the length can be measured by this.
+
+		Functionality: check the below original python-level code.
+		
+		def manual_find_peaks(signal, height, distance):
+			peaks = []
+			for i in range(1, len(signal) - 1):
+				# Check if the current point is higher than its neighbors
+				if signal[i] > signal[i-1] and signal[i] > signal[i+1]:
+					# Check if it meets the height criterion
+					if signal[i] >= height:
+						# Check if it's far enough from the previously detected peak
+						if not peaks or i - peaks[-1] >= distance:
+							peaks.append(i)
+			return np.array(peaks)
+
+   }]; 
+
+   let arguments = (ins F64Tensor:$signal, F64Tensor:$height, F64Tensor:$distance);
+   let results = (outs F64Tensor);
+
+   // Indicate that the operation has a custom parser and printer method.
+   // let hasCustomAssemblyFormat = 1;
+   // let assemblyFormat = [{
+   //   `(` $input `:` type($input1 , $input2) `)` attr-dict `to` type(results)
+   // }];
+   // Allow building a MulOp with from the two input operands.
+   
+   let builders = [
+     OpBuilder<(ins "Value":$signal, "Value":$height, "Value":$distance)>
+   ];
+
+   // Indicate that the operation has a custom parser and printer method.
+   // let hasCustomAssemblyFormat = 1;
+
+   // let hasVerifier = 1;
+ }
+
+
 #endif // TOY_OPS
 
 

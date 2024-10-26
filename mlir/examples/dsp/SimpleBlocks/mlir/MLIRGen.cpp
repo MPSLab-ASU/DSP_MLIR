@@ -408,6 +408,16 @@ private:
       }
       return builder.create<FFTImagOp>(location, operands[0]);
     }
+    
+    // FindPeaks Op
+    if(callee == "find_peaks"){
+       if(call.getArgs().size() != 3){
+         emitError(location, "MLIR codegen encountered an error: dsp.find_peaks "
+                             "accepts only 3 arguments: signal, height, and distance");
+         return nullptr;
+       }
+       return builder.create<FindPeaksOp>(location, operands[0], operands[1], operands[2]);
+    }
 
     // Shift right Op
     if (callee == "shiftRight") {
