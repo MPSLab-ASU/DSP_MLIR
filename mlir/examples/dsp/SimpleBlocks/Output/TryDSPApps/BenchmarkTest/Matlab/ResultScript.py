@@ -1,7 +1,7 @@
 import os
 import subprocess
 import time
-
+import re
 # The script does the following
 # Input : filename.py
 # Output : TimeOfExecution for different IP sizes :
@@ -16,7 +16,7 @@ import time
 
 # Path to the input file
 # Apps = "noiseCancelling.m" , "echoCancelling.m", "periodogram.m", "lowPassFull.m", "hearingAid.m", "lowPassFIRFilterDesign", "energyOfSignal", "audioEqualizer", "audioCompression","vibrationAnalysis", "underWaterCommunication", "voiceActivityDetection"
-input_file = "lowPassFull"
+input_file = "lowPassFIRFilterDesign"
 input_file_path = input_file + ".m"
 BasePathForLLVM = "/home/local/ASURITE/apkhedka/ForLLVM/"
 OutputScriptPath = "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/Matlab/"
@@ -92,46 +92,54 @@ for key, value in inputValues.items():
     command = f"{mcc_path} -m {input_file_path} -d 'Output/' -o {input_file}{key}"
     result = subprocess.run(command, shell=True, capture_output=True, text=True)
 
+    # Modify the generated shell script
+    script_path = f"./Output/run_{input_file}{key}.sh"
+    # Modify the generated shell script
+    script_path = f"./Output/run_{input_file}{key}.sh"
+    with open(script_path, 'r') as file:
+        script_content = file.readlines()
+
+    # Find the line with the eval command and modify it
+    for i, line in enumerate(script_content):
+        if line.strip().startswith('eval'):
+            script_content[i] = f"""  start_time=$(date +%s.%N)
+  {line.strip()}
+  end_time=$(date +%s.%N)
+  execution_time=$(echo "$end_time - $start_time" | bc)
+  echo "Execution time: $execution_time"
+"""
+            break
+
+    # Write the modified content back to the script
+    with open(script_path, 'w') as file:
+        file.writelines(script_content)
+
+
     sum_exe_time = 0
     for i in range(0, NoOfIterations):
         try:
-            process = subprocess.run(
-                "sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'",
-                shell=True,
-                check=True,
-            )
-            # process.wait()
+            subprocess.run("sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'", shell=True, check=True)
         except subprocess.CalledProcessError as exc:
             print(exc)
-            process.terminate()
-        # The command to be executed
 
         command2 = f"taskset -c 0 ./Output/run_{input_file}{key}.sh {mrt_path}"
-        # print(command2)
-        # Record the start time
-        start_time = time.time()
 
-        # Execute the command
         try:
-            subprocess.run(
-                command2,
-                shell=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                check=True,
-            )
-            # subprocess.run(command2, shell=True)``
+            result = subprocess.run(command2, shell=True, capture_output=True, text=True, check=True)
+            output = result.stdout
+            
+            # Extract execution time from the output
+            match = re.search(r"Execution time: (\d+\.\d+)", output)
+            if match:
+                execution_time = float(match.group(1))
+                sum_exe_time += execution_time
+            else:
+                print(f"Execution time not found in output: {output}")
         except subprocess.CalledProcessError as exc:
-            print(
-                f"Process failed because did not return a successful return code. "
-                f"Returned {exc.returncode}\n{exc}"
-            )
+            print(f"Process failed. Returned {exc.returncode}\n{exc}")
 
-        end_time = time.time()
-        execution_time = end_time - start_time
-        sum_exe_time = sum_exe_time + execution_time
     avg_exe_time = sum_exe_time / NoOfIterations
-    print("{}".format(avg_exe_time), end="\t")
+    print(f"{avg_exe_time}", end="\t")
     delete_folder_contents("./Output")
 
 
