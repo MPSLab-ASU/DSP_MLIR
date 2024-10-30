@@ -2,7 +2,7 @@ def main() {
   var fs = 1000;
   # var step = 1/fs; 
   # print(step);
-	var input = getRangeOfVector(0, 100000, 1);
+	var input = getRangeOfVector(0, 30000, 1);
   var pi = 3.14159265359;
   var getMultiplier = 2 * pi * 50;
   # print(getMultiplier);

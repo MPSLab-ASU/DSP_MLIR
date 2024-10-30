@@ -5,7 +5,7 @@
 def main() {
 
   # var input = [1,2,3,4,5];
-	var input = getRangeOfVector(0, 100000000, 1);
+	var input = getRangeOfVector(0, 30000000, 1);
   var pi = 3.14159265359;
   var fc = 300;
   var Fs = 8000;

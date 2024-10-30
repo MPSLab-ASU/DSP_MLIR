@@ -16,11 +16,11 @@ import time
 
 # Path to the input file
 # Apps = "hearingAid.py" , "lowPassFull.py" , " audioCompression.py" ,
-#  "back2backDelay.py" , "lowPassFIRFilterDesign.py" , EnergyOfSignal.py, periodogram2Conv1.py, audioEqualizer.py
-input_file_path = "voiceActivityDetection.py"
-BasePathForLLVM = "DSP_MLIR"
+#  "back2backDelay.py" , "lowPassFIRFilterDesign.py" , "EnergyOfSignal.py", "periodogram2Conv1.py", "audioEqualizer.py", "vibrationAnalysis.py"
+input_file_path = "vibrationAnalysis.py"
+BasePathForLLVM = "/home/local/ASURITE/apkhedka/ForLLVM/"
 OutputScriptPath = (
-    "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/Results/TryResultScript/"
+    "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/DSP-DSL/"
 )
 # OutputPath = BasePathForLLVM + "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/Results/TryResultScript/Output/"
 print(f"Running Application {input_file_path}")
@@ -48,7 +48,7 @@ inputValues = {
     "40K": 40000,
     "50K": 50000,
     "100K": 100000,
-     "1M": 1000000,
+    "1M": 1000000,
     "10M": 10000000,
     "20M": 20000000,
     "30M": 30000000,
@@ -102,7 +102,7 @@ for key, value in inputValues.items():
     # Update the specific line in the file
     # print("Updating for {}".format(value))
     # print("\n")
-    value2 = 1/value
+    value2 = 1 / value
     print("\n{}".format(key), end="\t")
     with open(input_file_path, "w") as file:
         for line in lines:

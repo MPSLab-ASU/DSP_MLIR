@@ -97,8 +97,8 @@ int main() {
 
     lmsFilterResponse(y, noisy_sig, clean_sig, mu, filterSize, INPUT_LENGTH);
 
-    // Print result (for demonstration purposes)
-    for (int i = 0; i < INPUT_LENGTH && i < 10; i++) { // Limit print to first few samples
+    // Print result
+    for (int i = 0; i < INPUT_LENGTH; i++) {
         printf("%f\n", y[i]);
     }
 

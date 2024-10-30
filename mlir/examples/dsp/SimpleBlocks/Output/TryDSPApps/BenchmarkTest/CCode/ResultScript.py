@@ -16,11 +16,9 @@ import time
 
 # Path to the input file
 # Apps = "lowPassFIRFilterDesign.c", "noisecancelling.c" , "echocancelling.c",  "hearingAid.c", "audioEqualizer.c", "vibrationAnalysis.c", "underWaterCommunication.c", "voiceActivityDetection.c"
-input_file_path = "voiceActivityDetection.c"
-BasePathForLLVM = "DSP_MLIR"
-OutputScriptPath = (
-    "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/PythonCodeForTest/CCode/"
-)
+input_file_path = "vibrationAnalysis.c"
+BasePathForLLVM = "/home/local/ASURITE/apkhedka/ForLLVM/"
+OutputScriptPath = "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/CCode/"
 # OutputPath = BasePathForLLVM + "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/Results/TryResultScript/Output/"
 print(f"Running Application {input_file_path}")
 # Construct full output path

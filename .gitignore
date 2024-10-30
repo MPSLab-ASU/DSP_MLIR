@@ -74,3 +74,7 @@ pythonenv*
 # automodapi puts generated documentation files here.
 /lldb/docs/python_api/
 mlir_opt_helper.txt
+mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/Matlab/Output/*
+mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/CCode/Output/*
+mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/DSP-DSL/Output/*
+mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/Output/*
