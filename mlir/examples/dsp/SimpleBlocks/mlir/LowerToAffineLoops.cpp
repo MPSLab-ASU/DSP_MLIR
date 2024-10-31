@@ -1800,95 +1800,97 @@ struct LengthOpLowering : public ConversionPattern {
 //===----------------------------------------------------------------------===//
 
 struct FFTRealOpLowering : public ConversionPattern {
-  // constructor takes the mlir context and the operation as inputs
   FFTRealOpLowering(MLIRContext *ctx)
       : ConversionPattern(dsp::FFTRealOp::getOperationName(), 1, ctx) {}
 
-  // matchandrewrite - actual lowering logic of the operation
-  LogicalResult // return type is logical --> success or failure
-  // checks if the correct function is passed and rewrites it
-  // takes in the pointer to the operation, list of operands, and the rewriter
-  // object const - function doesn't modify the class it belongs to final -
-  // can't be overridden
+  LogicalResult 
   matchAndRewrite(Operation *op, ArrayRef<Value> operands,
                   ConversionPatternRewriter &rewriter) const final {
-    // get location of the operation
     auto loc = op->getLoc();
-    // get the type of the result
     auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
-    // convert the tensorType to memrefType
     auto memrefType = convertTensorToMemRef(tensorType);
-    // alloc memory for temp and dealloc when not required
+
     auto alloc_temp_real = insertAllocAndDealloc(memrefType, loc, rewriter);
     auto alloc_temp_imag = insertAllocAndDealloc(memrefType, loc, rewriter);
 
-    // storing the input in real and 0.0 in imag
-
-    // adaptor to get operands
     FFTRealOpAdaptor fftRealOpAdaptor(operands);
     auto input = fftRealOpAdaptor.getLhs();
-
-    // bounds of the affine loop
     auto lb = rewriter.create<arith::ConstantIndexOp>(loc, 0);
-    auto ub =
-        rewriter.create<arith::ConstantIndexOp>(loc, tensorType.getShape()[0]);
+    auto ub = rewriter.create<arith::ConstantIndexOp>(loc, tensorType.getShape()[0]); 
     auto step = rewriter.create<arith::ConstantIndexOp>(loc, 1);
 
     // load real and imag
     auto load_temp = rewriter.create<scf::ForOp>(loc, lb, ub, step);
     rewriter.setInsertionPointToStart(load_temp.getBody());
     auto iv = load_temp.getInductionVar();
-    auto inputValue =
-        rewriter.create<memref::LoadOp>(loc, input, ValueRange{iv});
-    auto constantZero = rewriter.create<arith::ConstantFloatOp>(
-        loc, llvm::APFloat(0.0), rewriter.getF64Type());
-    rewriter.create<memref::StoreOp>(loc, inputValue, alloc_temp_real,
-                                     ValueRange{iv});
-    rewriter.create<memref::StoreOp>(loc, constantZero, alloc_temp_imag,
-                                     ValueRange{iv});
+    auto inputValue = rewriter.create<memref::LoadOp>(loc, input, ValueRange{iv}); 
+    auto constantZero = rewriter.create<arith::ConstantFloatOp>(loc, llvm::APFloat(0.0),
+    rewriter.getF64Type()); rewriter.create<memref::StoreOp>(loc, inputValue, alloc_temp_real, ValueRange{iv}); 
+    rewriter.create<memref::StoreOp>(loc, constantZero, alloc_temp_imag, ValueRange{iv});
     rewriter.setInsertionPointAfter(load_temp);
 
     // alloc memory for reversed and dealloc when not required
-    auto alloc_reversed_real = insertAllocAndDealloc(memrefType, loc, rewriter);
+    auto alloc_reversed_real = insertAllocAndDealloc(memrefType, loc, rewriter); 
     auto alloc_reversed_imag = insertAllocAndDealloc(memrefType, loc, rewriter);
+    
+    // bits needed for bit  reversal
+    auto ubInt = rewriter.create<arith::IndexCastOp>(loc, rewriter.getI64Type(), ub);
+    auto ubFloat = rewriter.create<arith::SIToFPOp>(loc, rewriter.getF64Type(), ubInt);
+    auto bitsNeededFloat = rewriter.create<math::Log2Op>(loc, ubFloat);
+    auto bitsNeededInt = rewriter.create<arith::FPToSIOp>(loc, rewriter.getI64Type(), bitsNeededFloat);
+    auto bitsNeeded = rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), bitsNeededInt);
 
-    // bit reversal constants
-    auto constant1 =
-        rewriter.create<arith::ConstantOp>(loc, rewriter.getI64IntegerAttr(1));
-    auto constant2 =
-        rewriter.create<arith::ConstantOp>(loc, rewriter.getI64IntegerAttr(2));
+    // bit reversal
+    auto bitReversalLoop = rewriter.create<scf::ForOp>(loc, lb, ub, step);
+    rewriter.setInsertionPointToStart(bitReversalLoop.getBody());
+    auto i = bitReversalLoop.getInductionVar();
+    auto iInt = rewriter.create<arith::IndexCastOp>(loc, rewriter.getI64Type(), i); // check here
 
-    // Bit reversal loop
-    auto bitReversal = rewriter.create<scf::ForOp>(loc, lb, ub, step);
-    rewriter.setInsertionPointToStart(bitReversal.getBody());
-    auto i = bitReversal.getInductionVar();
-    // Convert index to i64
-    auto i_val =
-        rewriter.create<arith::IndexCastOp>(loc, rewriter.getI64Type(), i);
-    // Bit reversal logic
-    auto bit0 = rewriter.create<arith::AndIOp>(loc, i_val, constant1);
-    auto i_val_shr1 = rewriter.create<arith::ShRUIOp>(loc, i_val, constant1);
-    auto bit1 = rewriter.create<arith::AndIOp>(loc, i_val_shr1, constant1);
-    auto i_val_shr2 = rewriter.create<arith::ShRUIOp>(loc, i_val, constant2);
-    auto bit2 = rewriter.create<arith::AndIOp>(loc, i_val_shr2, constant1);
-    auto rev_bit0 = rewriter.create<arith::ShLIOp>(loc, bit0, constant2);
-    auto rev_bit1 = rewriter.create<arith::ShLIOp>(loc, bit1, constant1);
-    auto rev_temp = rewriter.create<arith::OrIOp>(loc, rev_bit0, rev_bit1);
-    auto rev = rewriter.create<arith::OrIOp>(loc, rev_temp, bit2);
-    // Convert back to index
-    auto reversed_i =
-        rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), rev);
-    // Load values from temp arrays
-    auto real_val =
-        rewriter.create<memref::LoadOp>(loc, alloc_temp_real, ValueRange{i});
-    auto imag_val =
-        rewriter.create<memref::LoadOp>(loc, alloc_temp_imag, ValueRange{i});
-    // Store values in reversed arrays
-    rewriter.create<memref::StoreOp>(loc, real_val, alloc_reversed_real,
-                                     ValueRange{reversed_i});
-    rewriter.create<memref::StoreOp>(loc, imag_val, alloc_reversed_imag,
-                                     ValueRange{reversed_i});
-    rewriter.setInsertionPointAfter(bitReversal);
+    // Calculate reversed index
+    // auto zero = rewriter.create<arith::ConstantIndexOp>(loc, 0);
+    auto initialRevIndex = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+
+    auto innerLoop = rewriter.create<scf::ForOp>(loc, lb, bitsNeeded, step, ValueRange{initialRevIndex});
+    rewriter.setInsertionPointToStart(innerLoop.getBody());
+    auto j = innerLoop.getInductionVar();
+    auto jInt = rewriter.create<arith::IndexCastOp>(loc, rewriter.getI64Type(), j);
+    auto carriedRevIndex = innerLoop.getRegionIterArgs()[0]; 
+
+    auto bitMask = rewriter.create<arith::ShLIOp>(loc, rewriter.create<arith::ConstantIntOp>(loc, 1, 64), jInt);
+    auto iAndMask = rewriter.create<arith::AndIOp>(loc, iInt, bitMask);
+    auto isNonZero = rewriter.create<arith::CmpIOp>(loc, arith::CmpIPredicate::ne, iAndMask, rewriter.create<arith::ConstantIntOp>(loc, 0, 64));
+    auto shiftAmount = rewriter.create<arith::SubIOp>(loc, rewriter.create<arith::SubIOp>(loc, bitsNeeded, j), rewriter.create<arith::ConstantIndexOp>(loc, 1));
+    auto shiftAmountI64 = rewriter.create<arith::IndexCastOp>(loc, rewriter.getI64Type(), shiftAmount);
+    auto bitToSet = rewriter.create<arith::ShLIOp>(loc, rewriter.create<arith::ConstantIntOp>(loc, 1, 64), shiftAmountI64);
+    
+    // Update newRevIndex using a select operation
+    auto updatedRevIndex = rewriter.create<arith::OrIOp>(loc, carriedRevIndex,
+        rewriter.create<arith::SelectOp>(
+            loc,
+            isNonZero,
+            bitToSet,
+            rewriter.create<arith::ConstantIntOp>(loc, 0, 64)
+        )
+    );
+
+    // Yield the updated value to carry it forward
+    rewriter.create<scf::YieldOp>(loc, ValueRange{updatedRevIndex});
+
+    // auto revIndex = rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), newRevIndex);
+
+    rewriter.setInsertionPointAfter(innerLoop);
+
+    auto finalRevIndex = innerLoop.getResult(0);
+    auto revIndex = rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), finalRevIndex);
+
+
+    // Load from alloc_temp and store in alloc_reversed
+    auto realValue = rewriter.create<memref::LoadOp>(loc, alloc_temp_real, ValueRange{i});
+    auto imagValue = rewriter.create<memref::LoadOp>(loc, alloc_temp_imag, ValueRange{i});
+    rewriter.create<memref::StoreOp>(loc, realValue, alloc_reversed_real, ValueRange{revIndex});
+    rewriter.create<memref::StoreOp>(loc, imagValue, alloc_reversed_imag, ValueRange{revIndex});
+
+    rewriter.setInsertionPointAfter(bitReversalLoop);
 
     // Cooley-Tukey FFT implementation
     auto N = tensorType.getShape()[0];
@@ -1896,6 +1898,10 @@ struct FFTRealOpLowering : public ConversionPattern {
     auto stagesValue = rewriter.create<arith::ConstantIndexOp>(loc, stages);
 
     // Constants for complex arithmetic
+    auto pi = rewriter.create<arith::ConstantFloatOp>(loc, llvm::APFloat(M_PI),
+                                                      rewriter.getF64Type());
+    auto neg2 = rewriter.create<arith::ConstantFloatOp>(
+        loc, llvm::APFloat(-2.0), rewriter.getF64Type());
     auto pi = rewriter.create<arith::ConstantFloatOp>(loc, llvm::APFloat(M_PI),
                                                       rewriter.getF64Type());
     auto neg2 = rewriter.create<arith::ConstantFloatOp>(
@@ -1908,29 +1914,33 @@ struct FFTRealOpLowering : public ConversionPattern {
         loc, rewriter.create<arith::ConstantIndexOp>(loc, 1), stage);
     auto full_size = rewriter.create<arith::ShLIOp>(
         loc, half_size, rewriter.create<arith::ConstantIndexOp>(loc, 1));
+    auto half_size = rewriter.create<arith::ShLIOp>(
+        loc, rewriter.create<arith::ConstantIndexOp>(loc, 1), stage);
+    auto full_size = rewriter.create<arith::ShLIOp>(
+        loc, half_size, rewriter.create<arith::ConstantIndexOp>(loc, 1));
 
     auto outerLoop = rewriter.create<scf::ForOp>(loc, lb, ub, full_size);
     rewriter.setInsertionPointToStart(outerLoop.getBody());
     auto start = outerLoop.getInductionVar();
 
-    auto innerLoop = rewriter.create<scf::ForOp>(loc, lb, half_size, step);
-    rewriter.setInsertionPointToStart(innerLoop.getBody());
-    auto j = innerLoop.getInductionVar();
+    auto butterflyLoop = rewriter.create<scf::ForOp>(loc, lb, half_size, step);
+    rewriter.setInsertionPointToStart(butterflyLoop.getBody());
+    auto k = butterflyLoop.getInductionVar();
 
     // Calculate indices for even and odd elements
-    auto even_index = rewriter.create<arith::AddIOp>(loc, start, j);
+    auto even_index = rewriter.create<arith::AddIOp>(loc, start, k);
     auto odd_index = rewriter.create<arith::AddIOp>(loc, even_index, half_size);
 
     // Calculate twiddle factor
-    auto j_i64 =
-        rewriter.create<arith::IndexCastOp>(loc, rewriter.getI64Type(), j);
-    auto j_f64 =
-        rewriter.create<arith::SIToFPOp>(loc, rewriter.getF64Type(), j_i64);
+    auto k_i64 =
+        rewriter.create<arith::IndexCastOp>(loc, rewriter.getI64Type(), k);
+    auto k_f64 =
+        rewriter.create<arith::SIToFPOp>(loc, rewriter.getF64Type(), k_i64);
     auto full_size_i64 = rewriter.create<arith::IndexCastOp>(
         loc, rewriter.getI64Type(), full_size);
     auto full_size_f64 = rewriter.create<arith::SIToFPOp>(
         loc, rewriter.getF64Type(), full_size_i64);
-    auto angle_div = rewriter.create<arith::DivFOp>(loc, j_f64, full_size_f64);
+    auto angle_div = rewriter.create<arith::DivFOp>(loc, k_f64, full_size_f64);
     auto angle_mul = rewriter.create<arith::MulFOp>(loc, neg2, angle_div);
     auto angle_final = rewriter.create<arith::MulFOp>(loc, pi, angle_mul);
     auto cos = rewriter.create<math::CosOp>(loc, angle_final);
@@ -1941,10 +1951,16 @@ struct FFTRealOpLowering : public ConversionPattern {
                                                     ValueRange{odd_index});
     auto odd_imag = rewriter.create<memref::LoadOp>(loc, alloc_reversed_imag,
                                                     ValueRange{odd_index});
+    auto odd_real = rewriter.create<memref::LoadOp>(loc, alloc_reversed_real,
+                                                    ValueRange{odd_index});
+    auto odd_imag = rewriter.create<memref::LoadOp>(loc, alloc_reversed_imag,
+                                                    ValueRange{odd_index});
 
     // Multiply by twiddle factor
     auto odd_real_cos = rewriter.create<arith::MulFOp>(loc, odd_real, cos);
     auto odd_imag_sin = rewriter.create<arith::MulFOp>(loc, odd_imag, sin);
+    auto t_real =
+        rewriter.create<arith::SubFOp>(loc, odd_real_cos, odd_imag_sin);
     auto t_real =
         rewriter.create<arith::SubFOp>(loc, odd_real_cos, odd_imag_sin);
 
@@ -1952,8 +1968,14 @@ struct FFTRealOpLowering : public ConversionPattern {
     auto odd_imag_cos = rewriter.create<arith::MulFOp>(loc, odd_imag, cos);
     auto t_imag =
         rewriter.create<arith::AddFOp>(loc, odd_real_sin, odd_imag_cos);
+    auto t_imag =
+        rewriter.create<arith::AddFOp>(loc, odd_real_sin, odd_imag_cos);
 
     // Load even value
+    auto even_real = rewriter.create<memref::LoadOp>(loc, alloc_reversed_real,
+                                                     ValueRange{even_index});
+    auto even_imag = rewriter.create<memref::LoadOp>(loc, alloc_reversed_imag,
+                                                     ValueRange{even_index});
     auto even_real = rewriter.create<memref::LoadOp>(loc, alloc_reversed_real,
                                                      ValueRange{even_index});
     auto even_imag = rewriter.create<memref::LoadOp>(loc, alloc_reversed_imag,
@@ -1974,6 +1996,8 @@ struct FFTRealOpLowering : public ConversionPattern {
                                      ValueRange{odd_index});
     rewriter.create<memref::StoreOp>(loc, new_odd_imag, alloc_reversed_imag,
                                      ValueRange{odd_index});
+
+
 
     // replace the operation with the final value
     rewriter.replaceOp(op, alloc_reversed_real);
@@ -1990,91 +2014,94 @@ struct FFTImagOpLowering : public ConversionPattern {
   FFTImagOpLowering(MLIRContext *ctx)
       : ConversionPattern(dsp::FFTImagOp::getOperationName(), 1, ctx) {}
 
-  // matchandrewrite - actual lowering logic of the operation
-  LogicalResult // return type is logical --> success or failure
-  // checks if the correct function is passed and rewrites it
-  // takes in the pointer to the operation, list of operands, and the rewriter
-  // object const - function doesn't modify the class it belongs to final -
-  // can't be overridden
+  LogicalResult 
   matchAndRewrite(Operation *op, ArrayRef<Value> operands,
                   ConversionPatternRewriter &rewriter) const final {
-    // get location of the operation
     auto loc = op->getLoc();
-    // get the type of the result
     auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
-    // convert the tensorType to memrefType
     auto memrefType = convertTensorToMemRef(tensorType);
-    // alloc memory for temp and dealloc when not required
+
     auto alloc_temp_real = insertAllocAndDealloc(memrefType, loc, rewriter);
     auto alloc_temp_imag = insertAllocAndDealloc(memrefType, loc, rewriter);
 
-    // storing the input in real and 0.0 in imag
-
-    // adaptor to get operands
-    FFTImagOpAdaptor fftImagOpAdaptor(operands);
-    auto input = fftImagOpAdaptor.getLhs();
-
-    // bounds of the affine loop
+    FFTRealOpAdaptor fftRealOpAdaptor(operands);
+    auto input = fftRealOpAdaptor.getLhs();
     auto lb = rewriter.create<arith::ConstantIndexOp>(loc, 0);
-    auto ub =
-        rewriter.create<arith::ConstantIndexOp>(loc, tensorType.getShape()[0]);
+    auto ub = rewriter.create<arith::ConstantIndexOp>(loc, tensorType.getShape()[0]); 
     auto step = rewriter.create<arith::ConstantIndexOp>(loc, 1);
 
     // load real and imag
     auto load_temp = rewriter.create<scf::ForOp>(loc, lb, ub, step);
     rewriter.setInsertionPointToStart(load_temp.getBody());
     auto iv = load_temp.getInductionVar();
-    auto inputValue =
-        rewriter.create<memref::LoadOp>(loc, input, ValueRange{iv});
-    auto constantZero = rewriter.create<arith::ConstantFloatOp>(
-        loc, llvm::APFloat(0.0), rewriter.getF64Type());
-    rewriter.create<memref::StoreOp>(loc, inputValue, alloc_temp_real,
-                                     ValueRange{iv});
-    rewriter.create<memref::StoreOp>(loc, constantZero, alloc_temp_imag,
-                                     ValueRange{iv});
+    auto inputValue = rewriter.create<memref::LoadOp>(loc, input, ValueRange{iv}); 
+    auto constantZero = rewriter.create<arith::ConstantFloatOp>(loc, llvm::APFloat(0.0),
+    rewriter.getF64Type()); rewriter.create<memref::StoreOp>(loc, inputValue, alloc_temp_real, ValueRange{iv}); 
+    rewriter.create<memref::StoreOp>(loc, constantZero, alloc_temp_imag, ValueRange{iv});
     rewriter.setInsertionPointAfter(load_temp);
 
     // alloc memory for reversed and dealloc when not required
-    auto alloc_reversed_real = insertAllocAndDealloc(memrefType, loc, rewriter);
+    auto alloc_reversed_real = insertAllocAndDealloc(memrefType, loc, rewriter); 
     auto alloc_reversed_imag = insertAllocAndDealloc(memrefType, loc, rewriter);
+    
+    // bits needed for bit  reversal
+    auto ubInt = rewriter.create<arith::IndexCastOp>(loc, rewriter.getI64Type(), ub);
+    auto ubFloat = rewriter.create<arith::SIToFPOp>(loc, rewriter.getF64Type(), ubInt);
+    auto bitsNeededFloat = rewriter.create<math::Log2Op>(loc, ubFloat);
+    auto bitsNeededInt = rewriter.create<arith::FPToSIOp>(loc, rewriter.getI64Type(), bitsNeededFloat);
+    auto bitsNeeded = rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), bitsNeededInt);
 
-    // bit reversal constants
-    auto constant1 =
-        rewriter.create<arith::ConstantOp>(loc, rewriter.getI64IntegerAttr(1));
-    auto constant2 =
-        rewriter.create<arith::ConstantOp>(loc, rewriter.getI64IntegerAttr(2));
+    // bit reversal
+    auto bitReversalLoop = rewriter.create<scf::ForOp>(loc, lb, ub, step);
+    rewriter.setInsertionPointToStart(bitReversalLoop.getBody());
+    auto i = bitReversalLoop.getInductionVar();
+    auto iInt = rewriter.create<arith::IndexCastOp>(loc, rewriter.getI64Type(), i); // check here
 
-    // Bit reversal loop
-    auto bitReversal = rewriter.create<scf::ForOp>(loc, lb, ub, step);
-    rewriter.setInsertionPointToStart(bitReversal.getBody());
-    auto i = bitReversal.getInductionVar();
-    // Convert index to i64
-    auto i_val =
-        rewriter.create<arith::IndexCastOp>(loc, rewriter.getI64Type(), i);
-    // Bit reversal logic
-    auto bit0 = rewriter.create<arith::AndIOp>(loc, i_val, constant1);
-    auto i_val_shr1 = rewriter.create<arith::ShRUIOp>(loc, i_val, constant1);
-    auto bit1 = rewriter.create<arith::AndIOp>(loc, i_val_shr1, constant1);
-    auto i_val_shr2 = rewriter.create<arith::ShRUIOp>(loc, i_val, constant2);
-    auto bit2 = rewriter.create<arith::AndIOp>(loc, i_val_shr2, constant1);
-    auto rev_bit0 = rewriter.create<arith::ShLIOp>(loc, bit0, constant2);
-    auto rev_bit1 = rewriter.create<arith::ShLIOp>(loc, bit1, constant1);
-    auto rev_temp = rewriter.create<arith::OrIOp>(loc, rev_bit0, rev_bit1);
-    auto rev = rewriter.create<arith::OrIOp>(loc, rev_temp, bit2);
-    // Convert back to index
-    auto reversed_i =
-        rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), rev);
-    // Load values from temp arrays
-    auto real_val =
-        rewriter.create<memref::LoadOp>(loc, alloc_temp_real, ValueRange{i});
-    auto imag_val =
-        rewriter.create<memref::LoadOp>(loc, alloc_temp_imag, ValueRange{i});
-    // Store values in reversed arrays
-    rewriter.create<memref::StoreOp>(loc, real_val, alloc_reversed_real,
-                                     ValueRange{reversed_i});
-    rewriter.create<memref::StoreOp>(loc, imag_val, alloc_reversed_imag,
-                                     ValueRange{reversed_i});
-    rewriter.setInsertionPointAfter(bitReversal);
+    // Calculate reversed index
+    // auto zero = rewriter.create<arith::ConstantIndexOp>(loc, 0);
+    auto initialRevIndex = rewriter.create<arith::ConstantIntOp>(loc, 0, 64);
+
+    auto innerLoop = rewriter.create<scf::ForOp>(loc, lb, bitsNeeded, step, ValueRange{initialRevIndex});
+    rewriter.setInsertionPointToStart(innerLoop.getBody());
+    auto j = innerLoop.getInductionVar();
+    auto jInt = rewriter.create<arith::IndexCastOp>(loc, rewriter.getI64Type(), j);
+    auto carriedRevIndex = innerLoop.getRegionIterArgs()[0]; 
+
+    auto bitMask = rewriter.create<arith::ShLIOp>(loc, rewriter.create<arith::ConstantIntOp>(loc, 1, 64), jInt);
+    auto iAndMask = rewriter.create<arith::AndIOp>(loc, iInt, bitMask);
+    auto isNonZero = rewriter.create<arith::CmpIOp>(loc, arith::CmpIPredicate::ne, iAndMask, rewriter.create<arith::ConstantIntOp>(loc, 0, 64));
+    auto shiftAmount = rewriter.create<arith::SubIOp>(loc, rewriter.create<arith::SubIOp>(loc, bitsNeeded, j), rewriter.create<arith::ConstantIndexOp>(loc, 1));
+    auto shiftAmountI64 = rewriter.create<arith::IndexCastOp>(loc, rewriter.getI64Type(), shiftAmount);
+    auto bitToSet = rewriter.create<arith::ShLIOp>(loc, rewriter.create<arith::ConstantIntOp>(loc, 1, 64), shiftAmountI64);
+    
+    // Update newRevIndex using a select operation
+    auto updatedRevIndex = rewriter.create<arith::OrIOp>(loc, carriedRevIndex,
+        rewriter.create<arith::SelectOp>(
+            loc,
+            isNonZero,
+            bitToSet,
+            rewriter.create<arith::ConstantIntOp>(loc, 0, 64)
+        )
+    );
+
+    // Yield the updated value to carry it forward
+    rewriter.create<scf::YieldOp>(loc, ValueRange{updatedRevIndex});
+
+    // auto revIndex = rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), newRevIndex);
+
+    rewriter.setInsertionPointAfter(innerLoop);
+
+    auto finalRevIndex = innerLoop.getResult(0);
+    auto revIndex = rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), finalRevIndex);
+
+
+    // Load from alloc_temp and store in alloc_reversed
+    auto realValue = rewriter.create<memref::LoadOp>(loc, alloc_temp_real, ValueRange{i});
+    auto imagValue = rewriter.create<memref::LoadOp>(loc, alloc_temp_imag, ValueRange{i});
+    rewriter.create<memref::StoreOp>(loc, realValue, alloc_reversed_real, ValueRange{revIndex});
+    rewriter.create<memref::StoreOp>(loc, imagValue, alloc_reversed_imag, ValueRange{revIndex});
+
+    rewriter.setInsertionPointAfter(bitReversalLoop);
 
     // Cooley-Tukey FFT implementation
     auto N = tensorType.getShape()[0];
@@ -2082,6 +2109,10 @@ struct FFTImagOpLowering : public ConversionPattern {
     auto stagesValue = rewriter.create<arith::ConstantIndexOp>(loc, stages);
 
     // Constants for complex arithmetic
+    auto pi = rewriter.create<arith::ConstantFloatOp>(loc, llvm::APFloat(M_PI),
+                                                      rewriter.getF64Type());
+    auto neg2 = rewriter.create<arith::ConstantFloatOp>(
+        loc, llvm::APFloat(-2.0), rewriter.getF64Type());
     auto pi = rewriter.create<arith::ConstantFloatOp>(loc, llvm::APFloat(M_PI),
                                                       rewriter.getF64Type());
     auto neg2 = rewriter.create<arith::ConstantFloatOp>(
@@ -2094,29 +2125,33 @@ struct FFTImagOpLowering : public ConversionPattern {
         loc, rewriter.create<arith::ConstantIndexOp>(loc, 1), stage);
     auto full_size = rewriter.create<arith::ShLIOp>(
         loc, half_size, rewriter.create<arith::ConstantIndexOp>(loc, 1));
+    auto half_size = rewriter.create<arith::ShLIOp>(
+        loc, rewriter.create<arith::ConstantIndexOp>(loc, 1), stage);
+    auto full_size = rewriter.create<arith::ShLIOp>(
+        loc, half_size, rewriter.create<arith::ConstantIndexOp>(loc, 1));
 
     auto outerLoop = rewriter.create<scf::ForOp>(loc, lb, ub, full_size);
     rewriter.setInsertionPointToStart(outerLoop.getBody());
     auto start = outerLoop.getInductionVar();
 
-    auto innerLoop = rewriter.create<scf::ForOp>(loc, lb, half_size, step);
-    rewriter.setInsertionPointToStart(innerLoop.getBody());
-    auto j = innerLoop.getInductionVar();
+    auto butterflyLoop = rewriter.create<scf::ForOp>(loc, lb, half_size, step);
+    rewriter.setInsertionPointToStart(butterflyLoop.getBody());
+    auto k = butterflyLoop.getInductionVar();
 
     // Calculate indices for even and odd elements
-    auto even_index = rewriter.create<arith::AddIOp>(loc, start, j);
+    auto even_index = rewriter.create<arith::AddIOp>(loc, start, k);
     auto odd_index = rewriter.create<arith::AddIOp>(loc, even_index, half_size);
 
     // Calculate twiddle factor
-    auto j_i64 =
-        rewriter.create<arith::IndexCastOp>(loc, rewriter.getI64Type(), j);
-    auto j_f64 =
-        rewriter.create<arith::SIToFPOp>(loc, rewriter.getF64Type(), j_i64);
+    auto k_i64 =
+        rewriter.create<arith::IndexCastOp>(loc, rewriter.getI64Type(), k);
+    auto k_f64 =
+        rewriter.create<arith::SIToFPOp>(loc, rewriter.getF64Type(), k_i64);
     auto full_size_i64 = rewriter.create<arith::IndexCastOp>(
         loc, rewriter.getI64Type(), full_size);
     auto full_size_f64 = rewriter.create<arith::SIToFPOp>(
         loc, rewriter.getF64Type(), full_size_i64);
-    auto angle_div = rewriter.create<arith::DivFOp>(loc, j_f64, full_size_f64);
+    auto angle_div = rewriter.create<arith::DivFOp>(loc, k_f64, full_size_f64);
     auto angle_mul = rewriter.create<arith::MulFOp>(loc, neg2, angle_div);
     auto angle_final = rewriter.create<arith::MulFOp>(loc, pi, angle_mul);
     auto cos = rewriter.create<math::CosOp>(loc, angle_final);
@@ -2127,10 +2162,16 @@ struct FFTImagOpLowering : public ConversionPattern {
                                                     ValueRange{odd_index});
     auto odd_imag = rewriter.create<memref::LoadOp>(loc, alloc_reversed_imag,
                                                     ValueRange{odd_index});
+    auto odd_real = rewriter.create<memref::LoadOp>(loc, alloc_reversed_real,
+                                                    ValueRange{odd_index});
+    auto odd_imag = rewriter.create<memref::LoadOp>(loc, alloc_reversed_imag,
+                                                    ValueRange{odd_index});
 
     // Multiply by twiddle factor
     auto odd_real_cos = rewriter.create<arith::MulFOp>(loc, odd_real, cos);
     auto odd_imag_sin = rewriter.create<arith::MulFOp>(loc, odd_imag, sin);
+    auto t_real =
+        rewriter.create<arith::SubFOp>(loc, odd_real_cos, odd_imag_sin);
     auto t_real =
         rewriter.create<arith::SubFOp>(loc, odd_real_cos, odd_imag_sin);
 
@@ -2140,6 +2181,10 @@ struct FFTImagOpLowering : public ConversionPattern {
         rewriter.create<arith::AddFOp>(loc, odd_real_sin, odd_imag_cos);
 
     // Load even value
+    auto even_real = rewriter.create<memref::LoadOp>(loc, alloc_reversed_real,
+                                                     ValueRange{even_index});
+    auto even_imag = rewriter.create<memref::LoadOp>(loc, alloc_reversed_imag,
+                                                     ValueRange{even_index});
     auto even_real = rewriter.create<memref::LoadOp>(loc, alloc_reversed_real,
                                                      ValueRange{even_index});
     auto even_imag = rewriter.create<memref::LoadOp>(loc, alloc_reversed_imag,
@@ -2161,6 +2206,8 @@ struct FFTImagOpLowering : public ConversionPattern {
     rewriter.create<memref::StoreOp>(loc, new_odd_imag, alloc_reversed_imag,
                                      ValueRange{odd_index});
 
+
+
     // replace the operation with the final value
     rewriter.replaceOp(op, alloc_reversed_imag);
     return success();
@@ -2174,7 +2221,15 @@ struct FIRFilterResSymmOptimizedOpLowering : public ConversionPattern {
   FIRFilterResSymmOptimizedOpLowering(MLIRContext *ctx)
       : ConversionPattern(dsp::FIRFilterResSymmOptimizedOp::getOperationName(),
                           1, ctx) {}
+struct FIRFilterResSymmOptimizedOpLowering : public ConversionPattern {
+  FIRFilterResSymmOptimizedOpLowering(MLIRContext *ctx)
+      : ConversionPattern(dsp::FIRFilterResSymmOptimizedOp::getOperationName(),
+                          1, ctx) {}
 
+  LogicalResult
+  matchAndRewrite(Operation *op, ArrayRef<Value> operands,
+                  ConversionPatternRewriter &rewriter) const final {
+    // dsp.FIRFilterResSymmOptimizedOp has 2 operands -- both of type tensor f64
   LogicalResult
   matchAndRewrite(Operation *op, ArrayRef<Value> operands,
                   ConversionPatternRewriter &rewriter) const final {
@@ -2202,12 +2257,30 @@ struct FIRFilterResSymmOptimizedOpLowering : public ConversionPattern {
     // val2 = x[n+k-(L-1)] else, val2 = 0
     // temp = val1 + val2
     //  sum = sum + h[k] . temp
+    // Pseudo-Code
+    // y[n] = sum(h[k] .{ x[n-k] + x[n-(L-1-k)]}) + h[L-1/2].x[n-(L-1)/2] , k=0
+    // to L-1/2
+    //  N = lenY , M = lenX ,  L = lenH
+    // for n=0 to N
+    //  sum = 0, temp =0
+    //  for k = 0 to L-1/2
+    // if 0 <= n-k < M
+    // val1 = x[n-k] else, val1 = 0
+    // if 0 <= n+k - (L-1) < M
+    // val2 = x[n+k-(L-1)] else, val2 = 0
+    // temp = val1 + val2
+    //  sum = sum + h[k] . temp
 
     // middle-one
     //  if 0 <= n - (L-1)/2 < M
     //  sum2 = sum + h[L-1/2] . x[n-(n - (L-1)/2)]
     // y[n] = sum2
+    // middle-one
+    //  if 0 <= n - (L-1)/2 < M
+    //  sum2 = sum + h[L-1/2] . x[n-(n - (L-1)/2)]
+    // y[n] = sum2
 
+    int64_t lb = 0;
     int64_t lb = 0;
     int64_t ub = tensorType.getShape()[0];
     int64_t step = 1;
@@ -6161,8 +6234,7 @@ struct UpSamplingOpLowering : public ConversionPattern {
     // Value constant3 = rewriter.create<arith::ConstantOp>(loc,
     // rewriter.getI64Type(),
     // rewriter.getIntegerAttr(rewriter.getIntegerType(64), 3));
-    Value constant3 =
-        rewriter.create<arith::ConstantIndexOp>(loc, 3); // working
+    Value constant3 = rewriter.create<arith::ConstantIndexOp>(loc, 3); // working
     constant3.dump();
 
     int64_t SecondValueInt = 1;
@@ -6268,8 +6340,7 @@ struct DownSamplingOpLowering : public ConversionPattern {
     // Value constant3 = rewriter.create<arith::ConstantOp>(loc,
     // rewriter.getI64Type(),
     // rewriter.getIntegerAttr(rewriter.getIntegerType(64), 3));
-    Value constant3 =
-        rewriter.create<arith::ConstantIndexOp>(loc, 3); // working
+    Value constant3 = rewriter.create<arith::ConstantIndexOp>(loc, 3); // working
     constant3.dump();
 
     int64_t SecondValueInt = 1;
@@ -6315,6 +6386,70 @@ struct DownSamplingOpLowering : public ConversionPattern {
     return success();
   }
 };
+
+//===----------------------------------------------------------------------===//
+// ToyToAffine RewritePatterns: MedianFilterOp operations
+//===----------------------------------------------------------------------===//
+
+struct MedianFilterOpLowering : public ConversionPattern {
+  MedianFilterOpLowering(MLIRContext *ctx)
+      : ConversionPattern(dsp::MedianFilterOp::getOperationName(), 1, ctx) {
+  }
+
+  LogicalResult
+  matchAndRewrite(Operation *op, ArrayRef<Value> operands,
+                  ConversionPatternRewriter &rewriter) const final {
+    auto loc = op->getLoc();
+    auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
+    auto memRefType = convertTensorToMemRef(tensorType);
+    auto alloc = insertAllocAndDealloc(memRefType, loc, rewriter);
+
+    SmallVector<int64_t, 4> lowerBounds(tensorType.getRank(), 0);
+    SmallVector<int64_t, 4> steps(tensorType.getRank(), 1);
+
+    // For loop
+    int64_t lb = 0;
+    int64_t ub = tensorType.getShape()[0];
+    int64_t step = 1;
+
+    affine::AffineForOp forOp1 = rewriter.create<AffineForOp>(loc, lb, ub, step);
+    auto iv = forOp1.getInductionVar();
+
+    rewriter.setInsertionPointToStart(forOp1.getBody());
+    MedianFilterOpAdaptor medianFilterOpAdaptor(operands);
+
+    Value elem1 = rewriter.create<AffineLoadOp>(loc, medianFilterOpAdaptor.getInput(), iv);
+    AffineExpr ExprForElem2 = rewriter.getAffineDimExpr(0) + rewriter.getAffineConstantExpr(1);
+    AffineExpr ExprForElem3 = rewriter.getAffineDimExpr(0) + rewriter.getAffineConstantExpr(2);
+    AffineMap addMapForElem2 = AffineMap::get(1, 0, ExprForElem2);
+    AffineMap addMapForElem3 = AffineMap::get(1, 0, ExprForElem3);
+    Value elem2 = rewriter.create<AffineLoadOp>(loc, medianFilterOpAdaptor.getInput(), addMapForElem2, ValueRange{iv});
+    Value elem3 = rewriter.create<AffineLoadOp>(loc, medianFilterOpAdaptor.getInput(), addMapForElem3, ValueRange{iv});
+
+    // sum
+    Value sum1 = rewriter.create<arith::AddFOp>(loc, elem1, elem2);
+    Value sum = rewriter.create<arith::AddFOp>(loc, sum1, elem3);
+
+    // min
+    Value minElem1Elem2 = rewriter.create<arith::MinimumFOp>(loc, elem1, elem2);
+    Value min = rewriter.create<arith::MinimumFOp>(loc, minElem1Elem2, elem3);
+
+    // max
+    Value maxElem1Elem2 = rewriter.create<arith::MaximumFOp>(loc, elem1, elem2);
+    Value max = rewriter.create<arith::MaximumFOp>(loc, maxElem1Elem2, elem3);
+
+    // median
+    Value min_plus_max = rewriter.create<arith::AddFOp>(loc, min, max);
+    Value median = rewriter.create<arith::SubFOp>(loc, sum, min_plus_max);
+
+    // store in alloc
+    rewriter.create<AffineStoreOp>(loc, median, alloc, iv);
+    rewriter.setInsertionPointAfter(forOp1);
+    rewriter.replaceOp(op, alloc);
+    return success();
+  }
+};
+
 
 //===----------------------------------------------------------------------===//
 // ToyToAffine RewritePatterns: SlidingWindowAvg operations
@@ -8174,7 +8309,7 @@ struct ToyToAffineLoweringPass
   void getDependentDialects(DialectRegistry &registry) const override {
     registry
         .insert<affine::AffineDialect, func::FuncDialect, memref::MemRefDialect,
-                math::MathDialect, scf::SCFDialect, linalg::LinalgDialect>();
+                math::MathDialect, scf::SCFDialect>();
   }
   void runOnOperation() final;
 };
@@ -8229,7 +8364,7 @@ void ToyToAffineLoweringPass::runOnOperation() {
       FIRFilterYSymmOptimizedOpLowering, FFT1DRealSymmOpLowering,
       FFT1DImgConjSymmOpLowering, FFTRealOpLowering, FFTImagOpLowering,
       Conv2DOpLowering, ShiftRightOpLowering, MatmulOpLowering,
-      ThresholdUpOpLowering, QamModulateRealOpLowering, QamModulateImgOpLowering, QamDemodulateOpLowering, FindPeaksOpLowering, BeamFormOpLowering>(&getContext());
+      ThresholdUpOpLowering, QamModulateRealOpLowering, QamModulateImgOpLowering, QamDemodulateOpLowering, FindPeaksOpLowering, BeamFormOpLowering, MedianFilterOpLowering>(&getContext());
 
   // With the target and rewrite patterns defined, we can now attempt the
   // conversion. The conversion will signal failure if any of our `illegal`

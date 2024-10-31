@@ -567,7 +567,9 @@ def SubOp : Dsp_Op<"sub", [Pure , DeclareOpInterfaceMethods<ShapeInferenceOpInte
 def FFTRealOp : Dsp_Op<"fftReal", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
   let summary = "Performs FFT Operation on the input";
   let description = [{
-      Takes the input array and returns the real part of the fourier transform, an array of the same size.
+      This function accepts a 1D input array of size 2^n and returns the real part of its Fourier transform, 
+      producing an output array of the same size. The function is designed to work exclusively with input sizes that are powers of 2. 
+      Providing an array of any other size will result in a segmentation fault.
   }];
 
   let arguments = (ins F64Tensor:$lhs);
@@ -585,7 +587,9 @@ def FFTRealOp : Dsp_Op<"fftReal", [Pure, DeclareOpInterfaceMethods<ShapeInferenc
 def FFTImagOp : Dsp_Op<"fftImag", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
   let summary = "Performs FFT Operation on the input";
   let description = [{
-      Takes the input array and returns the imaginary part of the fourier transform, an array of the same size.
+      This function accepts a 1D input array of size 2^n and returns the imaginary part of its Fourier transform, 
+      producing an output array of the same size. The function is designed to work exclusively with input sizes that are powers of 2. 
+      Providing an array of any other size will result in a segmentation fault.
   }];
 
   let arguments = (ins F64Tensor:$lhs);
@@ -664,6 +668,21 @@ def FIRFilterResponseOp : Dsp_Op<"FIRFilterResponse" ,
   let hasCanonicalizer = 1;
 
   let hasVerifier = 1;
+}
+
+//===----------------------------------------------------------------------===//
+// MedianFilterOp
+//===----------------------------------------------------------------------===//
+
+def MedianFilterOp : Dsp_Op<"medianFilter", 
+    [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+  
+  let arguments = (ins F64Tensor:$input);
+  let results = (outs F64Tensor);
+
+  let builders = [
+    OpBuilder<(ins "Value":$input)>
+  ];
 }
 
 //===----------------------------------------------------------------------===//
