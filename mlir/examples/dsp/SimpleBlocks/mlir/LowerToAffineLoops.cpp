@@ -1902,18 +1902,10 @@ struct FFTRealOpLowering : public ConversionPattern {
                                                       rewriter.getF64Type());
     auto neg2 = rewriter.create<arith::ConstantFloatOp>(
         loc, llvm::APFloat(-2.0), rewriter.getF64Type());
-    auto pi = rewriter.create<arith::ConstantFloatOp>(loc, llvm::APFloat(M_PI),
-                                                      rewriter.getF64Type());
-    auto neg2 = rewriter.create<arith::ConstantFloatOp>(
-        loc, llvm::APFloat(-2.0), rewriter.getF64Type());
 
     auto fftLoop = rewriter.create<scf::ForOp>(loc, lb, stagesValue, step);
     rewriter.setInsertionPointToStart(fftLoop.getBody());
     auto stage = fftLoop.getInductionVar();
-    auto half_size = rewriter.create<arith::ShLIOp>(
-        loc, rewriter.create<arith::ConstantIndexOp>(loc, 1), stage);
-    auto full_size = rewriter.create<arith::ShLIOp>(
-        loc, half_size, rewriter.create<arith::ConstantIndexOp>(loc, 1));
     auto half_size = rewriter.create<arith::ShLIOp>(
         loc, rewriter.create<arith::ConstantIndexOp>(loc, 1), stage);
     auto full_size = rewriter.create<arith::ShLIOp>(
@@ -1951,23 +1943,15 @@ struct FFTRealOpLowering : public ConversionPattern {
                                                     ValueRange{odd_index});
     auto odd_imag = rewriter.create<memref::LoadOp>(loc, alloc_reversed_imag,
                                                     ValueRange{odd_index});
-    auto odd_real = rewriter.create<memref::LoadOp>(loc, alloc_reversed_real,
-                                                    ValueRange{odd_index});
-    auto odd_imag = rewriter.create<memref::LoadOp>(loc, alloc_reversed_imag,
-                                                    ValueRange{odd_index});
 
     // Multiply by twiddle factor
     auto odd_real_cos = rewriter.create<arith::MulFOp>(loc, odd_real, cos);
     auto odd_imag_sin = rewriter.create<arith::MulFOp>(loc, odd_imag, sin);
     auto t_real =
         rewriter.create<arith::SubFOp>(loc, odd_real_cos, odd_imag_sin);
-    auto t_real =
-        rewriter.create<arith::SubFOp>(loc, odd_real_cos, odd_imag_sin);
 
     auto odd_real_sin = rewriter.create<arith::MulFOp>(loc, odd_real, sin);
     auto odd_imag_cos = rewriter.create<arith::MulFOp>(loc, odd_imag, cos);
-    auto t_imag =
-        rewriter.create<arith::AddFOp>(loc, odd_real_sin, odd_imag_cos);
     auto t_imag =
         rewriter.create<arith::AddFOp>(loc, odd_real_sin, odd_imag_cos);
 
@@ -1976,11 +1960,6 @@ struct FFTRealOpLowering : public ConversionPattern {
                                                      ValueRange{even_index});
     auto even_imag = rewriter.create<memref::LoadOp>(loc, alloc_reversed_imag,
                                                      ValueRange{even_index});
-    auto even_real = rewriter.create<memref::LoadOp>(loc, alloc_reversed_real,
-                                                     ValueRange{even_index});
-    auto even_imag = rewriter.create<memref::LoadOp>(loc, alloc_reversed_imag,
-                                                     ValueRange{even_index});
-
     // Butterfly operation
     auto new_even_real = rewriter.create<arith::AddFOp>(loc, even_real, t_real);
     auto new_even_imag = rewriter.create<arith::AddFOp>(loc, even_imag, t_imag);
@@ -2004,7 +1983,6 @@ struct FFTRealOpLowering : public ConversionPattern {
     return success();
   }
 };
-
 //===----------------------------------------------------------------------===//
 // ToyToAffine RewritePatterns: FFTImagOp operations
 //===----------------------------------------------------------------------===//
@@ -2113,18 +2091,10 @@ struct FFTImagOpLowering : public ConversionPattern {
                                                       rewriter.getF64Type());
     auto neg2 = rewriter.create<arith::ConstantFloatOp>(
         loc, llvm::APFloat(-2.0), rewriter.getF64Type());
-    auto pi = rewriter.create<arith::ConstantFloatOp>(loc, llvm::APFloat(M_PI),
-                                                      rewriter.getF64Type());
-    auto neg2 = rewriter.create<arith::ConstantFloatOp>(
-        loc, llvm::APFloat(-2.0), rewriter.getF64Type());
 
     auto fftLoop = rewriter.create<scf::ForOp>(loc, lb, stagesValue, step);
     rewriter.setInsertionPointToStart(fftLoop.getBody());
     auto stage = fftLoop.getInductionVar();
-    auto half_size = rewriter.create<arith::ShLIOp>(
-        loc, rewriter.create<arith::ConstantIndexOp>(loc, 1), stage);
-    auto full_size = rewriter.create<arith::ShLIOp>(
-        loc, half_size, rewriter.create<arith::ConstantIndexOp>(loc, 1));
     auto half_size = rewriter.create<arith::ShLIOp>(
         loc, rewriter.create<arith::ConstantIndexOp>(loc, 1), stage);
     auto full_size = rewriter.create<arith::ShLIOp>(
@@ -2162,16 +2132,10 @@ struct FFTImagOpLowering : public ConversionPattern {
                                                     ValueRange{odd_index});
     auto odd_imag = rewriter.create<memref::LoadOp>(loc, alloc_reversed_imag,
                                                     ValueRange{odd_index});
-    auto odd_real = rewriter.create<memref::LoadOp>(loc, alloc_reversed_real,
-                                                    ValueRange{odd_index});
-    auto odd_imag = rewriter.create<memref::LoadOp>(loc, alloc_reversed_imag,
-                                                    ValueRange{odd_index});
 
     // Multiply by twiddle factor
     auto odd_real_cos = rewriter.create<arith::MulFOp>(loc, odd_real, cos);
     auto odd_imag_sin = rewriter.create<arith::MulFOp>(loc, odd_imag, sin);
-    auto t_real =
-        rewriter.create<arith::SubFOp>(loc, odd_real_cos, odd_imag_sin);
     auto t_real =
         rewriter.create<arith::SubFOp>(loc, odd_real_cos, odd_imag_sin);
 
@@ -2185,11 +2149,6 @@ struct FFTImagOpLowering : public ConversionPattern {
                                                      ValueRange{even_index});
     auto even_imag = rewriter.create<memref::LoadOp>(loc, alloc_reversed_imag,
                                                      ValueRange{even_index});
-    auto even_real = rewriter.create<memref::LoadOp>(loc, alloc_reversed_real,
-                                                     ValueRange{even_index});
-    auto even_imag = rewriter.create<memref::LoadOp>(loc, alloc_reversed_imag,
-                                                     ValueRange{even_index});
-
     // Butterfly operation
     auto new_even_real = rewriter.create<arith::AddFOp>(loc, even_real, t_real);
     auto new_even_imag = rewriter.create<arith::AddFOp>(loc, even_imag, t_imag);
@@ -2221,15 +2180,7 @@ struct FIRFilterResSymmOptimizedOpLowering : public ConversionPattern {
   FIRFilterResSymmOptimizedOpLowering(MLIRContext *ctx)
       : ConversionPattern(dsp::FIRFilterResSymmOptimizedOp::getOperationName(),
                           1, ctx) {}
-struct FIRFilterResSymmOptimizedOpLowering : public ConversionPattern {
-  FIRFilterResSymmOptimizedOpLowering(MLIRContext *ctx)
-      : ConversionPattern(dsp::FIRFilterResSymmOptimizedOp::getOperationName(),
-                          1, ctx) {}
 
-  LogicalResult
-  matchAndRewrite(Operation *op, ArrayRef<Value> operands,
-                  ConversionPatternRewriter &rewriter) const final {
-    // dsp.FIRFilterResSymmOptimizedOp has 2 operands -- both of type tensor f64
   LogicalResult
   matchAndRewrite(Operation *op, ArrayRef<Value> operands,
                   ConversionPatternRewriter &rewriter) const final {
@@ -2257,30 +2208,12 @@ struct FIRFilterResSymmOptimizedOpLowering : public ConversionPattern {
     // val2 = x[n+k-(L-1)] else, val2 = 0
     // temp = val1 + val2
     //  sum = sum + h[k] . temp
-    // Pseudo-Code
-    // y[n] = sum(h[k] .{ x[n-k] + x[n-(L-1-k)]}) + h[L-1/2].x[n-(L-1)/2] , k=0
-    // to L-1/2
-    //  N = lenY , M = lenX ,  L = lenH
-    // for n=0 to N
-    //  sum = 0, temp =0
-    //  for k = 0 to L-1/2
-    // if 0 <= n-k < M
-    // val1 = x[n-k] else, val1 = 0
-    // if 0 <= n+k - (L-1) < M
-    // val2 = x[n+k-(L-1)] else, val2 = 0
-    // temp = val1 + val2
-    //  sum = sum + h[k] . temp
 
     // middle-one
     //  if 0 <= n - (L-1)/2 < M
     //  sum2 = sum + h[L-1/2] . x[n-(n - (L-1)/2)]
     // y[n] = sum2
-    // middle-one
-    //  if 0 <= n - (L-1)/2 < M
-    //  sum2 = sum + h[L-1/2] . x[n-(n - (L-1)/2)]
-    // y[n] = sum2
 
-    int64_t lb = 0;
     int64_t lb = 0;
     int64_t ub = tensorType.getShape()[0];
     int64_t step = 1;
