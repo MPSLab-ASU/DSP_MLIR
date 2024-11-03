@@ -16,8 +16,8 @@ import time
 
 # Path to the input file
 # Apps = "hearingAid.py" , "lowPassFull.py" , " audioCompression.py" ,
-#  "back2backDelay.py" , "lowPassFIRFilterDesign.py" , "EnergyOfSignal.py", "periodogram2Conv1.py", "audioEqualizer.py", "vibrationAnalysis.py"
-input_file_path = "vibrationAnalysis.py"
+#  "back2backDelay.py" , "lowPassFIRFilterDesign.py" , "EnergyOfSignal.py", "periodogram2Conv1.py", "audioEqualizer.py", "vibrationAnalysis.py", "signalSmoothing.py"
+input_file_path = "signalSmoothing.py"
 BasePathForLLVM = "/home/local/ASURITE/apkhedka/ForLLVM/"
 OutputScriptPath = (
     "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/DSP-DSL/"
@@ -109,8 +109,8 @@ for key, value in inputValues.items():
             if line.strip().startswith("var input = getRangeOfVector("):
             # if line.strip().startswith("var N = "):
                 # Replace the second parameter with the current value
-                # updated_line = f"\tvar input = getRangeOfVector(0, {value}, 0.000125);\n"
-                updated_line = f"\tvar input = getRangeOfVector(0, {value}, 1);\n"
+                updated_line = f"\tvar input = getRangeOfVector(0, {value}, 0.000125);\n"
+                # updated_line = f"\tvar input = getRangeOfVector(0, {value}, 1);\n"
                 # updated_line = f"    var N = {value + 1} ;\n"
                 file.write(updated_line)
             else:
