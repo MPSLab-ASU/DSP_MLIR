@@ -33,13 +33,13 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/Support/raw_ostream.h"
+#include <bitset>
 #include <cassert>
 #include <cstdint>
 #include <functional>
 #include <numeric>
 #include <optional>
 #include <vector>
-#include <bitset>
 
 using namespace mlir::dsp;
 using namespace dsp;
@@ -409,15 +409,47 @@ private:
       }
       return builder.create<FFTImagOp>(location, operands[0]);
     }
-    
+
     // FindPeaks Op
-    if(callee == "find_peaks"){
-       if(call.getArgs().size() != 3){
-         emitError(location, "MLIR codegen encountered an error: dsp.find_peaks "
-                             "accepts only 3 arguments: signal, height, and distance");
-         return nullptr;
-       }
-       return builder.create<FindPeaksOp>(location, operands[0], operands[1], operands[2]);
+    if (callee == "find_peaks") {
+      if (call.getArgs().size() != 3) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.find_peaks "
+                  "accepts only 3 arguments: signal, height, and distance");
+        return nullptr;
+      }
+      return builder.create<FindPeaksOp>(location, operands[0], operands[1],
+                                         operands[2]);
+    }
+
+    // Max Op
+    if (callee == "max") {
+      if (call.getArgs().size() != 1) {
+        emitError(location, "MLIR codegen encountered an error: dsp.max "
+                            "accepts only 1 argument.");
+        return nullptr;
+      }
+      return builder.create<MaxOp>(location, operands[0]);
+    }
+
+    // Mean Op
+    if (callee == "mean") {
+      if (call.getArgs().size() != 2) {
+        emitError(location, "MLIR codegen encountered an error: dsp.mean "
+                            "accepts only 2 arguments: input tensor, length");
+        return nullptr;
+      }
+      return builder.create<MeanOp>(location, operands[0], operands[1]);
+    }
+
+    // Diff Op
+    if (callee == "diff") {
+      if (call.getArgs().size() != 2) {
+        emitError(location, "MLIR codegen encountered an error: dsp.diff "
+                            "accepts only 2 arguments: input tensor, legnth");
+        return nullptr;
+      }
+      return builder.create<DiffOp>(location, operands[0], operands[1]);
     }
 
     // Shift right Op
@@ -461,13 +493,14 @@ private:
                                                  operands[1]);
     }
 
-    if(callee == "medianFilter"){
-      if(call.getArgs().size() != 1){
-        emitError(location, "MLIR codegen encountered an error: dsp.medianFilter "
-                            "accepts only 1 argument");
+    if (callee == "medianFilter") {
+      if (call.getArgs().size() != 1) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.medianFilter "
+                  "accepts only 1 argument");
         return nullptr;
-      } 
-      return builder.create<MedianFilterOp>(location, operands[0] );
+      }
+      return builder.create<MedianFilterOp>(location, operands[0]);
     }
 
     if (callee == "slidingWindowAvg") {
@@ -649,6 +682,30 @@ private:
       }
       return builder.create<GetElemAtIndxOp>(location, operands[0],
                                              operands[1]);
+    }
+
+    // Get Single Element At Op
+    if (callee == "getSingleElemAtIndx") {
+      if (call.getArgs().size() != 2) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.getSingleElemAtIndx "
+                  "accepts only 2 arguments");
+        return nullptr;
+      }
+      return builder.create<GetSingleElemAtIdxOp>(location, operands[0],
+                                                  operands[1]);
+    }
+
+    // Diff2MeanOptimized Op
+    if (callee == "diff2meanOpt") {
+      if (call.getArgs().size() != 2) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.diff2meanOpt "
+                  "accepts only 2 arguments");
+        return nullptr;
+      }
+      return builder.create<Diff2MeanOptimizedOp>(location, operands[0],
+                                                  operands[1]);
     }
 
     // Set Elem At Indx
@@ -893,65 +950,72 @@ private:
       double antenna = antennaVal[0].getValueAsDouble();
       double freq = freqVal[0].getValueAsDouble();
 
-      return builder.create<BeamFormOp>(location, antenna, freq,
-                                            operands[2], operands[3]);
+      return builder.create<BeamFormOp>(location, antenna, freq, operands[2],
+                                        operands[3]);
     }
-   // qam modulate op
-   if(callee == "qam_modulate_real") {
-       if(call.getArgs().size() != 1) {
-           emitError(location, "MLIR codegen encountered an error: dsp.QamModulateRealOp "
-                   "accepts 1 arguments");
-           return nullptr;
-       }
+    // qam modulate op
+    if (callee == "qam_modulate_real") {
+      if (call.getArgs().size() != 1) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.QamModulateRealOp "
+                  "accepts 1 arguments");
+        return nullptr;
+      }
 
-       return builder.create<QamModulateRealOp>(location, operands[0]);
-   }
+      return builder.create<QamModulateRealOp>(location, operands[0]);
+    }
 
-   if(callee == "qam_modulate_imagine"){
-       if(call.getArgs().size() != 1) {
-           emitError(location, "MLIR codegen encountered an error: dsp.QamModualteImgOp "
-                   "accepts 1 arguments");
-           return nullptr;
-       }
+    if (callee == "qam_modulate_imagine") {
+      if (call.getArgs().size() != 1) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.QamModualteImgOp "
+                  "accepts 1 arguments");
+        return nullptr;
+      }
 
-       return builder.create<QamModulateImgOp>(location, operands[0]);
-   }
-   // qam_demodulate
-   if(callee == "qam_demodulate") {
-       if(call.getArgs().size() != 2) {
-           emitError(location, "MLIR codegen encountered an error: dsp.QamDemodulateOp"
-                   "accepts 2 arguments");
-           return nullptr;
-       }
-       return builder.create<QamDemodulateOp>(location, operands[0], operands[1]);
-   }
-   // space_demodulate
-   if(callee == "space_demodulate") {
-       if(call.getArgs().size() != 1) {
-           emitError(location, "MLIR codegen encountered an error: dsp.SpaceDemodulateOp"
-                   "accepts 1 arguments");
-           return nullptr;
-       }
-       return builder.create<SpaceDemodulateOp>(location, operands[0]);
-   }
-   // space_modulate
-   if(callee == "space_modulate") {
-       if(call.getArgs().size() != 1) {
-           emitError(location, "MLIR codegen encountered an error: dsp.SpaceModulateOp"
-                   "accepts 1 arguments");
-           return nullptr;
-       }
-       return builder.create<SpaceModulateOp>(location, operands[0]);
-   }
-   // space_err_correction
-   if(callee == "space_err_correction") {
-       if(call.getArgs().size() != 1) {
-           emitError(location, "MLIR codegen encountered an error: dsp.SpaceErrCorrectionOp"
-                   "accepts 1 arguments");
-           return nullptr;
-       }
-       return builder.create<SpaceErrCorrectionOp>(location, operands[0]);
-   }
+      return builder.create<QamModulateImgOp>(location, operands[0]);
+    }
+    // qam_demodulate
+    if (callee == "qam_demodulate") {
+      if (call.getArgs().size() != 2) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.QamDemodulateOp"
+                  "accepts 2 arguments");
+        return nullptr;
+      }
+      return builder.create<QamDemodulateOp>(location, operands[0],
+                                             operands[1]);
+    }
+    // space_demodulate
+    if (callee == "space_demodulate") {
+      if (call.getArgs().size() != 1) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.SpaceDemodulateOp"
+                  "accepts 1 arguments");
+        return nullptr;
+      }
+      return builder.create<SpaceDemodulateOp>(location, operands[0]);
+    }
+    // space_modulate
+    if (callee == "space_modulate") {
+      if (call.getArgs().size() != 1) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.SpaceModulateOp"
+                  "accepts 1 arguments");
+        return nullptr;
+      }
+      return builder.create<SpaceModulateOp>(location, operands[0]);
+    }
+    // space_err_correction
+    if (callee == "space_err_correction") {
+      if (call.getArgs().size() != 1) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.SpaceErrCorrectionOp"
+                  "accepts 1 arguments");
+        return nullptr;
+      }
+      return builder.create<SpaceErrCorrectionOp>(location, operands[0]);
+    }
     // Builtin calls have their custom operation, meaning this is a
     // straightforward emission.
     // if(callee == "delay"){
@@ -984,23 +1048,26 @@ private:
   mlir::Value mlirGen(NumberExprAST &num) {
     return builder.create<ConstantOp>(loc(num.loc()), num.getValue());
   }
-  
+
   /// Emit a string exression
   mlir::Value mlirGen(StringExprAST &expr) {
     auto string_val = expr.getStringVal();
-    
+
     std::vector<double> signals;
-    for(char ch : string_val) {
-        std::bitset<8> bits(static_cast<unsigned char>(ch)), reversed;
-        int n = 8;
-        for(int i=0; i<n; ++i) reversed[i] = bits[n-i-1];
-        for(int i=0; i<n; ++i) signals.push_back(reversed[i]);
+    for (char ch : string_val) {
+      std::bitset<8> bits(static_cast<unsigned char>(ch)), reversed;
+      int n = 8;
+      for (int i = 0; i < n; ++i)
+        reversed[i] = bits[n - i - 1];
+      for (int i = 0; i < n; ++i)
+        signals.push_back(reversed[i]);
     }
 
     mlir::Type eleType = builder.getF64Type();
     auto dataType = mlir::RankedTensorType::get(signals.size(), eleType);
 
-    auto dataAttr = mlir::DenseElementsAttr::get(dataType, llvm::ArrayRef(signals));
+    auto dataAttr =
+        mlir::DenseElementsAttr::get(dataType, llvm::ArrayRef(signals));
 
     auto type = getType(signals.size());
 
@@ -1042,22 +1109,21 @@ private:
       return nullptr;
     }
 
-
     mlir::Value value;
     // Register the value in the symbol table.
     value = mlirGen(*init);
     if (!value)
-        return nullptr;
+      return nullptr;
 
-        // We have the initializer value, but in case the variable was declared
-        // with specific shape, we emit a "reshape" operation. It will get
-        // optimized out later as needed.
+    // We have the initializer value, but in case the variable was declared
+    // with specific shape, we emit a "reshape" operation. It will get
+    // optimized out later as needed.
     if (!vardecl.getType().shape.empty()) {
-        value = builder.create<ReshapeOp>(loc(vardecl.loc()),
-                getType(vardecl.getType()), value);
+      value = builder.create<ReshapeOp>(loc(vardecl.loc()),
+                                        getType(vardecl.getType()), value);
     }
     if (failed(declare(vardecl.getName(), value)))
-        return nullptr;
+      return nullptr;
     return value;
   }
 

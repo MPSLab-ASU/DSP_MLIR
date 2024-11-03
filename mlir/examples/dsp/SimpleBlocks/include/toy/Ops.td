@@ -1336,6 +1336,53 @@ def GetElemAtIndxOp : Dsp_Op<"getElemAtIndx",
 }
 
 
+
+
+
+
+//===----------------------------------------------------------------------===//
+// GetSingleElemAtIdxOp
+//===----------------------------------------------------------------------===//
+
+def GetSingleElemAtIdxOp : Dsp_Op<"getSingleElemAtIndx",
+    [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+  let summary = "This one access ranked tensor at idx and returns signle tensor without dimension.";
+
+  let arguments = (ins F64Tensor:$input, F64Tensor:$indx);
+  let results = (outs F64Tensor);
+
+  let builders = [
+    OpBuilder<(ins "Value":$input, "Value":$indx)>
+  ];
+
+  // Indicate that additional verification for this operation is necessary.
+  //let hasVerifier = 1;
+}
+
+
+
+
+//===----------------------------------------------------------------------===//
+// Diff2MeanOptimizedOp
+//===----------------------------------------------------------------------===//
+
+def Diff2MeanOptimizedOp : Dsp_Op<"diff2meanOpt",
+    [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+  let summary = "This one implemnets mean(diff(input)) as (input[-1] - input[0])/len(input). Note that mean uses length of diff, this operation consider input[-1] == input[length paramter of mean], not input[length paramter of mean-1]";
+
+  let arguments = (ins F64Tensor:$input, F64Tensor:$length);
+  let results = (outs F64Tensor);
+
+  let builders = [
+    OpBuilder<(ins "Value":$input, "Value":$length)>
+  ];
+}
+
+
+
+
+
+
 //===----------------------------------------------------------------------===//
 // SetElemAtIndxOp
 //===----------------------------------------------------------------------===//
@@ -2346,6 +2393,99 @@ def SpaceErrCorrectionOp : Dsp_Op<"space_err_correction",
 
     let hasVerifier = 1;
 }
+
+
+//===----------------------------------------------------------------------===//
+// MaxOp
+//===----------------------------------------------------------------------===//
+
+def MaxOp : Dsp_Op<"max", [Pure , DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+   let summary = "Find maximum value in tensor";
+   let description = [{
+		This operation finds and returns the maximum value of the tensor.
+   }]; 
+
+   let arguments = (ins F64Tensor:$input);
+   let results = (outs F64Tensor);
+
+   // Indicate that the operation has a custom parser and printer method.
+   // let hasCustomAssemblyFormat = 1;
+   // let assemblyFormat = [{
+   //   `(` $input `:` type($input1 , $input2) `)` attr-dict `to` type(results)
+   // }];
+   // Allow building a MulOp with from the two input operands.
+   
+   let builders = [
+     OpBuilder<(ins "Value":$input)>
+   ];
+
+   // Indicate that the operation has a custom parser and printer method.
+   // let hasCustomAssemblyFormat = 1;
+
+   // let hasVerifier = 1;
+ }
+ 
+
+//===----------------------------------------------------------------------===//
+// MeanOp
+//===----------------------------------------------------------------------===//
+
+def MeanOp : Dsp_Op<"mean", [Pure , DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+   let summary = "Find mean value of tensor. Requires (input, length).";
+   let description = [{
+		This operation finds and returns the mean value of the tensor.
+        Note that it requires length.
+		It would be better if we can implement both versions 
+		- no length argument -> automatically use the length of tensor
+		- with length argument -> use the provided length
+   }]; 
+
+   let arguments = (ins F64Tensor:$input, F64Tensor:$length);
+   let results = (outs F64Tensor);
+   
+   let builders = [
+     OpBuilder<(ins "Value":$input, "Value":$length)>
+   ];
+
+   // Indicate that the operation has a custom parser and printer method.
+   // let hasCustomAssemblyFormat = 1;
+
+   // let hasVerifier = 1;
+   let hasCanonicalizer = 1;
+ }
+ 
+
+
+//===----------------------------------------------------------------------===//
+// DiffOp
+//===----------------------------------------------------------------------===//
+
+def DiffOp : Dsp_Op<"diff", [Pure , DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+   let summary = "np.diff (out[i] = a[i+1] - a[i]). It receives second argument as length";
+   let description = [{
+		This operation returns a tensor that contains diff (out[i] = a[i+1] - a[i]).
+		The length of the output tensor is len(input)-1, regardless of length parameter.
+		Note that it requires length.
+		It would be better if we can implement both versions 
+		- no length argument -> automatically use the length of tensor
+		- with length argument -> use the provided length
+   }]; 
+
+   let arguments = (ins F64Tensor:$input, F64Tensor:$length);
+   let results = (outs F64Tensor);
+   
+   let builders = [
+     OpBuilder<(ins "Value":$input, "Value":$length)>
+   ];
+
+   // Indicate that the operation has a custom parser and printer method.
+   // let hasCustomAssemblyFormat = 1;
+
+   // let hasVerifier = 1;
+ }
+ 
+
+
 
 #endif // TOY_OPS
 
