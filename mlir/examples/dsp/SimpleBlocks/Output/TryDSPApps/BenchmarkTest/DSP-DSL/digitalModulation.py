@@ -10,11 +10,11 @@ def main() {
         # print(getSinDuration);
         var clean_sig = sin(getSinDuration );
         var binary_sig = thresholdUp(clean_sig, 0.4,0);
-        # var modulate_symbol_real = qam_modulate_real(binary_sig);
-        # # print(modulate_symbol_real);
-        # var modulate_symbol_imagine = qam_modulate_imagine(input);
-        # # print(modulate_symbol_imagine);
-        # var decode_data = qam_demodulate(modulate_symbol_real, modulate_symbol_imagine);
+        var modulate_symbol_real = qam_modulate_real(binary_sig);
+        # print(modulate_symbol_real);
+        var modulate_symbol_imagine = qam_modulate_imagine(input);
+        # print(modulate_symbol_imagine);
+        var decode_data = qam_demodulate(modulate_symbol_real, modulate_symbol_imagine);
         print(binary_sig);
 }
 
