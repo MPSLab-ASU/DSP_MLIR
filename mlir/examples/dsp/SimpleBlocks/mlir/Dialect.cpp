@@ -1877,6 +1877,55 @@ void Diff2MeanOptimizedOp::inferShapes() {
 
 
 
+
+//===----------------------------------------------------------------------===//
+// LMS2FindPeaksOptimizedOp
+//===----------------------------------------------------------------------===//
+
+void LMS2FindPeaksOptimizedOp::build(mlir::OpBuilder &builder,
+                                mlir::OperationState &state, mlir::Value lhs,
+                                mlir::Value rhs, mlir::Value mu,
+                                mlir::Value filterLen, mlir::Value height, 
+								mlir::Value distance) {
+  state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
+  state.addOperands({lhs, rhs, mu, filterLen, height, distance});
+}
+
+void LMS2FindPeaksOptimizedOp::inferShapes() {
+   
+  //  getResult().setType(getLhs().getType());
+
+  //The above is for LMSFilterResponseOp
+  
+   // Maximum possible number of peaks = (length of signal -1) / distance + 1.
+   // We will return a tensor with size (length of signal -1) / distance + 1 + 1(last one to provide number of peaks).
+   auto signalType = getLhs().getType();
+   auto signalShape = signalType.getShape();
+   int64_t len_signal = signalShape[0];
+
+   Value distanceArg = getOperand(5);
+   dsp::ConstantOp constantOpDistance =
+       distanceArg.getDefiningOp<dsp::ConstantOp>();
+   DenseElementsAttr constantDistanceValue = constantOpDistance.getValue();
+
+   auto elements = constantDistanceValue.getValues<FloatAttr>();
+   float distanceFloat = elements[0].getValueAsDouble();
+   //SecondValueInt = (int64_t)SecondValue;
+   
+   int64_t sizeOfOutput = (len_signal-1)/distanceFloat + 2;
+
+   std::vector<int64_t> shapeForOutput;
+   shapeForOutput.push_back(sizeOfOutput);
+
+   mlir::TensorType manipulatedType = mlir::RankedTensorType::get(
+	  shapeForOutput, signalType.getElementType());
+
+   getResult().setType(manipulatedType);
+  
+}
+
+
+
 //===----------------------------------------------------------------------===//
 // SetElemAtIndxOp
 //===----------------------------------------------------------------------===//

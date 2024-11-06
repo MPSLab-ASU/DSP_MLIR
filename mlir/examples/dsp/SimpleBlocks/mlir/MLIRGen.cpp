@@ -744,6 +744,19 @@ private:
                                                   operands[1]);
     }
 
+    // Diff2MeanOptimized Op
+    if (callee == "lms2findPeaks") {
+      if (call.getArgs().size() != 6) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.lmsFilterResponse2findPeaks "
+                  "accepts only 6 arguments");
+        return nullptr;
+      }
+      return builder.create<LMS2FindPeaksOptimizedOp>(location, operands[0],
+                                                  operands[1], operands[2], operands[3], operands[4], operands[5]);
+    }
+
+
     // Set Elem At Indx
     if (callee == "setElemAtIndx") {
       if (call.getArgs().size() != 3) {

@@ -19,7 +19,7 @@ def main() {
   var mu = 0.01;
   var filterSize = 20;
   var y = lmsFilterResponse(noisy_sig, signal, mu, filterSize);
-  var peaks = find_peaks(signal, 1, 50); 
+  var peaks = find_peaks(y, 1, 50); 
   var final1 = getElemAtIndx(peaks , [1]); 
   var final2 = getElemAtIndx(peaks , [2]); 
   print(final1);

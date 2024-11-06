@@ -1407,6 +1407,23 @@ def Diff2MeanOptimizedOp : Dsp_Op<"diff2meanOpt",
 }
 
 
+//===----------------------------------------------------------------------===//
+// LMS2FindPeaksOptimizedOp
+//===----------------------------------------------------------------------===//
+
+def LMS2FindPeaksOptimizedOp : Dsp_Op<"lms2findPeaks",
+    [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+  let summary = "Fusing loop for LMSFilterResponseOp and FindPeaksOp";
+
+  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs, F64Tensor:$mu, F64Tensor:$filterLen, F64Tensor:$height, F64Tensor:$distance);
+  let results = (outs F64Tensor);
+
+  let builders = [
+    OpBuilder<(ins "Value":$lhs, "Value":$rhs, "Value":$mu, "Value":$filterLen, "Value":$height, "Value":$distance)>
+  ];
+}
+
+
 
 
 
@@ -2331,6 +2348,8 @@ def FindPeaksOp : Dsp_Op<"find_peaks", [Pure , DeclareOpInterfaceMethods<ShapeIn
    // let hasCustomAssemblyFormat = 1;
 
    // let hasVerifier = 1;
+   let hasCanonicalizer = 1;
+
  }
 
 

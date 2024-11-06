@@ -2878,6 +2878,8 @@ struct LMSFilterResponseOpLowering : public ConversionPattern {
 
     // Pseudo-code:
     //  for (int n = 0; n < NUM_SAMPLES; n++) {
+	//		// we also need to initialize w
+	//		// w[n] = 0;
     //      // Calculate the filter output y[n]
     //      y[n] = 0;
     //      for (int i = 0; i < FILTER_LENGTH; i++) {
@@ -2947,11 +2949,13 @@ struct LMSFilterResponseOpLowering : public ConversionPattern {
     AffineMap addMapForLMSFilter = AffineMap::get(2, 0, ExprForXSlice);
     IntegerSet set1 = IntegerSet::get(2, 0, {ExprForXSlice}, {false});
 
+	// w[n] = 0;
     // y[n] = 0;
     // rewriter.create<AffineStoreOp>(loc, zeroval, alloc, ValueRange{iv});
     // Allocate and initialize array for y
     // Value constantIndx0 = rewriter.create<arith::ConstantIndexOp>(loc, 0);
 
+	rewriter.create<AffineStoreOp>(loc, zeroval, wAlloc, ValueRange{iv});
     rewriter.create<AffineStoreOp>(loc, zeroval, alloc, ValueRange{iv});
 
     affine::AffineForOp forOp2 =
@@ -7297,17 +7301,18 @@ struct FindPeaksOpLowering : public ConversionPattern {
 
     int distanceArgShape = distanceArgType.getShape().size();
 
-	ValueRange distanceValueRange;
-	
-	if (distanceArgShape == 0)
-		distanceValueRange = ValueRange{};
-	else
-		distanceValueRange = ValueRange{constant_index_zero};
-	
-    
-    auto signalType = llvm::dyn_cast<RankedTensorType>(op->getOperand(0).getType());
-	auto ubForInit = rewriter.create<arith::ConstantIndexOp>(loc, tensorType.getShape()[0]);
-	auto ub = rewriter.create<arith::ConstantIndexOp>(loc, signalType.getShape()[0]-1);
+    ValueRange distanceValueRange;
+
+    if (distanceArgShape == 0)
+      distanceValueRange = ValueRange{};
+    else
+      distanceValueRange = ValueRange{constant_index_zero};
+
+    auto signalType =
+        llvm::dyn_cast<RankedTensorType>(op->getOperand(0).getType());
+    int64_t lb = 1;
+    int64_t ub = signalType.getShape()[0] - 1;
+    int64_t step = 1;
 
     //%distance = affine.load %alloc_distance[] : memref<index>
     auto distance_fp = rewriter.create<affine::AffineLoadOp>(
@@ -7317,39 +7322,51 @@ struct FindPeaksOpLowering : public ConversionPattern {
         loc, rewriter.getIntegerType(32), distance_fp);
     Value distance = rewriter.create<arith::IndexCastOp>(
         loc, rewriter.getIndexType(), distance_ui);
+		
+    auto height = rewriter.create<affine::AffineLoadOp>(
+        loc, findPeaksOpAdaptor.getHeight(), heightValueRange);
 
-    
-    auto forOpInit = rewriter.create<scf::ForOp>(loc, constant_index_zero, ubForInit, constant_index_one);
+    affine::AffineForOp forOpInit =
+        rewriter.create<AffineForOp>(loc, 0, tensorType.getShape()[0], step);
     auto init_iter = forOpInit.getInductionVar();
     rewriter.setInsertionPointToStart(forOpInit.getBody());
 
-    rewriter.create<memref::StoreOp>(loc, constant_minus_one, alloc_output, ValueRange{init_iter});
+    rewriter.create<AffineStoreOp>(loc, constant_minus_one, alloc_output,
+                                   ValueRange{init_iter});
+
+
+
 
     rewriter.setInsertionPointAfter(forOpInit);
 
-
-
-    auto forOpSignal = rewriter.create<scf::ForOp>(loc, constant_index_one, ub, constant_index_one);
+    affine::AffineForOp forOpSignal =
+        rewriter.create<AffineForOp>(loc, lb, ub, step);
     auto current_index = forOpSignal.getInductionVar();
     rewriter.setInsertionPointToStart(forOpSignal.getBody());
 
     // %prev_index = arith.subi %current_index, %cst_one_index : index
     // %signal_prev = memref.load %alloc_signal[%prev_index] : memref<10xf64>
-    // %signal_current = affine.load %alloc_signal[%current_index] : memref<10xf64>
-    // %signal_next = affine.load %alloc_signal[%current_index+1] : memref<10xf64> Q. How can I do this?
-    // %height = affine.load %alloc_height[] : memref<f64>
-    
-    Value prev_index = rewriter.create<arith::SubIOp>(loc, current_index, constant_index_one);
-	Value next_index = rewriter.create<arith::AddIOp>(loc, current_index, constant_index_one);
+    // %signal_current = affine.load %alloc_signal[%current_index] :
+    // memref<10xf64> %signal_next = affine.load %alloc_signal[%current_index+1]
+    // : memref<10xf64> Q. How can I do this? %height = affine.load
+    // %alloc_height[] : memref<f64>
 
-    auto signal_prev = rewriter.create<memref::LoadOp>(
-						 loc, findPeaksOpAdaptor.getSignal(), ValueRange{prev_index});
-    auto signal_current = rewriter.create<memref::LoadOp>(
-                         loc, findPeaksOpAdaptor.getSignal(), ValueRange{current_index});
-    auto signal_next = rewriter.create<memref::LoadOp>(
-						 loc, findPeaksOpAdaptor.getSignal(), ValueRange{next_index});
-    auto height = rewriter.create<memref::LoadOp>(
-                         loc, findPeaksOpAdaptor.getHeight(), heightValueRange);
+    AffineExpr ExprForPrev =
+        rewriter.getAffineDimExpr(0) - rewriter.getAffineConstantExpr(1);
+    AffineMap addMapForPrev = AffineMap::get(1, 0, ExprForPrev);
+
+    AffineExpr ExprForNext =
+        rewriter.getAffineDimExpr(0) + rewriter.getAffineConstantExpr(1);
+    AffineMap addMapForNext = AffineMap::get(1, 0, ExprForNext);
+
+    auto signal_prev =
+        rewriter.create<AffineLoadOp>(loc, findPeaksOpAdaptor.getSignal(),
+                                      addMapForPrev, ValueRange{current_index});
+    auto signal_current = rewriter.create<affine::AffineLoadOp>(
+        loc, findPeaksOpAdaptor.getSignal(), ValueRange{current_index});
+    auto signal_next =
+        rewriter.create<AffineLoadOp>(loc, findPeaksOpAdaptor.getSignal(),
+                                      addMapForNext, ValueRange{current_index});
 
     //%cmp_current_prev = arith.cmpf ogt, %signal_current, %signal_prev : f64
     //%cmp_current_next = arith.cmpf ogt, %signal_current, %signal_next : f64
@@ -7372,11 +7389,11 @@ struct FindPeaksOpLowering : public ConversionPattern {
     auto firstIfOp =
         rewriter.create<scf::IfOp>(loc, and_three_cmps, false /* else=1 */);
     rewriter.setInsertionPointToStart(firstIfOp.thenBlock());
-    
-    //%peaks_count = memref.load %alloc_peaks_count[] : memref<index>
+
+    //%peaks_count = affine.load %alloc_peaks_count[] : memref<index>
     //%cmp_new_peak = arith.cmpi eq, %peaks_count, %cst_zero_index : index
-    auto peaks_count = rewriter.create<memref::LoadOp>(
-                         loc, alloc_peaks_count, ValueRange{});
+    auto peaks_count = rewriter.create<affine::AffineLoadOp>(
+        loc, alloc_peaks_count, ValueRange{});
     auto cmp_new_peak = rewriter.create<arith::CmpIOp>(
         loc, arith::CmpIPredicate::eq, peaks_count, constant_index_zero);
 
@@ -7392,12 +7409,15 @@ struct FindPeaksOpLowering : public ConversionPattern {
     // index to f64
     Value current_index_to_ui = rewriter.create<arith::IndexCastUIOp>(
         loc, rewriter.getIntegerType(32), current_index);
-    Value current_index_to_f64 =
-        rewriter.create<arith::UIToFPOp>(loc, rewriter.getF64Type(), current_index_to_ui);
-    rewriter.create<memref::StoreOp>(loc, current_index_to_f64, alloc_output, ValueRange{peaks_count});
-    auto peaks_count_inc = rewriter.create<arith::AddIOp>(loc, peaks_count, constant_index_one);
-    rewriter.create<memref::StoreOp>(loc, peaks_count_inc, alloc_peaks_count, ValueRange{});  
-    
+    Value current_index_to_f64 = rewriter.create<arith::UIToFPOp>(
+        loc, rewriter.getF64Type(), current_index_to_ui);
+    rewriter.create<memref::StoreOp>(loc, current_index_to_f64, alloc_output,
+                                     ValueRange{peaks_count});
+    auto peaks_count_inc =
+        rewriter.create<arith::AddIOp>(loc, peaks_count, constant_index_one);
+    rewriter.create<AffineStoreOp>(loc, peaks_count_inc, alloc_peaks_count,
+                                   ValueRange{});
+
     /*
     else {
         %last_peaks_count = arith.subi %peaks_count, %cst_one_index : index
@@ -7440,41 +7460,40 @@ struct FindPeaksOpLowering : public ConversionPattern {
     // index to f64
     Value current_index_to_ui_2 = rewriter.create<arith::IndexCastUIOp>(
         loc, rewriter.getIntegerType(32), current_index);
-    Value current_index_to_f64_2 =
-        rewriter.create<arith::UIToFPOp>(loc, rewriter.getF64Type(), current_index_to_ui_2);
-	rewriter.create<memref::StoreOp>(loc, current_index_to_f64_2, alloc_output, ValueRange{peaks_count});
-	auto peaks_count_inc_2 = rewriter.create<arith::AddIOp>(loc, peaks_count, constant_index_one);
-	rewriter.create<memref::StoreOp>(loc, peaks_count_inc_2, alloc_peaks_count, ValueRange{});  
+    Value current_index_to_f64_2 = rewriter.create<arith::UIToFPOp>(
+        loc, rewriter.getF64Type(), current_index_to_ui_2);
+    rewriter.create<memref::StoreOp>(loc, current_index_to_f64_2, alloc_output,
+                                     ValueRange{peaks_count});
+    auto peaks_count_inc_2 =
+        rewriter.create<arith::AddIOp>(loc, peaks_count, constant_index_one);
+    rewriter.create<AffineStoreOp>(loc, peaks_count_inc_2, alloc_peaks_count,
+                                   ValueRange{});
 
     rewriter.setInsertionPointAfter(forOpSignal);
 
-	/* Setting last element of the output as the count of peaks.
-	Note that last-last ([-2]) should be always -1. */
-	auto peaks_count_final = rewriter.create<memref::LoadOp>(loc, alloc_peaks_count, ValueRange{});
-	//index to f64
-    Value peaks_count_final_to_ui = rewriter.create<arith::IndexCastUIOp>( 
+    /* Setting last element of the output as the count of peaks.
+    Note that last-last ([-2]) should be always -1. */
+    auto peaks_count_final = rewriter.create<affine::AffineLoadOp>(
+        loc, alloc_peaks_count, ValueRange{});
+    // index to f64
+    Value peaks_count_final_to_ui = rewriter.create<arith::IndexCastUIOp>(
         loc, rewriter.getIntegerType(32), peaks_count_final);
-    Value peaks_count_final_to_f64 =
-        rewriter.create<arith::UIToFPOp>(loc, rewriter.getF64Type(), peaks_count_final_to_ui);
-		
-	Value result_size = rewriter.create<arith::ConstantOp>(loc, rewriter.getIndexType(),                                                         rewriter.getIndexAttr(tensorType.getShape()[0]));
-	Value result_size_minusOne = rewriter.create<arith::SubIOp>(loc, result_size, constant_index_one);
-	rewriter.create<memref::StoreOp>(loc, peaks_count_final_to_f64, alloc_output, ValueRange{result_size_minusOne});
+    Value peaks_count_final_to_f64 = rewriter.create<arith::UIToFPOp>(
+        loc, rewriter.getF64Type(), peaks_count_final_to_ui);
 
-    
+    Value result_size = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getIndexType(),
+        rewriter.getIndexAttr(tensorType.getShape()[0]));
+    Value result_size_minusOne =
+        rewriter.create<arith::SubIOp>(loc, result_size, constant_index_one);
+    rewriter.create<AffineStoreOp>(loc, peaks_count_final_to_f64, alloc_output,
+                                   ValueRange{result_size_minusOne});
+
     rewriter.replaceOp(op, alloc_output);
 
     return success();
   }
 };
-
-
-
-
-
-
-
-
 
 struct MaxOpLowering : public ConversionPattern {
   MaxOpLowering(MLIRContext *ctx)
@@ -7498,39 +7517,42 @@ struct MaxOpLowering : public ConversionPattern {
 
     Value constantZero = rewriter.create<arith::ConstantOp>(
         loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(0));
-		
+
+    // Value cst_idx_zero = rewriter.create<arith::ConstantIndexOp>(loc, 0);
+
     rewriter.create<AffineStoreOp>(loc, constantZero, alloc_output,
                                    ValueRange{});
 
     auto inputType =
         llvm::dyn_cast<RankedTensorType>(op->getOperand(0).getType());
 
-	
-	auto lb = rewriter.create<arith::ConstantIndexOp>(loc, 0);
-	auto step = rewriter.create<arith::ConstantIndexOp>(loc, 1);
-	auto ub = rewriter.create<arith::ConstantIndexOp>(loc, inputType.getShape()[0]);
-	auto forOp = rewriter.create<scf::ForOp>(loc, lb, ub, step);
-	auto idx = forOp.getInductionVar();
-	rewriter.setInsertionPointToStart(forOp.getBody());
-	
-    auto loadedInput = rewriter.create<memref::LoadOp>(
+    // loop for 0 <= i < N
+    int64_t lb = 0;
+    int64_t ub = inputType.getShape()[0];
+    int64_t step = 1;
+
+    affine::AffineForOp forOp = rewriter.create<AffineForOp>(loc, lb, ub, step);
+    auto idx = forOp.getInductionVar();
+    rewriter.setInsertionPointToStart(forOp.getBody());
+
+    auto loadedInput = rewriter.create<affine::AffineLoadOp>(
         loc, maxOpAdaptor.getInput(), ValueRange{idx});
-    auto loadedOutput = rewriter.create<memref::LoadOp>(
-        loc, alloc_output, ValueRange{});
+    auto loadedOutput =
+        rewriter.create<affine::AffineLoadOp>(loc, alloc_output, ValueRange{});
     auto compare_input_output = rewriter.create<arith::CmpFOp>(
         loc, arith::CmpFPredicate::OGT, loadedInput, loadedOutput);
 
     auto ifOp = rewriter.create<scf::IfOp>(loc, compare_input_output, false);
 
-	rewriter.setInsertionPointToStart(ifOp.thenBlock());	
-		
-    rewriter.create<memref::StoreOp>(loc, loadedInput, alloc_output,
+    rewriter.setInsertionPointToStart(ifOp.thenBlock());
+
+    rewriter.create<AffineStoreOp>(loc, loadedInput, alloc_output,
                                    ValueRange{});
-	
+
     rewriter.setInsertionPointAfter(forOp);
-	
 
     rewriter.replaceOp(op, alloc_output);
+
     return success();
   }
 };
@@ -7809,6 +7831,521 @@ struct Diff2MeanOptimizedOpLowering : public ConversionPattern {
     return success();
   }
 };
+
+
+
+
+
+
+
+
+struct LMS2FindPeaksOptimizedOpLowering : public ConversionPattern {
+  LMS2FindPeaksOptimizedOpLowering (MLIRContext *ctx)
+      : ConversionPattern(dsp::LMS2FindPeaksOptimizedOp::getOperationName(), 1,
+                          ctx) {}
+
+  LogicalResult
+  matchAndRewrite(Operation *op, ArrayRef<Value> operands,
+                  ConversionPatternRewriter &rewriter) const final {
+    auto loc = op->getLoc();
+
+    // Pseudo-code:
+    //  for (int n = 0; n < NUM_SAMPLES; n++) {
+    //      // Calculate the filter output y[n]
+    //      y[n] = 0;
+    //      for (int i = 0; i < FILTER_LENGTH; i++) {
+    //          if (n - i >= 0) { // affine if
+    //              y[n] = y[n] + (w[i] * x[n - i]);
+    //          }
+    //      }
+
+    //     // Calculate the error e[n]
+    //     e[n] = d[n] - y[n];
+
+    //     // Update the filter weights w[i]
+    //     for (int i = 0; i < FILTER_LENGTH; i++) {
+    //         if (n - i >= 0) {
+    //             w[i] +=  MU * e[n] * x[n - i];
+    //         }
+    //     }
+    // }
+
+    auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
+	auto lhsType = llvm::dyn_cast<RankedTensorType>(op->getOperand(0).getType());
+
+    ArrayRef<int64_t> lhsShape = lhsType.getShape();
+
+    // allocation & deallocation for the result of this operation
+    auto memRefType = MemRefType::get(lhsShape, rewriter.getF64Type());
+    auto alloc = insertAllocAndDealloc(memRefType, loc, rewriter);
+
+    auto memRefTypeOutput = convertTensorToMemRef(tensorType);
+    auto alloc_output = insertAllocAndDealloc(memRefTypeOutput, loc, rewriter);
+	
+    auto countMemRefType = MemRefType::get({}, rewriter.getIndexType());
+    auto alloc_peaks_count =
+        insertAllocAndDealloc(countMemRefType, loc, rewriter);
+
+
+
+    // construct affine loops for the input
+    SmallVector<int64_t, 4> lowerBounds(lhsType.getRank(), /*Value*/ 0);
+    SmallVector<int64_t, 4> steps(lhsType.getRank(), /*Value=*/1);
+	
+    typename dsp::LMS2FindPeaksOptimizedOp::Adaptor lfr2fpAdaptor(
+        operands);
+	
+	
+    // Value alpha = rewriter.create<arith::ConstantOp>(loc,
+    // rewriter.getF64Type(),
+    //                                                      rewriter.getF64FloatAttr(1));
+    Value zeroval = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(0));
+    Value mu = rewriter.create<AffineLoadOp>(loc, lfr2fpAdaptor.getMu());
+
+
+	Value cst_idx_zero = rewriter.create<arith::ConstantIndexOp>(loc, 0);
+	Value cst_idx_one = rewriter.create<arith::ConstantIndexOp>(loc, 1);
+    Value constant_minus_one = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(-1));
+		
+		
+	//initialization for findPeaks
+    rewriter.create<AffineStoreOp>(loc, cst_idx_zero, alloc_peaks_count,
+                                   ValueRange{});
+								   
+    auto heightArgType =
+        llvm::dyn_cast<RankedTensorType>(op->getOperand(4).getType());
+
+    int heightArgShape = heightArgType.getShape().size();
+
+    ValueRange heightValueRange;
+
+    if (heightArgShape == 0)
+      heightValueRange = ValueRange{};
+    else
+      heightValueRange = ValueRange{cst_idx_zero};
+
+    auto distanceArgType =
+        llvm::dyn_cast<RankedTensorType>(op->getOperand(5).getType());
+
+    int distanceArgShape = distanceArgType.getShape().size();
+
+    ValueRange distanceValueRange;
+
+    if (distanceArgShape == 0)
+      distanceValueRange = ValueRange{};
+    else
+      distanceValueRange = ValueRange{cst_idx_zero};
+  
+    auto distance_fp = rewriter.create<affine::AffineLoadOp>(
+        loc, lfr2fpAdaptor.getDistance(), distanceValueRange);
+    Value distance_ui = rewriter.create<arith::FPToUIOp>(
+        loc, rewriter.getIntegerType(32), distance_fp);
+    Value distance = rewriter.create<arith::IndexCastOp>(
+        loc, rewriter.getIndexType(), distance_ui);
+		
+    auto height = rewriter.create<affine::AffineLoadOp>(
+        loc, lfr2fpAdaptor.getHeight(), heightValueRange);
+		
+    affine::AffineForOp forOpInit =
+        rewriter.create<AffineForOp>(loc, 0, tensorType.getShape()[0], 1);
+    auto init_iter = forOpInit.getInductionVar();
+    rewriter.setInsertionPointToStart(forOpInit.getBody());
+
+    rewriter.create<AffineStoreOp>(loc, constant_minus_one, alloc_output,
+                                   ValueRange{init_iter});
+
+    rewriter.setInsertionPointAfter(forOpInit);
+		
+
+
+	// unrolled two iterations.
+	int64_t lb = 0;
+	int64_t step = 1;
+	
+    Value GetFilterLOp = op->getOperand(3);
+    dsp::ConstantOp constantOp3rdArg =
+        GetFilterLOp.getDefiningOp<dsp::ConstantOp>();
+    DenseElementsAttr constant3rdValue = constantOp3rdArg.getValue();
+
+    auto elements1 = constant3rdValue.getValues<FloatAttr>();
+    float filterlenval = elements1[0].getValueAsDouble();
+    auto FilterLength = (uint64_t)filterlenval;
+
+	int64_t numSamples = lhsType.getShape()[0];
+
+    auto yMemRefType = MemRefType::get({numSamples}, rewriter.getF64Type());
+    //auto wAlloc = rewriter.create<memref::AllocOp>(loc, yMemRefType);
+	auto wAlloc = insertAllocAndDealloc(yMemRefType, loc, rewriter);
+
+	// For affine expression: #map1 = affine_map<(%arg0)[] : (%arg0 - 1)
+	AffineExpr d0, d1, s0;
+	bindDims(rewriter.getContext(), d0, d1);
+	// AffineExpr ExprForXSlice = rewriter.getAffineDimExpr(0) -
+	// rewriter.getAffineDimExpr(1); //d0 - d1;
+	AffineExpr ExprForXSlice = d0 - d1;
+	AffineMap addMapForLMSFilter = AffineMap::get(2, 0, ExprForXSlice);
+	IntegerSet set1 = IntegerSet::get(2, 0, {ExprForXSlice}, {false});
+
+    {
+
+		// w[n] = 0;
+		// y[n] = 0;
+		// rewriter.create<AffineStoreOp>(loc, zeroval, alloc, ValueRange{iv});
+		// Allocate and initialize array for y
+		// Value constantIndx0 = rewriter.create<arith::ConstantIndexOp>(loc, 0);
+		rewriter.create<AffineStoreOp>(loc, zeroval, wAlloc, ValueRange{cst_idx_zero});
+		rewriter.create<AffineStoreOp>(loc, zeroval, alloc, ValueRange{cst_idx_zero});
+
+		affine::AffineForOp forOp2 =
+			rewriter.create<AffineForOp>(loc, lb, FilterLength, step);
+		auto iv2 = forOp2.getInductionVar();
+
+		rewriter.setInsertionPointToStart(forOp2.getBody());
+
+		auto ifOp = rewriter.create<affine::AffineIfOp>(
+			loc, set1, ValueRange{cst_idx_zero, iv2}, false /*no else*/);
+		rewriter.setInsertionPointToStart(ifOp.getThenBlock());
+
+		Value inputX =
+			rewriter.create<AffineLoadOp>(loc, lfr2fpAdaptor.getLhs(),
+										  addMapForLMSFilter, ValueRange{cst_idx_zero, iv2});
+		Value w = rewriter.create<AffineLoadOp>(loc, wAlloc,
+												ValueRange{iv2}); // memRefType
+
+		Value wmulx = rewriter.create<arith::MulFOp>(loc, inputX, w);
+		Value ybefore = rewriter.create<AffineLoadOp>(loc, alloc, ValueRange{cst_idx_zero});
+		Value sumNext = rewriter.create<arith::AddFOp>(loc, wmulx, ybefore);
+		rewriter.create<AffineStoreOp>(loc, sumNext, alloc, ValueRange{cst_idx_zero});
+		rewriter.setInsertionPointAfter(ifOp);
+		rewriter.setInsertionPointAfter(forOp2);
+
+		//  get e[n] = d[n] - y[n]
+
+		Value desiredX = rewriter.create<AffineLoadOp>(
+			loc, lfr2fpAdaptor.getRhs(), ValueRange{cst_idx_zero});
+		Value ynew = rewriter.create<AffineLoadOp>(loc, alloc, ValueRange{cst_idx_zero});
+
+		Value err = rewriter.create<arith::SubFOp>(loc, desiredX, ynew);
+
+		affine::AffineForOp forOp3 =
+			rewriter.create<AffineForOp>(loc, lb, FilterLength, step);
+		auto iv3 = forOp3.getInductionVar();
+
+		rewriter.setInsertionPointToStart(forOp3.getBody());
+
+		auto ifOp2 = rewriter.create<affine::AffineIfOp>(
+			loc, set1, ValueRange{cst_idx_zero, iv3}, false /*no else*/);
+		rewriter.setInsertionPointToStart(ifOp2.getThenBlock());
+
+		Value inputX2 =
+			rewriter.create<AffineLoadOp>(loc, lfr2fpAdaptor.getLhs(),
+										  addMapForLMSFilter, ValueRange{cst_idx_zero, iv3});
+
+		Value Prevw2 = rewriter.create<AffineLoadOp>(loc, wAlloc, ValueRange{iv3});
+
+		// f(u(n),e(n),μ)=μe(n)u∗(n)
+		Value mul1 = rewriter.create<arith::MulFOp>(loc, err, inputX2);
+		Value mul2 = rewriter.create<arith::MulFOp>(loc, mu, mul1);
+
+		// FInal w[n]
+		Value answer = rewriter.create<arith::AddFOp>(loc, Prevw2, mul2);
+
+		rewriter.create<AffineStoreOp>(loc, answer, wAlloc, ValueRange{iv3});
+		
+		rewriter.setInsertionPointAfter(ifOp2);
+		rewriter.setInsertionPointAfter(forOp3);
+	}
+
+
+
+	{
+		// w[n] = 0;
+		// y[n] = 0;
+		// rewriter.create<AffineStoreOp>(loc, zeroval, alloc, ValueRange{iv});
+		// Allocate and initialize array for y
+		// Value constantIndx0 = rewriter.create<arith::ConstantIndexOp>(loc, 0);
+		rewriter.create<AffineStoreOp>(loc, zeroval, wAlloc, ValueRange{cst_idx_one});
+		rewriter.create<AffineStoreOp>(loc, zeroval, alloc, ValueRange{cst_idx_one});
+
+		affine::AffineForOp forOp2 =
+			rewriter.create<AffineForOp>(loc, lb, FilterLength, step);
+		auto iv2 = forOp2.getInductionVar();
+
+		rewriter.setInsertionPointToStart(forOp2.getBody());
+
+		auto ifOp = rewriter.create<affine::AffineIfOp>(
+			loc, set1, ValueRange{cst_idx_one, iv2}, false /*no else*/);
+		rewriter.setInsertionPointToStart(ifOp.getThenBlock());
+
+		Value inputX =
+			rewriter.create<AffineLoadOp>(loc, lfr2fpAdaptor.getLhs(),
+										  addMapForLMSFilter, ValueRange{cst_idx_one, iv2});
+		Value w = rewriter.create<AffineLoadOp>(loc, wAlloc,
+												ValueRange{iv2}); // memRefType
+
+		Value wmulx = rewriter.create<arith::MulFOp>(loc, inputX, w);
+		Value ybefore = rewriter.create<AffineLoadOp>(loc, alloc, ValueRange{cst_idx_one});
+		Value sumNext = rewriter.create<arith::AddFOp>(loc, wmulx, ybefore);
+		rewriter.create<AffineStoreOp>(loc, sumNext, alloc, ValueRange{cst_idx_one});
+		rewriter.setInsertionPointAfter(ifOp);
+		rewriter.setInsertionPointAfter(forOp2);
+
+		//  get e[n] = d[n] - y[n]
+
+		Value desiredX = rewriter.create<AffineLoadOp>(
+			loc, lfr2fpAdaptor.getRhs(), ValueRange{cst_idx_one});
+		Value ynew = rewriter.create<AffineLoadOp>(loc, alloc, ValueRange{cst_idx_one});
+
+		Value err = rewriter.create<arith::SubFOp>(loc, desiredX, ynew);
+
+		affine::AffineForOp forOp3 =
+			rewriter.create<AffineForOp>(loc, lb, FilterLength, step);
+		auto iv3 = forOp3.getInductionVar();
+
+		rewriter.setInsertionPointToStart(forOp3.getBody());
+
+		auto ifOp2 = rewriter.create<affine::AffineIfOp>(
+			loc, set1, ValueRange{cst_idx_one, iv3}, false /*no else*/);
+		rewriter.setInsertionPointToStart(ifOp2.getThenBlock());
+
+		Value inputX2 =
+			rewriter.create<AffineLoadOp>(loc, lfr2fpAdaptor.getLhs(),
+										  addMapForLMSFilter, ValueRange{cst_idx_one, iv3});
+
+		Value Prevw2 = rewriter.create<AffineLoadOp>(loc, wAlloc, ValueRange{iv3});
+
+		// f(u(n),e(n),μ)=μe(n)u∗(n)
+		Value mul1 = rewriter.create<arith::MulFOp>(loc, err, inputX2);
+		Value mul2 = rewriter.create<arith::MulFOp>(loc, mu, mul1);
+
+		// FInal w[n]
+		Value answer = rewriter.create<arith::AddFOp>(loc, Prevw2, mul2);
+
+		rewriter.create<AffineStoreOp>(loc, answer, wAlloc, ValueRange{iv3});
+		
+		rewriter.setInsertionPointAfter(ifOp2);
+		rewriter.setInsertionPointAfter(forOp3);
+    }
+
+
+
+
+
+
+
+    // Outer for loop -- iterate from 2 to last
+	int64_t lb_outer = 2;
+
+
+    affine::AffineForOp forOp1 =
+        rewriter.create<AffineForOp>(loc, lb_outer, numSamples, step);
+    auto iv = forOp1.getInductionVar();
+
+    rewriter.setInsertionPointToStart(forOp1.getBody());
+	// w[n] = 0;
+    // y[n] = 0;
+    // rewriter.create<AffineStoreOp>(loc, zeroval, alloc, ValueRange{iv});
+    // Allocate and initialize array for y
+    // Value constantIndx0 = rewriter.create<arith::ConstantIndexOp>(loc, 0);
+
+	rewriter.create<AffineStoreOp>(loc, zeroval, wAlloc, ValueRange{iv});
+    rewriter.create<AffineStoreOp>(loc, zeroval, alloc, ValueRange{iv});
+
+    affine::AffineForOp forOp2 =
+        rewriter.create<AffineForOp>(loc, lb, FilterLength, step);
+    auto iv2 = forOp2.getInductionVar();
+
+    rewriter.setInsertionPointToStart(forOp2.getBody());
+
+    auto ifOp = rewriter.create<affine::AffineIfOp>(
+        loc, set1, ValueRange{iv, iv2}, false /*no else*/);
+    rewriter.setInsertionPointToStart(ifOp.getThenBlock());
+
+    Value inputX =
+        rewriter.create<AffineLoadOp>(loc, lfr2fpAdaptor.getLhs(),
+                                      addMapForLMSFilter, ValueRange{iv, iv2});
+    Value w = rewriter.create<AffineLoadOp>(loc, wAlloc,
+                                            ValueRange{iv2}); // memRefType
+
+    Value wmulx = rewriter.create<arith::MulFOp>(loc, inputX, w);
+    Value ybefore = rewriter.create<AffineLoadOp>(loc, alloc, ValueRange{iv});
+    Value sumNext = rewriter.create<arith::AddFOp>(loc, wmulx, ybefore);
+    rewriter.create<AffineStoreOp>(loc, sumNext, alloc, ValueRange{iv});
+    rewriter.setInsertionPointAfter(ifOp);
+    rewriter.setInsertionPointAfter(forOp2);
+
+    //  get e[n] = d[n] - y[n]
+
+    Value desiredX = rewriter.create<AffineLoadOp>(
+        loc, lfr2fpAdaptor.getRhs(), ValueRange{iv});
+    Value ynew = rewriter.create<AffineLoadOp>(loc, alloc, ValueRange{iv});
+
+    Value err = rewriter.create<arith::SubFOp>(loc, desiredX, ynew);
+
+    affine::AffineForOp forOp3 =
+        rewriter.create<AffineForOp>(loc, lb, FilterLength, step);
+    auto iv3 = forOp3.getInductionVar();
+
+    rewriter.setInsertionPointToStart(forOp3.getBody());
+
+    auto ifOp2 = rewriter.create<affine::AffineIfOp>(
+        loc, set1, ValueRange{iv, iv3}, false /*no else*/);
+    rewriter.setInsertionPointToStart(ifOp2.getThenBlock());
+
+    Value inputX2 =
+        rewriter.create<AffineLoadOp>(loc, lfr2fpAdaptor.getLhs(),
+                                      addMapForLMSFilter, ValueRange{iv, iv3});
+
+    Value Prevw2 = rewriter.create<AffineLoadOp>(loc, wAlloc, ValueRange{iv3});
+
+    // f(u(n),e(n),μ)=μe(n)u∗(n)
+    Value mul1 = rewriter.create<arith::MulFOp>(loc, err, inputX2);
+    Value mul2 = rewriter.create<arith::MulFOp>(loc, mu, mul1);
+
+    // FInal w[n]
+    Value answer = rewriter.create<arith::AddFOp>(loc, Prevw2, mul2);
+
+    rewriter.create<AffineStoreOp>(loc, answer, wAlloc, ValueRange{iv3});
+    rewriter.setInsertionPointAfter(ifOp2);
+    rewriter.setInsertionPointAfter(forOp3);
+	
+	//HERE WE SHOULD INSERT FIND_PEAKS FOR FUSING LOOP
+	
+	
+	
+	
+	
+	
+    AffineExpr ExprForPrev =
+        rewriter.getAffineDimExpr(0) - rewriter.getAffineConstantExpr(2);
+    AffineMap addMapForPrev = AffineMap::get(1, 0, ExprForPrev);
+
+    AffineExpr ExprForCurrent =
+        rewriter.getAffineDimExpr(0) - rewriter.getAffineConstantExpr(1);
+    AffineMap addMapForCurrent = AffineMap::get(1, 0, ExprForCurrent);
+
+    auto signal_prev =
+        rewriter.create<AffineLoadOp>(loc, alloc,
+                                      addMapForPrev, ValueRange{iv});
+    auto signal_current = 
+	    rewriter.create<affine::AffineLoadOp>(loc, alloc,
+		                              addMapForCurrent, ValueRange{iv});
+    auto signal_next =
+        rewriter.create<AffineLoadOp>(loc, alloc,
+                                      ValueRange{iv});
+
+
+    auto cmp_current_prev = rewriter.create<arith::CmpFOp>(
+        loc, arith::CmpFPredicate::OGT, signal_current, signal_prev);
+    auto cmp_current_next = rewriter.create<arith::CmpFOp>(
+        loc, arith::CmpFPredicate::OGT, signal_current, signal_next);
+    auto cmp_current_height = rewriter.create<arith::CmpFOp>(
+        loc, arith::CmpFPredicate::OGE, signal_current, height);
+
+    auto and_two_cmps =
+        rewriter.create<arith::AndIOp>(loc, cmp_current_prev, cmp_current_next);
+    auto and_three_cmps =
+        rewriter.create<arith::AndIOp>(loc, and_two_cmps, cmp_current_height);
+
+    auto firstIfOp =
+        rewriter.create<scf::IfOp>(loc, and_three_cmps, false /* else=1 */);
+    rewriter.setInsertionPointToStart(firstIfOp.thenBlock());
+
+    auto peaks_count = rewriter.create<affine::AffineLoadOp>(
+        loc, alloc_peaks_count, ValueRange{});
+    auto cmp_new_peak = rewriter.create<arith::CmpIOp>(
+        loc, arith::CmpIPredicate::eq, peaks_count, cst_idx_zero);
+
+	auto current_index = rewriter.create<arith::SubIOp> (loc, iv, cst_idx_one);
+
+    auto secondIfOp =
+        rewriter.create<scf::IfOp>(loc, cmp_new_peak, true /* else=1 */);
+    rewriter.setInsertionPointToStart(secondIfOp.thenBlock());
+    Value current_index_to_ui = rewriter.create<arith::IndexCastUIOp>(
+        loc, rewriter.getIntegerType(32), current_index);
+    Value current_index_to_f64 = rewriter.create<arith::UIToFPOp>(
+        loc, rewriter.getF64Type(), current_index_to_ui);
+    rewriter.create<memref::StoreOp>(loc, current_index_to_f64, alloc_output,
+                                     ValueRange{peaks_count});
+    auto peaks_count_inc =
+        rewriter.create<arith::AddIOp>(loc, peaks_count, cst_idx_one);
+    rewriter.create<AffineStoreOp>(loc, peaks_count_inc, alloc_peaks_count,
+                                   ValueRange{});
+
+    rewriter.setInsertionPointToStart(secondIfOp.elseBlock());
+
+    Value last_peaks_count =
+        rewriter.create<arith::SubIOp>(loc, peaks_count, cst_idx_one);
+    auto last_peak_index_fp = rewriter.create<memref::LoadOp>(
+        loc, alloc_output, ValueRange{last_peaks_count});
+    Value last_peak_index_ui = rewriter.create<arith::FPToUIOp>(
+        loc, rewriter.getIntegerType(32), last_peak_index_fp);
+    Value last_peak_index = rewriter.create<arith::IndexCastOp>(
+        loc, rewriter.getIndexType(), last_peak_index_ui);
+    Value subtract_current_index_last_peak =
+        rewriter.create<arith::SubIOp>(loc, current_index, last_peak_index);
+    auto cmp_sub_distance = rewriter.create<arith::CmpIOp>(
+        loc, arith::CmpIPredicate::sge, subtract_current_index_last_peak,
+        distance);
+
+    auto thirdIfOp =
+        rewriter.create<scf::IfOp>(loc, cmp_sub_distance, true /* else=1 */);
+    rewriter.setInsertionPointToStart(thirdIfOp.thenBlock());
+    Value current_index_to_ui_2 = rewriter.create<arith::IndexCastUIOp>(
+        loc, rewriter.getIntegerType(32), current_index);
+    Value current_index_to_f64_2 = rewriter.create<arith::UIToFPOp>(
+        loc, rewriter.getF64Type(), current_index_to_ui_2);
+    rewriter.create<memref::StoreOp>(loc, current_index_to_f64_2, alloc_output,
+                                     ValueRange{peaks_count});
+    auto peaks_count_inc_2 =
+        rewriter.create<arith::AddIOp>(loc, peaks_count, cst_idx_one);
+    rewriter.create<AffineStoreOp>(loc, peaks_count_inc_2, alloc_peaks_count,
+                                   ValueRange{});
+	
+
+    rewriter.setInsertionPointAfter(forOp1);
+    // debug
+    //  forOp1->dump();
+
+    /* Setting last element of the output as the count of peaks. */
+    auto peaks_count_final = rewriter.create<affine::AffineLoadOp>(
+        loc, alloc_peaks_count, ValueRange{});
+    // index to f64
+    Value peaks_count_final_to_ui = rewriter.create<arith::IndexCastUIOp>(
+        loc, rewriter.getIntegerType(32), peaks_count_final);
+    Value peaks_count_final_to_f64 = rewriter.create<arith::UIToFPOp>(
+        loc, rewriter.getF64Type(), peaks_count_final_to_ui);
+
+    Value result_size = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getIndexType(),
+        rewriter.getIndexAttr(tensorType.getShape()[0]));
+		
+    rewriter.create<AffineStoreOp>(loc, peaks_count_final_to_f64, alloc_output,
+                                   addMapForCurrent, ValueRange{result_size});
+
+
+    //auto testValue = rewriter.create<affine::AffineLoadOp>(
+        //loc, alloc, ValueRange{cst_idx_zero});
+		
+    //rewriter.create<AffineStoreOp>(loc, testValue, alloc_output,
+                                   //addMapForCurrent, ValueRange{result_size});
+
+
+    rewriter.replaceOp(op, alloc_output);
+
+    return success();
+  }
+};
+
+
+
+
+
+
+
+
 
 //===----------------------------------------------------------------------===//
 // ToyToAffine RewritePatterns: Unary operations

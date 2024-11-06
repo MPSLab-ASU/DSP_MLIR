@@ -237,6 +237,45 @@ struct SimplifyDiff2Mean : public mlir::OpRewritePattern<MeanOp> {
   }
 };
 
+
+struct SimplifyLMS2FindPeaks : public mlir::OpRewritePattern<FindPeaksOp> {
+  //
+  SimplifyLMS2FindPeaks (mlir::MLIRContext *context)
+      : OpRewritePattern<FindPeaksOp>(context, 1) {}
+
+  mlir::LogicalResult
+  matchAndRewrite(FindPeaksOp op, mlir::PatternRewriter &rewriter) const override {
+    //
+    mlir::Value findPeaksOp_operand0 = op.getOperand(0);
+
+    // check if this is coming from diff operation.
+    LMSFilterResponseOp prev_lmsFilterResponseOp = findPeaksOp_operand0.getDefiningOp<LMSFilterResponseOp>();
+
+    if (!prev_lmsFilterResponseOp)
+      return failure();
+
+    mlir::Value findPeaksOp_operand1 = op.getOperand(1);
+	mlir::Value findPeaksOp_operand2 = op.getOperand(2);
+    mlir::Value prev_lmsFilterResponseOp_operand0 = prev_lmsFilterResponseOp.getOperand(0);
+	mlir::Value prev_lmsFilterResponseOp_operand1 = prev_lmsFilterResponseOp.getOperand(1);
+	mlir::Value prev_lmsFilterResponseOp_operand2 = prev_lmsFilterResponseOp.getOperand(2);
+	mlir::Value prev_lmsFilterResponseOp_operand3 = prev_lmsFilterResponseOp.getOperand(3);
+
+    auto optimizedOp = rewriter.create<dsp::LMS2FindPeaksOptimizedOp>(
+        op.getLoc(), prev_lmsFilterResponseOp_operand0, prev_lmsFilterResponseOp_operand1, prev_lmsFilterResponseOp_operand2,
+		prev_lmsFilterResponseOp_operand3, findPeaksOp_operand1, findPeaksOp_operand2);
+
+    // Repalce the use of original diff operation with this operation
+    rewriter.replaceOp(op, optimizedOp.getResult());
+    return mlir::success();
+  }
+};
+
+
+
+
+
+
 struct SimplifyBack2BackDelay : public mlir::OpRewritePattern<DelayOp> {
   //
   SimplifyBack2BackDelay(mlir::MLIRContext *context)
@@ -811,6 +850,17 @@ void MeanOp::getCanonicalizationPatterns(RewritePatternSet &results,
     results.add<SimplifyDiff2Mean>(context);
   }
 }
+
+void FindPeaksOp::getCanonicalizationPatterns(RewritePatternSet &results,
+                                         MLIRContext *context) {
+  if (getEnableCanonicalOpt()) {
+    results.add<SimplifyLMS2FindPeaks>(context);
+  }
+}
+
+
+
+
 
 /// Register our patterns as "canonicalization" patterns on the ReshapeOp so
 /// that they can be picked up by the Canonicalization framework.
