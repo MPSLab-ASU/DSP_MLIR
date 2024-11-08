@@ -237,44 +237,46 @@ struct SimplifyDiff2Mean : public mlir::OpRewritePattern<MeanOp> {
   }
 };
 
-
 struct SimplifyLMS2FindPeaks : public mlir::OpRewritePattern<FindPeaksOp> {
   //
-  SimplifyLMS2FindPeaks (mlir::MLIRContext *context)
+  SimplifyLMS2FindPeaks(mlir::MLIRContext *context)
       : OpRewritePattern<FindPeaksOp>(context, 1) {}
 
   mlir::LogicalResult
-  matchAndRewrite(FindPeaksOp op, mlir::PatternRewriter &rewriter) const override {
+  matchAndRewrite(FindPeaksOp op,
+                  mlir::PatternRewriter &rewriter) const override {
     //
     mlir::Value findPeaksOp_operand0 = op.getOperand(0);
 
     // check if this is coming from diff operation.
-    LMSFilterResponseOp prev_lmsFilterResponseOp = findPeaksOp_operand0.getDefiningOp<LMSFilterResponseOp>();
+    LMSFilterResponseOp prev_lmsFilterResponseOp =
+        findPeaksOp_operand0.getDefiningOp<LMSFilterResponseOp>();
 
     if (!prev_lmsFilterResponseOp)
       return failure();
 
     mlir::Value findPeaksOp_operand1 = op.getOperand(1);
-	mlir::Value findPeaksOp_operand2 = op.getOperand(2);
-    mlir::Value prev_lmsFilterResponseOp_operand0 = prev_lmsFilterResponseOp.getOperand(0);
-	mlir::Value prev_lmsFilterResponseOp_operand1 = prev_lmsFilterResponseOp.getOperand(1);
-	mlir::Value prev_lmsFilterResponseOp_operand2 = prev_lmsFilterResponseOp.getOperand(2);
-	mlir::Value prev_lmsFilterResponseOp_operand3 = prev_lmsFilterResponseOp.getOperand(3);
+    mlir::Value findPeaksOp_operand2 = op.getOperand(2);
+    mlir::Value prev_lmsFilterResponseOp_operand0 =
+        prev_lmsFilterResponseOp.getOperand(0);
+    mlir::Value prev_lmsFilterResponseOp_operand1 =
+        prev_lmsFilterResponseOp.getOperand(1);
+    mlir::Value prev_lmsFilterResponseOp_operand2 =
+        prev_lmsFilterResponseOp.getOperand(2);
+    mlir::Value prev_lmsFilterResponseOp_operand3 =
+        prev_lmsFilterResponseOp.getOperand(3);
 
     auto optimizedOp = rewriter.create<dsp::LMS2FindPeaksOptimizedOp>(
-        op.getLoc(), prev_lmsFilterResponseOp_operand0, prev_lmsFilterResponseOp_operand1, prev_lmsFilterResponseOp_operand2,
-		prev_lmsFilterResponseOp_operand3, findPeaksOp_operand1, findPeaksOp_operand2);
+        op.getLoc(), prev_lmsFilterResponseOp_operand0,
+        prev_lmsFilterResponseOp_operand1, prev_lmsFilterResponseOp_operand2,
+        prev_lmsFilterResponseOp_operand3, findPeaksOp_operand1,
+        findPeaksOp_operand2);
 
     // Repalce the use of original diff operation with this operation
     rewriter.replaceOp(op, optimizedOp.getResult());
     return mlir::success();
   }
 };
-
-
-
-
-
 
 struct SimplifyBack2BackDelay : public mlir::OpRewritePattern<DelayOp> {
   //
@@ -630,8 +632,7 @@ struct SimplifyFFTRealAtInputRealSymm : public OpRewritePattern<FFT1DRealOp> {
   SimplifyFFTRealAtInputRealSymm(MLIRContext *context)
       : OpRewritePattern<FFT1DRealOp>(context, /*benefit=*/1) {}
 
-  LogicalResult matchAndRewrite(FFT1DRealOp Op,
-                                PatternRewriter &rewriter) const override {
+  LogicalResult matchAndRewrite(FFT1DRealOp Op,PatternRewriter &rewriter) const override {
     // Check if there is a corresponding FFT1DImgOp with the same input.
     mlir::Value fftOperand_input = Op.getInput();
     dsp::FIRFilterYSymmOptimizedOp op_FIRFilterYSymmOptimizedOp =
@@ -646,8 +647,8 @@ struct SimplifyFFTRealAtInputRealSymm : public OpRewritePattern<FFT1DRealOp> {
     auto fft1dRealSymmOp =
         rewriter.create<FFT1DRealSymmOp>(Op.getLoc(), Op.getInput());
     DEBUG_PRINT_NO_ARGS();
-    rewriter.replaceOp(Op, fft1dRealSymmOp.getResult());
-    // rewriter.replaceOp(Op, fft1dRealSymmOp);
+    // rewriter.replaceOp(Op, fft1dRealSymmOp.getResult());
+    rewriter.replaceOp(Op, fft1dRealSymmOp);
     DEBUG_PRINT_NO_ARGS();
     return success();
   }
@@ -660,8 +661,7 @@ struct SimplifyFFTImgAtInputRealSymm : public OpRewritePattern<FFT1DImgOp> {
   SimplifyFFTImgAtInputRealSymm(MLIRContext *context)
       : OpRewritePattern<FFT1DImgOp>(context, /*benefit=*/1) {}
 
-  LogicalResult matchAndRewrite(FFT1DImgOp Op,
-                                PatternRewriter &rewriter) const override {
+  LogicalResult matchAndRewrite(FFT1DImgOp Op, PatternRewriter &rewriter) const override {
     // Check if there is a corresponding FFT1DImgOp with the same input.
     mlir::Value fftOperand_input = Op.getInput();
     dsp::FIRFilterYSymmOptimizedOp op_FIRFilterYSymmOptimizedOp =
@@ -729,33 +729,37 @@ struct SimplifyLMSFilterResponsewithGain
   }
 };
 
-struct SimplifySpaceModDemodulate : public mlir::OpRewritePattern<SpaceDemodulateOp> {
-    SimplifySpaceModDemodulate(mlir::MLIRContext *context) : OpRewritePattern<SpaceDemodulateOp>(context, 1) {}
+struct SimplifySpaceModDemodulate
+    : public mlir::OpRewritePattern<SpaceDemodulateOp> {
+  SimplifySpaceModDemodulate(mlir::MLIRContext *context)
+      : OpRewritePattern<SpaceDemodulateOp>(context, 1) {}
 
-    mlir::LogicalResult
-        matchAndRewrite(SpaceDemodulateOp op, mlir::PatternRewriter &rewriter) const override {
+  mlir::LogicalResult
+  matchAndRewrite(SpaceDemodulateOp op,
+                  mlir::PatternRewriter &rewriter) const override {
 
-            // a flag checking if the define operation chain of demod op contains mod op
-            bool opt = false;
-            SpaceModulateOp prev_mod;
-            auto iter = op.getOperand();
-            while(iter.getDefiningOp()) {
-                auto pred = iter.getDefiningOp();
-                // llvm::errs() << pred->getName().getStringRef() << "\n";
-                if(llvm::dyn_cast<SpaceModulateOp>(*pred)) {
-                    opt = true;
-                    prev_mod = llvm::dyn_cast<SpaceModulateOp>(*pred);
-                    break;
-                }
-                iter = (*pred).getOperand(0);
-            }
+    // a flag checking if the define operation chain of demod op contains mod op
+    bool opt = false;
+    SpaceModulateOp prev_mod;
+    auto iter = op.getOperand();
+    while (iter.getDefiningOp()) {
+      auto pred = iter.getDefiningOp();
+      // llvm::errs() << pred->getName().getStringRef() << "\n";
+      if (llvm::dyn_cast<SpaceModulateOp>(*pred)) {
+        opt = true;
+        prev_mod = llvm::dyn_cast<SpaceModulateOp>(*pred);
+        break;
+      }
+      iter = (*pred).getOperand(0);
+    }
 
-            if(!opt) return failure();
+    if (!opt)
+      return failure();
 
-            auto constVal = prev_mod.getOperand().getDefiningOp();
-            rewriter.replaceOp(op, constVal);
-            return mlir::success();
-        }
+    auto constVal = prev_mod.getOperand().getDefiningOp();
+    rewriter.replaceOp(op, constVal);
+    return mlir::success();
+  }
 };
 
 // ===================================
@@ -773,8 +777,7 @@ struct SimplifySpaceModDemodulate : public mlir::OpRewritePattern<SpaceDemodulat
 void FFT1DImgOp::getCanonicalizationPatterns(RewritePatternSet &results,
                                              MLIRContext *context) {
   if (getEnableCanonicalOpt()) {
-    results.add< // SimplifyFFTRealAndImg,
-        SimplifyFFTImgAtInputRealSymm>(context);
+    results.add<SimplifyFFTImgAtInputRealSymm>(context);
   }
 }
 
@@ -852,29 +855,23 @@ void MeanOp::getCanonicalizationPatterns(RewritePatternSet &results,
 }
 
 void FindPeaksOp::getCanonicalizationPatterns(RewritePatternSet &results,
-                                         MLIRContext *context) {
+                                              MLIRContext *context) {
   if (getEnableCanonicalOpt()) {
     results.add<SimplifyLMS2FindPeaks>(context);
   }
 }
 
-
-
-
-
 /// Register our patterns as "canonicalization" patterns on the ReshapeOp so
 /// that they can be picked up by the Canonicalization framework.
-void ReshapeOp::getCanonicalizationPatterns(RewritePatternSet &results,
-                                            MLIRContext *context) {
+void ReshapeOp::getCanonicalizationPatterns(RewritePatternSet &results, MLIRContext *context) {
   if (getEnableCanonicalOpt()) {
     results.add<ReshapeReshapeOptPattern, RedundantReshapeOptPattern,
                 FoldConstantReshapeOptPattern>(context);
   }
 }
 
-void SpaceDemodulateOp::getCanonicalizationPatterns(RewritePatternSet &results,
-        MLIRContext *context) {
-            if(getEnableCanonicalOpt()) {
-            results.add<SimplifySpaceModDemodulate>(context);
-            }
-} 
+void SpaceDemodulateOp::getCanonicalizationPatterns(RewritePatternSet &results, MLIRContext *context) {
+  if (getEnableCanonicalOpt()) {
+    results.add<SimplifySpaceModDemodulate>(context);
+  }
+}
