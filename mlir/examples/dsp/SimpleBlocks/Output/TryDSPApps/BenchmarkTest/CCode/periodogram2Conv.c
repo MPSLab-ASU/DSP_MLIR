@@ -54,7 +54,6 @@ void squareMagnitude(double* output, double* real, double* imag, int length) {
 }
 
 int main() {
-    // Use INPUT_LENGTH instead of hard-coded value
     double input[INPUT_LENGTH];
     getRangeOfVector(input, 0.0, INPUT_LENGTH, 1.0);
 
@@ -72,9 +71,7 @@ int main() {
     double sq[INPUT_LENGTH];
     squareMagnitude(sq, fft_real, fft_img, INPUT_LENGTH);
 
-    for (int i = 0; i < INPUT_LENGTH; i++) {
-        printf("%f\n", sq[i]);
-    }
+    printf("%f\n", sq[3]);
 
     return 0;
 }

@@ -1,129 +1,182 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
-#include <time.h>
 
-#define INPUT_CHAR_LENGTH 16 // number of characters
-#define INPUT_LENGTH INPUT_CHAR_LENGTH*8 // number of bits
+#define INPUT_LENGTH 100000000
 
-void charToBinary(char c, char *binaryStr) {
-    for (int i = 7; i >= 0; i--) {
-        binaryStr[7 - i] = ((c >> i) & 1) ? '1' : '0';
-    }
-    binaryStr[8] = '\0'; // Null-terminate the binary string
+// Function prototypes
+double *getRangeOfVector(double start, int length, double increment);
+void thresholdUp(const double *input, int length, double threshold,
+                 char *output);
+void space_modulate(const char *input, int *output, int length);
+void transmit_and_receive(const int *signal, double *received_signal,
+                          int length, double noise_level);
+void demodulate(const double *signal, char *demodulated_data, int length);
+void error_correction(const char *data, char *corrected);
+void decode_data(const char *binary, char *decoded);
+
+// Function implementations
+void thresholdUp(const double *input, int length, double threshold,
+                 char *output) {
+  for (int i = 0; i < length; i++) {
+    output[i] = (input[i] > threshold) ? '1' : '0';
+  }
+  output[length] = '\0';
 }
 
-// 1. Signal Conditioning (convert to binary)
-void condition_signal(const char* data, char* binary) {
-    binary[0] = '\0';  // Ensure binary string starts empty
-    for (int i = 0; i < strlen(data); i++) {
-        char bin[9];
-        charToBinary(data[i], bin);
-        strcat(binary, bin);
-    }
+void space_modulate(const char *input, int *output, int length) {
+  for (int i = 0; i < length; i++) {
+    output[i] = (input[i] == '1') ? 1 : -1;
+  }
 }
 
-// 2. Modulation (simple BPSK modulation)
-void modulate(const char* binary_data, int* modulated_signal) {
-    for (int i = 0; i < strlen(binary_data); i++) {
-        modulated_signal[i] = (binary_data[i] == '1') ? 1 : -1;
-    }
+void transmit_and_receive(const int *signal, double *received_signal,
+                          int length, double noise_level) {
+  for (int i = 0; i < length; i++) {
+    double noise = sin(signal[i]);
+    received_signal[i] = signal[i] + noise;
+  }
 }
 
-// 3. Transmission and Reception (add noise to simulate)
-void transmit_and_receive(const int* signal, double* received_signal, int length, double noise_level) {
-    for (int i = 0; i < length; i++) {
-        double noise = sin(signal[i]);
-        received_signal[i] = signal[i] + noise;
-    }
+void demodulate(const double *signal, char *demodulated_data, int length) {
+  for (int i = 0; i < length; i++) {
+    demodulated_data[i] = (signal[i] > 0) ? '1' : '0';
+  }
+  demodulated_data[length] = '\0';
 }
 
-// 4. Demodulation
-void demodulate(const double* signal, char* demodulated_data, int length) {
-    for (int i = 0; i < length; i++) {
-        demodulated_data[i] = (signal[i] > 0) ? '1' : '0';
+void error_correction(const char *data, char *corrected) {
+  int length = strlen(data);
+  int corrected_index = 0;
+  for (int i = 0; i < length; i += 8) {
+    int count = 0;
+    for (int j = 0; j < 8; j++) {
+      if (data[i + j] == '1')
+        count++;
     }
-    demodulated_data[length] = '\0'; // Null-terminate the demodulated data
+    if (count % 2 == 0) {
+      strncpy(&corrected[corrected_index], &data[i], 8);
+    } else {
+      corrected[corrected_index] = '0';
+      strncpy(&corrected[corrected_index + 1], &data[i + 1], 7);
+    }
+    corrected_index += 8;
+  }
+  corrected[corrected_index] = '\0';
 }
 
-// 5. Error Correction (simple parity check)
-void error_correction(const char* data, char* corrected) {
-    int length = strlen(data);
-    int corrected_index = 0;
-    for (int i = 0; i < length; i += 8) {
-        int count = 0;
-        for (int j = 0; j < 8; j++) {
-            if (data[i + j] == '1') count++;
-        }
-        if (count % 2 == 0) {
-            strncpy(&corrected[corrected_index], &data[i], 8);
-        } else {
-            corrected[corrected_index] = '0';
-            strncpy(&corrected[corrected_index + 1], &data[i + 1], 7);
-        }
-        corrected_index += 8;
-    }
-    corrected[corrected_index] = '\0';
+void decode_data(const char *binary, char *decoded) {
+  int length = strlen(binary);
+  int decoded_index = 0;
+  for (int i = 0; i < length; i += 8) {
+    char byte[9];
+    strncpy(byte, &binary[i], 8);
+    byte[8] = '\0';
+    decoded[decoded_index++] = (char)strtol(byte, NULL, 2);
+  }
+  decoded[decoded_index] = '\0';
 }
 
-// 6. Data Decoding
-void decode_data(const char* binary, char* decoded) {
-    int length = strlen(binary);
-    int decoded_index = 0;
-    for (int i = 0; i < length; i += 8) {
-        char byte[9];
-        strncpy(byte, &binary[i], 8);
-        byte[8] = '\0';
-        decoded[decoded_index++] = (char)strtol(byte, NULL, 2);
-    }
-    decoded[decoded_index] = '\0'; // Null-terminate the decoded data
+double *getRangeOfVector(double start, int length, double increment) {
+  double *vector = malloc(length * sizeof(double));
+  if (!vector) {
+    perror("Memory allocation failed in getRangeOfVector");
+    exit(EXIT_FAILURE);
+  }
+  for (int i = 0; i < length; i++) {
+    vector[i] = start + i * increment;
+  }
+  return vector;
 }
 
 int main() {
-    const char* space_data = "HELLO FROM SPACE";
-    char* binary;
-    binary = (char*)malloc(INPUT_LENGTH * sizeof(char));
+  // Generate input vector
+  double *input = getRangeOfVector(0, INPUT_LENGTH, 1);
+  if (!input) {
+    perror("Memory allocation failed for input");
+    return EXIT_FAILURE;
+  }
 
-    for(int i=0; i<INPUT_LENGTH; i++) {
-        binary[i] = '0';
-    }
+  // Threshold
+  char *binary_sig = malloc(INPUT_LENGTH + 1);
+  if (!binary_sig) {
+    perror("Memory allocation failed for binary_sig");
+    free(input);
+    return EXIT_FAILURE;
+  }
+  thresholdUp(input, INPUT_LENGTH, 50, binary_sig);
 
-    int* modulated_signal;
-    modulated_signal = (int*)malloc(INPUT_LENGTH * sizeof(int));
+  // Modulate
+  int *modulated_signal = malloc(INPUT_LENGTH * sizeof(int));
+  if (!modulated_signal) {
+    perror("Memory allocation failed for modulated_signal");
+    free(input);
+    free(binary_sig);
+    return EXIT_FAILURE;
+  }
+  space_modulate(binary_sig, modulated_signal, INPUT_LENGTH);
 
-    double* received_signal;
-    received_signal = (double*)malloc(INPUT_LENGTH * sizeof(double));
+  // Transmit and receive (add noise)
+  double *received_signal = malloc(INPUT_LENGTH * sizeof(double));
+  if (!received_signal) {
+    perror("Memory allocation failed for received_signal");
+    free(input);
+    free(binary_sig);
+    free(modulated_signal);
+    return EXIT_FAILURE;
+  }
+  transmit_and_receive(modulated_signal, received_signal, INPUT_LENGTH, 1.0);
 
-    char* demodulated_data;
-    demodulated_data = (char*)malloc(INPUT_LENGTH * sizeof(char));
+  // Demodulate
+  char *demodulated_data = malloc(INPUT_LENGTH + 1);
+  if (!demodulated_data) {
+    perror("Memory allocation failed for demodulated_data");
+    free(input);
+    free(binary_sig);
+    free(modulated_signal);
+    free(received_signal);
+    return EXIT_FAILURE;
+  }
+  demodulate(received_signal, demodulated_data, INPUT_LENGTH);
 
-    char* corrected_signal;
-    corrected_signal = (char*)malloc(INPUT_LENGTH * sizeof(char));
+  // Error correction
+  char *corrected_data = malloc(INPUT_LENGTH + 1);
+  if (!corrected_data) {
+    perror("Memory allocation failed for corrected_data");
+    free(input);
+    free(binary_sig);
+    free(modulated_signal);
+    free(received_signal);
+    free(demodulated_data);
+    return EXIT_FAILURE;
+  }
+  error_correction(demodulated_data, corrected_data);
 
-    char* decoded_data;
-    decoded_data = (char*)malloc(INPUT_CHAR_LENGTH * sizeof(char));
+  // Decode data
+  char *decoded_data = malloc((INPUT_LENGTH / 8) + 1);
+  if (!decoded_data) {
+    perror("Memory allocation failed for decoded_data");
+    free(input);
+    free(binary_sig);
+    free(modulated_signal);
+    free(received_signal);
+    free(demodulated_data);
+    free(corrected_data);
+    return EXIT_FAILURE;
+  }
+  decode_data(corrected_data, decoded_data);
 
-    // 1. Signal Conditioning
-    condition_signal(space_data, binary);
+  printf("%c", corrected_data[8]);
 
-    // 2. Modulation
-    modulate(binary, modulated_signal);
+  // Free allocated memory
+  free(input);
+  free(binary_sig);
+  free(modulated_signal);
+  free(received_signal);
+  free(demodulated_data);
+  free(corrected_data);
+  free(decoded_data);
 
-    // 3. Transmission and Reception
-    transmit_and_receive(modulated_signal, received_signal, strlen(binary), 0.1);
-
-    // 4. Demodulation
-    demodulate(received_signal, demodulated_data, strlen(binary));
-
-    // 5. Error Correction
-    error_correction(demodulated_data, corrected_signal);
-
-    // 6. Data Decoding
-    decode_data(corrected_signal, decoded_data);
-
-    printf("Original data: %s\n", space_data);
-    printf("Decoded data: %s\n", decoded_data);
-
-    return 0;
+  return 0;
 }

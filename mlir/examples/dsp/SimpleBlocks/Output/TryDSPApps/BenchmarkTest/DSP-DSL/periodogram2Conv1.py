@@ -27,26 +27,7 @@ def main() {
   var fft_img = fft1dimg(conv1d);
   var sq = fft_real * fft_real + fft_img * fft_img;
   print(sq);
-  # var final1 = getElemAtIndx(fft_real , [6]); 
-  # var final2 = getElemAtIndx(fft_real , [7]);
-  # print(final1);
-  # print(final2);
-  # print(conv1d);
-  # print(fft_real);
-  # print(fft_img);
-  #Pad the input , reverse_input for the size of conv o/p
-  #Calculate 
-    # var padLen = 9 ; #10 + 10 - 1 - 10
-    # var input_padded = padding(input , 0, padLen );
-
-    
-    # var fft10real = fft1dreal(input);
-    # var fft10img = fft1dimg(input);
-    
-    # #try input * -input
-    # var neg_input = gain(input , -1);
-  # var sq = fft10real * fft10real + fft10img * fft10img;
-  # print(sq);
-
+  var final1 = getElemAtIndx(sq , [2]); 
+  print(final1);
 }
 

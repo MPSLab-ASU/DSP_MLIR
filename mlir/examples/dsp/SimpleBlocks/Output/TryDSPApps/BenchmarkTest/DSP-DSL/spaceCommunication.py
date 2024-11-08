@@ -1,14 +1,13 @@
 def main() {
-        var input = "HELLO FROM SPACE";
+        # var input = "HELLO FROM SPACE";
+	var input = getRangeOfVector(0, 100000000, 1);
         # print(input);
-        var a = space_modulate(input);
+        var binary_sig = thresholdUp(input,50,0);
+        var a = space_modulate(binary_sig);
         var noise = sin(a);
         var noisy_signal = a+noise;
         var b = space_demodulate(noisy_signal);
         var e = space_err_correction(b);
-        print(e);
+        var final = getElemAtIndx(e, [8]);
+        print(final);
 }
-
-# ./bin/dsp1 ../mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/DSP-DSL/spaceCommunication.py -emit=jit 2> input.txt
-# ./bin/dsp1 ../mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/DSP-DSL/spaceCommunication.py -emit=jit 2> output.txt
-# diff input.txt ouput.txt

@@ -16,8 +16,8 @@ import time
 
 # Path to the input file
 # Apps = "hearingAid.py" , "lowPassFull.py" , " audioCompression.py" ,
-#  "back2backDelay.py" , "lowPassFIRFilterDesign.py" , "EnergyOfSignal.py", "periodogram2Conv1.py", "audioEqualizer.py", "vibrationAnalysis.py", "signalSmoothing.py", "targetDetection.py", "biomedicalSignalProcessing.py"
-input_file_path = "biomedicalSignalProcessing.py"
+#  "back2backDelay.py" , "lowPassFIRFilterDesign.py" , "EnergyOfSignal.py", "periodogram2Conv1.py", "audioEqualizer.py", "vibrationAnalysis.py", "signalSmoothing.py", "targetDetection.py", "biomedicalSignalProcessing.py", "spaceCommunication.py"
+input_file_path = "spaceCommunication.py"
 BasePathForLLVM = "/home/local/ASURITE/apkhedka/ForLLVM/"
 OutputScriptPath = (
     "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/DSP-DSL/"
@@ -123,7 +123,7 @@ for key, value in inputValues.items():
         if case["affineOpt"]:
             command_llvm += " -affineOpt"
         if case["canonOpt"]:
-            command_llvm += " -canonOpt -opt"
+            command_llvm += " -canonOpt"
         # command_llvm += f" 2> {case['suffix']}" #OutputPath
         command_llvm += f" 2> {OutputPath}/{case['suffix']}"  # OutputPath
 

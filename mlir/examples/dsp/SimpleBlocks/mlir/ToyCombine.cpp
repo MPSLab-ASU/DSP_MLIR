@@ -784,7 +784,7 @@ void FFT1DImgOp::getCanonicalizationPatterns(RewritePatternSet &results,
 void FFT1DRealOp::getCanonicalizationPatterns(RewritePatternSet &results,
                                               MLIRContext *context) {
   if (getEnableCanonicalOpt()) {
-    results.add< // SimplifyFFTRealAndImg,
+    results.add<SimplifyFFTRealAndImg,
         SimplifyFFTRealAtInputRealSymm>(context);
   }
 }
