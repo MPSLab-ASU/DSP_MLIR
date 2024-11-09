@@ -1,6 +1,6 @@
 def main() {
 
-        var input = getRangeOfVector(0, 40000, 1);
+	var input = getRangeOfVector(0, 50000, 0.000125);
         var fft_real = fft1dreal(input);
         var fft_img = fft1dimg(input);
         var sq_abs = square(fft_real) + square(fft_img)  ;

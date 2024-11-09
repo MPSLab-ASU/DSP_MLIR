@@ -3,7 +3,7 @@
 #include <math.h>
 
 #define PI 3.14159265359
-#define INPUT_LENGTH 20000
+#define INPUT_LENGTH 100000000
 #define SAMPLE_RATE 8000
 #define TIME_INCREMENT 0.000125
 #define WINDOW_SIZE 3

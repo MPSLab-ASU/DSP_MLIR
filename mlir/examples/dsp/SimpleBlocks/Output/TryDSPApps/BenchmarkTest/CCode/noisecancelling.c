@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <float.h>
 
 #define INPUT_LENGTH 100000000
 
@@ -49,6 +50,23 @@ void lmsFilterResponse(double *output, double *noisy_sig, double *clean_sig,
   }
 }
 
+void normalize(double *output, double *input, int length) {
+    double min_val = DBL_MAX;
+    double max_val = -DBL_MAX;
+
+    // Find min and max values
+    for (int i = 0; i < length; i++) {
+        if (input[i] < min_val) min_val = input[i];
+        if (input[i] > max_val) max_val = input[i];
+    }
+
+    // Normalize the array
+    double range = max_val - min_val;
+    for (int i = 0; i < length; i++) {
+        output[i] = (input[i] - min_val) / range;
+    }
+}
+
 int main() {
   // Allocate memory dynamically
   double *t = (double *)malloc(INPUT_LENGTH * sizeof(double));
@@ -60,10 +78,11 @@ int main() {
   double *noisy_sig = (double *)malloc(INPUT_LENGTH * sizeof(double));
   double *y = (double *)malloc(INPUT_LENGTH * sizeof(double));
   double *sol = (double *)malloc(INPUT_LENGTH * sizeof(double));
+  double *normalized_sol = (double *)malloc(INPUT_LENGTH * sizeof(double));
 
   // Check if memory allocation was successful
   if (!t || !getSinDuration || !clean_sig || !getNoiseSinDuration || !noise ||
-      !noise1 || !noisy_sig || !y || !sol) {
+      !noise1 || !noisy_sig || !y || !sol || !normalized_sol) {
     perror("Memory allocation failed");
     free(t);
     free(getSinDuration);
@@ -74,6 +93,7 @@ int main() {
     free(noisy_sig);
     free(y);
     free(sol);
+    free(normalized_sol);
     exit(EXIT_FAILURE);
   }
 
@@ -99,12 +119,10 @@ int main() {
   lmsFilterResponse(y, noisy_sig, clean_sig, 0.01, 32, INPUT_LENGTH);
 
   gain(sol, y, 10, INPUT_LENGTH);
+ normalize(normalized_sol, sol, INPUT_LENGTH);
 
-  // Print the filtered signal
-  for (int i = 0; i < INPUT_LENGTH; i++) {
-    printf("%f\n", sol[i]);
-  }
-
+  printf("%f\n", normalized_sol[5]);
+  
   // Free allocated memory at the end
   free(t);
   free(getSinDuration);
@@ -115,6 +133,6 @@ int main() {
   free(noisy_sig);
   free(y);
   free(sol);
-
+  free(normalized_sol);
   return 0;
 }

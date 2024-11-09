@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <float.h>
 
 #define PI 3.14159265359
 #define INPUT_LENGTH 100000000
@@ -64,6 +65,23 @@ void lmsFilterResponse(double* output, double* noisy_sig, double* clean_sig, dou
     }
 }
 
+void normalize(double *output, double *input, int length) {
+    double min_val = DBL_MAX;
+    double max_val = -DBL_MAX;
+
+    // Find min and max values
+    for (int i = 0; i < length; i++) {
+        if (input[i] < min_val) min_val = input[i];
+        if (input[i] > max_val) max_val = input[i];
+    }
+
+    // Normalize the array
+    double range = max_val - min_val;
+    for (int i = 0; i < length; i++) {
+        output[i] = (input[i] - min_val) / range;
+    }
+}
+
 int main() {
     int fs = 8000;
     double step = 1.0 / fs;
@@ -75,6 +93,7 @@ int main() {
     double* noise = (double*)malloc(INPUT_LENGTH * sizeof(double));
     double* noisy_sig = (double*)malloc(INPUT_LENGTH * sizeof(double));
     double* y = (double*)malloc(INPUT_LENGTH * sizeof(double));
+    double *normalized_sol = (double *)malloc(INPUT_LENGTH * sizeof(double));
 
     // Generate input range
     getRangeOfVector(input, 0.0, INPUT_LENGTH, step);
@@ -96,11 +115,11 @@ int main() {
     int filterSize = 32;
 
     lmsFilterResponse(y, noisy_sig, clean_sig, mu, filterSize, INPUT_LENGTH);
+    normalize(normalized_sol, y, INPUT_LENGTH);
 
-    // Print result
-    for (int i = 0; i < INPUT_LENGTH; i++) {
-        printf("%f\n", y[i]);
-    }
+
+    printf("%f\n", normalized_sol[5]);
+    
 
     // Free allocated memory
     free(input);
@@ -109,6 +128,6 @@ int main() {
     free(noise);
     free(noisy_sig);
     free(y);
-
+    free(normalized_sol);
     return 0;
 }

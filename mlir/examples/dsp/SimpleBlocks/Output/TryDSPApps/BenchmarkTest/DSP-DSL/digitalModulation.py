@@ -1,6 +1,6 @@
 def main() {
         # var input = [1,0,1,1,0,1,0,0];
-	var input = getRangeOfVector(0, 40000, 0.000125);
+	var input = getRangeOfVector(0, 100000000, 0.000125);
         # print(c);
         var pi = 3.14159265359;
         var f_sig = 500;
@@ -14,7 +14,8 @@ def main() {
         # print(modulate_symbol_real);
         var modulate_symbol_imagine = qam_modulate_imagine(binary_sig);
         # print(modulate_symbol_imagine);
-        var decode_data = qam_demodulate(modulate_symbol_real, modulate_symbol_imagine);
-        print(decode_data);
+        var decode_data = qam_demodulate(modulate_symbol_imagine, modulate_symbol_imagine);
+        var final1 = getElemAtIndx(decode_data , 2);
+        print(final1);
 }
 

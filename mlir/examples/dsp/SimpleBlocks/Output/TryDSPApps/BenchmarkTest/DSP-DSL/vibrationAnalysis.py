@@ -21,12 +21,12 @@ def main() {
   var fft_img = fft1dimg(noisy_sig);
 
   var sq_abs = square(fft_real) + square(fft_img)  ;
-  # sum = sum(sq_abs)
-  # var sum1 = sum(sq_abs);
-  # # res = gain(sum , 1/N)
-  # var len1 = len(input);
-  # var res = sum1 / len1;
-  # print(sq_abs);
+
+  var sum1 = sum(sq_abs);
+  var len1 = len(input);
+  var res = sum1 / len1;
+  print(res);
+  print(sq_abs);
   var GetThresholdReal = threshold( sq_abs , threshold);
   print(GetThresholdReal);
 }
