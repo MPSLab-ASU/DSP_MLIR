@@ -1876,6 +1876,62 @@ void Diff2MeanOptimizedOp::inferShapes() {
 }
 
 
+                             
+//===----------------------------------------------------------------------===//
+// FindPeaks2Diff2MeanOptimizedOp                                               
+//===----------------------------------------------------------------------===// 
+                                                                                
+void FindPeaks2Diff2MeanOptimizedOp::build(mlir::OpBuilder &builder,           
+                            mlir::OperationState &state, mlir::Value signal,                                 
+                                                        mlir::Value height, mlir::Value distance) {
+  state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
+  state.addOperands({signal, height, distance});
+}                                         
+                                                                                        
+void FindPeaks2Diff2MeanOptimizedOp::inferShapes() {                          
+  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(                                                     
+  {}, getSignal().getType().getElementType());
+  getResult().setType(manipulatedType);     
+}                                      
+                             
+							 
+							 
+//===----------------------------------------------------------------------===//
+// Median2SlidingOptimizedOp
+//===----------------------------------------------------------------------===//
+
+
+void Median2SlidingOptimizedOp::build(mlir::OpBuilder &builder,
+                               mlir::OperationState &state, mlir::Value input) {
+  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  state.addOperands(input);
+}
+
+void Median2SlidingOptimizedOp::inferShapes() {
+  // for each rank
+  // Get the shape/size of input
+  // output size = input_size - 4
+  auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand().getType());
+
+  auto shapeOfInput = inputType.getShape();
+
+  std::vector<int64_t> shapeForOutput;
+
+  // Iterate for each rank : tensor<1x2x3x2> = rank 4
+  for (size_t i = 0; i < shapeOfInput.size(); i++) {
+    shapeForOutput.push_back(shapeOfInput[i] - 4);
+  }
+
+  mlir::TensorType outputType = mlir::RankedTensorType::get(
+      shapeForOutput, getInput().getType().getElementType());
+  // getOperand().getType());
+  // getOperand().getType().getElementType());
+
+  getResult().setType(outputType);
+}
+
+
+
 
 
 //===----------------------------------------------------------------------===//

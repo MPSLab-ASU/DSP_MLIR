@@ -763,8 +763,19 @@ private:
       return builder.create<Diff2MeanOptimizedOp>(location, operands[0],
                                                   operands[1]);
     }
+	
+    // FindPeaksDiff2MeanOptimized Op
+    if (callee == "findpeaks2diff2meanOpt") {
+      if (call.getArgs().size() != 1) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.findpeaks2diff2meanOpt "
+                  "accepts only 3 arguments.");
+        return nullptr;
+      }
+      return builder.create<FindPeaks2Diff2MeanOptimizedOp>(location, operands[0], operands[1], operands[2]);
+    }
 
-    // Diff2MeanOptimized Op
+    // LMS2FindPeaksOptimizedOp Op
     if (callee == "lms2findPeaks") {
       if (call.getArgs().size() != 6) {
         emitError(location,
@@ -774,6 +785,17 @@ private:
       }
       return builder.create<LMS2FindPeaksOptimizedOp>(location, operands[0],
                                                   operands[1], operands[2], operands[3], operands[4], operands[5]);
+    }
+
+    // Median2SlidingOptimized Op
+    if (callee == "median2slidingOp") {
+      if (call.getArgs().size() != 1) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.median2slidingOp"
+                  "accepts only 1 argument.");
+        return nullptr;
+      }
+      return builder.create<Median2SlidingOptimizedOp>(location, operands[0]);
     }
 
 

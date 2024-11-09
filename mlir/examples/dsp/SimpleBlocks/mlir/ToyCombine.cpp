@@ -278,6 +278,73 @@ struct SimplifyLMS2FindPeaks : public mlir::OpRewritePattern<FindPeaksOp> {
   }
 };
 
+struct SimplifyFindPeaks2Diff2Mean : public mlir::OpRewritePattern<MeanOp> {
+  //
+  SimplifyFindPeaks2Diff2Mean(mlir::MLIRContext *context)
+      : OpRewritePattern<MeanOp>(context, 1) {}
+
+  mlir::LogicalResult
+  matchAndRewrite(MeanOp op, mlir::PatternRewriter &rewriter) const override {
+
+    //
+    mlir::Value meanOp_operand0 = op.getOperand(0);
+
+    // check if this is coming from diff operation.
+    DiffOp prev_diffOp = meanOp_operand0.getDefiningOp<DiffOp>();
+
+    if (!prev_diffOp)
+      return failure();
+
+	mlir::Value prev_diffOp_operand0 = prev_diffOp.getOperand(0);
+	FindPeaksOp prev_findPeaksOp = prev_diffOp_operand0.getDefiningOp<FindPeaksOp>();
+
+    if (!prev_findPeaksOp)
+      return failure();
+  
+	mlir::Value prev_findPeaksOp_operand0 = prev_findPeaksOp.getOperand(0);
+	mlir::Value prev_findPeaksOp_operand1 = prev_findPeaksOp.getOperand(1);
+	mlir::Value prev_findPeaksOp_operand2 = prev_findPeaksOp.getOperand(2);
+
+    auto optimizedOp = rewriter.create<dsp::FindPeaks2Diff2MeanOptimizedOp>(
+        op.getLoc(), prev_findPeaksOp_operand0, prev_findPeaksOp_operand1, prev_findPeaksOp_operand2);
+
+    // Repalce the use of original diff operation with this operation
+    rewriter.replaceOp(op, optimizedOp.getResult());
+    return mlir::success();
+  }
+};
+
+
+struct SimplifyMedian2Sliding : public mlir::OpRewritePattern<SlidingWindowAvgOp> {
+  //
+  SimplifyMedian2Sliding(mlir::MLIRContext *context)
+      : OpRewritePattern<SlidingWindowAvgOp>(context, 1) {}
+
+  mlir::LogicalResult
+  matchAndRewrite(SlidingWindowAvgOp op, mlir::PatternRewriter &rewriter) const override {
+
+    mlir::Value slidingOp_operand0 = op.getOperand();
+
+    // check if this is coming from medianFilter operation.
+    MedianFilterOp prev_medianFilterOp = slidingOp_operand0.getDefiningOp<MedianFilterOp>();
+
+    if (!prev_medianFilterOp)
+      return failure();
+
+	mlir::Value prev_medianFilterOp_operand0 = prev_medianFilterOp.getOperand();
+
+    auto optimizedOp = rewriter.create<dsp::Median2SlidingOptimizedOp>(
+        op.getLoc(), prev_medianFilterOp_operand0);
+
+    rewriter.replaceOp(op, optimizedOp.getResult());
+    return mlir::success();
+  }
+};
+
+
+
+
+
 struct SimplifyBack2BackDelay : public mlir::OpRewritePattern<DelayOp> {
   //
   SimplifyBack2BackDelay(mlir::MLIRContext *context)
@@ -934,7 +1001,8 @@ void GainOp::getCanonicalizationPatterns(RewritePatternSet &results,
 void MeanOp::getCanonicalizationPatterns(RewritePatternSet &results,
                                          MLIRContext *context) {
   if (getEnableCanonicalOpt()) {
-    results.add<SimplifyDiff2Mean>(context);
+    //results.add<SimplifyDiff2Mean>(context);
+	results.add<SimplifyFindPeaks2Diff2Mean>(context);
   }
 }
 
@@ -944,6 +1012,15 @@ void FindPeaksOp::getCanonicalizationPatterns(RewritePatternSet &results,
     results.add<SimplifyLMS2FindPeaks>(context);
   }
 }
+
+void SlidingWindowAvgOp::getCanonicalizationPatterns(RewritePatternSet &results,
+                                              MLIRContext *context) {
+  if (getEnableCanonicalOpt()) {
+    results.add<SimplifyMedian2Sliding>(context);
+  }
+}
+
+
 
 /// Register our patterns as "canonicalization" patterns on the ReshapeOp so
 /// that they can be picked up by the Canonicalization framework.

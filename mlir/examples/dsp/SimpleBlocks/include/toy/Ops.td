@@ -740,6 +740,7 @@ def SlidingWindowAvgOp : Dsp_Op<"slidingWindowAvg",
 
   // Indicate that additional verification for this operation is necessary.
   let hasVerifier = 1;
+  let hasCanonicalizer = 1;
 }
 
 
@@ -1407,6 +1408,29 @@ def Diff2MeanOptimizedOp : Dsp_Op<"diff2meanOpt",
     OpBuilder<(ins "Value":$input, "Value":$length)>
   ];
 }
+
+
+
+//===----------------------------------------------------------------------===//
+// FindPeaks2Diff2MeanOptimizedOp
+//===----------------------------------------------------------------------===//
+
+def FindPeaks2Diff2MeanOptimizedOp : Dsp_Op<"findpeaks2diff2meanOpt",
+    [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+  let summary = "This one implemnets mean(diff(find_peaks(input))) as (peak[-1] - peak[0])/(len(peaks)-1).";
+
+   let arguments = (ins F64Tensor:$signal, F64Tensor:$height, F64Tensor:$distance);
+   let results = (outs F64Tensor);
+   
+   let builders = [
+     OpBuilder<(ins "Value":$signal, "Value":$height, "Value":$distance)>
+   ];
+}
+
+
+
+
+
 
 
 //===----------------------------------------------------------------------===//
@@ -2612,6 +2636,22 @@ def NormLMSFilterResponseOptimizeOp : Dsp_Op<"norm_LMSFilterResponse_opt",
 
    let hasVerifier = 1;
 }
+
+//===----------------------------------------------------------------------===//
+// Median2SlidingOptimizedOp
+//===----------------------------------------------------------------------===//
+
+def Median2SlidingOptimizedOp : Dsp_Op<"median2slidingOp", 
+    [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+  
+  let arguments = (ins F64Tensor:$input);
+  let results = (outs F64Tensor);
+
+  let builders = [
+    OpBuilder<(ins "Value":$input)>
+  ];
+}
+
 
 #endif // TOY_OPS
 
