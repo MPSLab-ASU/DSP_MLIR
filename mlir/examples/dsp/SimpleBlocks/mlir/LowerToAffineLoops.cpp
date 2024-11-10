@@ -1786,25 +1786,12 @@ struct FFTRealOpLowering : public ConversionPattern {
     auto alloc_temp_imag = insertAllocAndDealloc(memrefType, loc, rewriter);
 
     FFTRealOpAdaptor fftRealOpAdaptor(operands);
+
     auto input = fftRealOpAdaptor.getLhs();
     auto lb = rewriter.create<arith::ConstantIndexOp>(loc, 0);
     auto ub =
         rewriter.create<arith::ConstantIndexOp>(loc, tensorType.getShape()[0]);
     auto step = rewriter.create<arith::ConstantIndexOp>(loc, 1);
-
-    // load real and imag
-    auto load_temp = rewriter.create<scf::ForOp>(loc, lb, ub, step);
-    rewriter.setInsertionPointToStart(load_temp.getBody());
-    auto iv = load_temp.getInductionVar();
-    auto inputValue =
-        rewriter.create<memref::LoadOp>(loc, input, ValueRange{iv});
-    auto constantZero = rewriter.create<arith::ConstantFloatOp>(
-        loc, llvm::APFloat(0.0), rewriter.getF64Type());
-    rewriter.create<memref::StoreOp>(loc, inputValue, alloc_temp_real,
-                                     ValueRange{iv});
-    rewriter.create<memref::StoreOp>(loc, constantZero, alloc_temp_imag,
-                                     ValueRange{iv});
-    rewriter.setInsertionPointAfter(load_temp);
 
     // alloc memory for reversed and dealloc when not required
     auto alloc_reversed_real = insertAllocAndDealloc(memrefType, loc, rewriter);
@@ -1875,9 +1862,9 @@ struct FFTRealOpLowering : public ConversionPattern {
 
     // Load from alloc_temp and store in alloc_reversed
     auto realValue =
-        rewriter.create<memref::LoadOp>(loc, alloc_temp_real, ValueRange{i});
+        rewriter.create<memref::LoadOp>(loc, input, ValueRange{i});
     auto imagValue =
-        rewriter.create<memref::LoadOp>(loc, alloc_temp_imag, ValueRange{i});
+        rewriter.create<arith::ConstantFloatOp>(loc, llvm::APFloat(0.0), rewriter.getF64Type());
     rewriter.create<memref::StoreOp>(loc, realValue, alloc_reversed_real,
                                      ValueRange{revIndex});
     rewriter.create<memref::StoreOp>(loc, imagValue, alloc_reversed_imag,
@@ -1995,25 +1982,12 @@ struct FFTImagOpLowering : public ConversionPattern {
     auto alloc_temp_imag = insertAllocAndDealloc(memrefType, loc, rewriter);
 
     FFTRealOpAdaptor fftRealOpAdaptor(operands);
+    
     auto input = fftRealOpAdaptor.getLhs();
     auto lb = rewriter.create<arith::ConstantIndexOp>(loc, 0);
     auto ub =
         rewriter.create<arith::ConstantIndexOp>(loc, tensorType.getShape()[0]);
     auto step = rewriter.create<arith::ConstantIndexOp>(loc, 1);
-
-    // load real and imag
-    auto load_temp = rewriter.create<scf::ForOp>(loc, lb, ub, step);
-    rewriter.setInsertionPointToStart(load_temp.getBody());
-    auto iv = load_temp.getInductionVar();
-    auto inputValue =
-        rewriter.create<memref::LoadOp>(loc, input, ValueRange{iv});
-    auto constantZero = rewriter.create<arith::ConstantFloatOp>(
-        loc, llvm::APFloat(0.0), rewriter.getF64Type());
-    rewriter.create<memref::StoreOp>(loc, inputValue, alloc_temp_real,
-                                     ValueRange{iv});
-    rewriter.create<memref::StoreOp>(loc, constantZero, alloc_temp_imag,
-                                     ValueRange{iv});
-    rewriter.setInsertionPointAfter(load_temp);
 
     // alloc memory for reversed and dealloc when not required
     auto alloc_reversed_real = insertAllocAndDealloc(memrefType, loc, rewriter);
@@ -2084,9 +2058,9 @@ struct FFTImagOpLowering : public ConversionPattern {
 
     // Load from alloc_temp and store in alloc_reversed
     auto realValue =
-        rewriter.create<memref::LoadOp>(loc, alloc_temp_real, ValueRange{i});
+        rewriter.create<memref::LoadOp>(loc, input, ValueRange{i});
     auto imagValue =
-        rewriter.create<memref::LoadOp>(loc, alloc_temp_imag, ValueRange{i});
+        rewriter.create<arith::ConstantFloatOp>(loc, llvm::APFloat(0.0), rewriter.getF64Type());
     rewriter.create<memref::StoreOp>(loc, realValue, alloc_reversed_real,
                                      ValueRange{revIndex});
     rewriter.create<memref::StoreOp>(loc, imagValue, alloc_reversed_imag,
@@ -2179,7 +2153,7 @@ struct FFTImagOpLowering : public ConversionPattern {
                                      ValueRange{odd_index});
 
     // replace the operation with the final value
-    rewriter.replaceOp(op, alloc_reversed_imag);
+    rewriter.replaceOp(op, alloc_reversed_real);
     return success();
   }
 };
