@@ -27,6 +27,8 @@ def main() {
  
   var threshold = 0.5;
   var GetThresholdReal = thresholdUp(FIRfilterResponse, threshold, 0);
-  print(GetThresholdReal);
+  # print(GetThresholdReal);
+  var final1 = getElemAtIndx(GetThresholdReal , [3]); 
+  print(final1);
 
 }

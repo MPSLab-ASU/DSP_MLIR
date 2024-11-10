@@ -913,6 +913,40 @@ struct SimplifyDSSDPass : public mlir::OpRewritePattern<DivOp> {
         }
 };
 
+struct SimplifyFIRFilterHammingThreholdUpOptimized
+    : public mlir::OpRewritePattern<ThresholdUpOp> {
+  SimplifyFIRFilterHammingThreholdUpOptimized(mlir::MLIRContext *context)
+      : OpRewritePattern<ThresholdUpOp>(context, /*benefit=*/1) {}
+
+  /// This method attempts to match a pattern and rewrite it. The rewriter
+  /// argument is the orchestrator of the sequence of rewrites. The pattern is
+  /// expected to interact with it to perform any changes to the IR from here.
+  mlir::LogicalResult
+  matchAndRewrite(ThresholdUpOp op,
+                  mlir::PatternRewriter &rewriter) const override {
+    mlir::Value Operand0_threshold = op.getOperand(0);
+    mlir::Value Operand1_threshold = op.getOperand(1);
+    mlir::Value Operand2_threshold = op.getOperand(2);
+    dsp::FIRFilterResSymmOptimizedOp prev_FIRFilterSymmOp =
+        Operand0_threshold.getDefiningOp<FIRFilterResSymmOptimizedOp>();
+
+    if (!prev_FIRFilterSymmOp) {
+      return failure();
+    }
+Value input1 = prev_FIRFilterSymmOp->getOperand(0);
+Value input2 = prev_FIRFilterSymmOp->getOperand(1);
+    auto fIRFilterResSymmThresholdUpOptimizedOp =
+        rewriter.create<FIRFilterResSymmThresholdUpOptimizedOp>(
+            op.getLoc(),input1, input2, Operand1_threshold, Operand2_threshold);
+
+    DEBUG_PRINT_NO_ARGS();
+    rewriter.replaceOp(op, fIRFilterResSymmThresholdUpOptimizedOp);
+
+    return mlir::success();
+  }
+};
+
+
 // ===================================
 // ===================================
 // ===================================
@@ -1047,5 +1081,11 @@ void NormalizeOp::getCanonicalizationPatterns(RewritePatternSet &results, MLIRCo
 void DivOp::getCanonicalizationPatterns(RewritePatternSet &results, MLIRContext *ctx) {
     if(getEnableCanonicalOpt()) {
         results.add<SimplifyDSSDPass>(ctx);
+    }
+}
+
+void ThresholdUpOp::getCanonicalizationPatterns(RewritePatternSet &results, MLIRContext *ctx) {
+    if(getEnableCanonicalOpt()) {
+        results.add<SimplifyFIRFilterHammingThreholdUpOptimized>(ctx);
     }
 }

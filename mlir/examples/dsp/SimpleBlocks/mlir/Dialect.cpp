@@ -3365,6 +3365,42 @@ mlir::LogicalResult NormLMSFilterResponseOptimizeOp::verify() {
 }
 
 //===----------------------------------------------------------------------===//
+// FIRFilterResSymmThresholdUpOptimizedOp
+//===----------------------------------------------------------------------===//
+
+void FIRFilterResSymmThresholdUpOptimizedOp::build(mlir::OpBuilder &builder,
+                                        mlir::OperationState &state,
+                                        mlir::Value lhs, mlir::Value rhs, mlir::Value threshold, mlir::Value returnoriginal) {
+  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  state.addOperands({lhs, rhs, threshold, returnoriginal});
+}
+
+/// Infer the output shape of the FIRFilterResSymmThresholdUpOptimizedOp, this is required
+/// by the shape inference interface.
+// ToDo -- shape should be the length of Lhs + Rhs - 1
+void FIRFilterResSymmThresholdUpOptimizedOp::inferShapes() {
+  // get the shape of Lhs & rh@id:github.copilot-chats
+  // add the shape for each dimension
+  //  auto tensorInput =  llvm::cast<RankedTensorType>(getLhs().getType());
+  auto tensorInput = getLhs().getType();
+  auto shapeOfInput = tensorInput.getShape();
+
+  auto tensorFilter = getRhs().getType();
+  auto shapeOfFilter = tensorFilter.getShape();
+  std::vector<int64_t> shapeForOutput;
+
+  for (size_t i = 0; i < shapeOfInput.size(); i++) {
+    shapeForOutput.push_back(shapeOfInput[i] + shapeOfFilter[i] - 1);
+  }
+
+  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(
+      shapeForOutput, getLhs().getType().getElementType());
+
+  // getResult().setType(getLhs().getType());
+  getResult().setType(manipulatedType);
+}
+
+//===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//
 

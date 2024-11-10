@@ -2236,6 +2236,7 @@ def ThresholdUpOp : Dsp_Op<"thresholdUp",
         OpBuilder<(ins "Value":$input, "Value":$threshold, "Value":$returnoriginal)>
     ];
     let hasVerifier = 1;
+    let hasCanonicalizer = 1;
 }
 
 //===----------------------------------------------------------------------===//
@@ -2652,6 +2653,31 @@ def Median2SlidingOptimizedOp : Dsp_Op<"median2slidingOp",
   ];
 }
 
+
+//===----------------------------------------------------------------------===//
+// FIRFilterResSymmThresholdUpOptimizedOp
+//===----------------------------------------------------------------------===//
+def FIRFilterResSymmThresholdUpOptimizedOp : Dsp_Op<"FIRFilterResSymmThresholdUpOptimizedOp" ,
+    [Pure , DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+  let summary = "FIRFilterResSymmThresholdUpOptimizedOp";
+  let description = [{
+    The "FIRFilterResSymmThresholdUpOptimizedOp" operation is basically the convolution of input 1-D and filter vector when the filter is symmetrical ie,
+    h[0] = h[L-1] , h[1] = h[L-2] .. h[middle ie, (L-1)/2] is single element & filter length is odd always
+    ex: x[n] = [2,1,3,2,4], h[l] = [1, -1 ,1]  then
+      y[n] = sum(h(k) . x(n-k)) k=0 to N-1 can be rewritten as 
+      y[n] = sum(h[k] .{ x[n-k] + x[n-(L-1-k)]}) + h[L-1/2].x[n-(L-1)/2] , k=0 to L-1/2
+
+      Basically, we are trying to reduce the number of load/store operations by half -- so that we can reduce the operations
+  }];
+
+  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs, F64Tensor:$threshold, F64Tensor:$returnoriginal); 
+  let results =  (outs F64Tensor);
+
+  let builders = [
+    OpBuilder<(ins "Value":$lhs, "Value":$rhs, "Value":$threshold, "Value":$returnoriginal)>
+  ];
+
+}
 
 #endif // TOY_OPS
 
