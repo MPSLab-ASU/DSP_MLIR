@@ -1019,12 +1019,74 @@ private:
       if (call.getArgs().size() != 3) {
         emitError(location,
                   "MLIR codegen encountered an error: dsp.GenerateDTMFOp "
-                  "accepts 3 argument");
+                  "accepts 3 arguments");
         return nullptr;
       }
       return builder.create<GenerateDTMFOp>(location, operands[0], operands[1],
                                             operands[2]);
     }
+
+    if (callee == "fftfreq") {
+      if (call.getArgs().size() != 2) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.GenerateDTMFOp "
+                  "accepts 2 arguments");
+        return nullptr;
+      }
+      return builder.create<FFTFreqOp>(location, operands[0], operands[1]);
+    }
+
+    if (callee == "findDominantPeaks") {
+      if (call.getArgs().size() != 2) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.FindDominantPeaksOp "
+                  "accepts 2 arguments");
+        return nullptr;
+      }
+      return builder.create<FindDominantPeaksOp>(location, operands[0], operands[1]);
+    }
+
+    if (callee == "recoverDtmfDigit") {
+      if (call.getArgs().size() != 2) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.RecoverDTMFDigitOp "
+                  "accepts 2 arguments");
+        return nullptr;
+      }
+      return builder.create<RecoverDTMFDigitOp>(location, operands[0], operands[1]);
+    }
+
+    if (callee == "fftCombine") {
+      if (call.getArgs().size() != 2) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.FFTCombinOp "
+                  "accepts 2 arguments");
+        return nullptr;
+      }
+      return builder.create<FFTCombineOp>(location, operands[0], operands[1]);
+    }
+
+    if (callee == "sqrt") {
+      if (call.getArgs().size() != 1) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.GenerateDTMFOp "
+                  "accepts only 1 argument.");
+        return nullptr;
+      }
+      return builder.create<SqrtOp>(location, operands[0]);
+    }
+
+    if (callee == "generateVoiceSignature") {
+      if (call.getArgs().size() != 4) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.GenerateVoiceSignatureOp "
+                  "accepts 4 arguments");
+        return nullptr;
+      }
+      return builder.create<GenerateVoiceSignatureOp>(location, operands[0], operands[1],
+                                            operands[2], operands[3]);
+    }
+
     // beam form
     if (callee == "beam_form") {
       if (call.getArgs().size() != 4) {

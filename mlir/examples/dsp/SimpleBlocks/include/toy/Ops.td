@@ -2245,17 +2245,146 @@ def ThresholdUpOp : Dsp_Op<"thresholdUp",
 
 def GenerateDTMFOp : Dsp_Op<"generateDtmf", 
     [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
-    let summary = "Generates signal for the character input";
+    let summary = "Generates signal for the digit input.";
     let description = [{
-        Converts the characterr into signal
+        Converts the digit into a signal.
     }];
 
-    let arguments = (ins F64Tensor:$input, F64Tensor:$duration, F64Tensor:$freq);
+    let arguments = (ins F64Tensor:$digit, F64Tensor:$duration, F64Tensor:$fs);
 
     let results = (outs F64Tensor:$output);
 
     let builders = [
-        OpBuilder<(ins "Value":$input, "Value":$duration, "Value":$freq)>
+        OpBuilder<(ins "Value":$digit, "Value":$duration, "Value":$fs)>
+    ];
+    let hasVerifier = 1;
+}
+
+//===----------------------------------------------------------------------===//
+// FFTFreqOp
+//===----------------------------------------------------------------------===//
+
+def FFTFreqOp : Dsp_Op<"fftfreq", 
+    [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+    let summary = "Based on --> np.fft.fftfreq(N, d=1/fs)";
+    let description = [{
+        Generates frequency bins for fft.
+    }];
+
+    let arguments = (ins F64Tensor:$length, F64Tensor:$distance);
+
+    let results = (outs F64Tensor:$output);
+
+    let builders = [
+        OpBuilder<(ins "Value":$length, "Value":$distance)>
+    ];
+    let hasVerifier = 1;
+}
+
+//===----------------------------------------------------------------------===//
+// FindDominantPeaksOp
+//===----------------------------------------------------------------------===//
+
+def FindDominantPeaksOp : Dsp_Op<"findDominantPeaks", 
+    [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+    let summary = "finds two dominant peaks in the frequency array.";
+    let description = [{
+        Designed for the DTMF Application.
+    }];
+
+    let arguments = (ins F64Tensor:$frequencies, F64Tensor:$magnitudes);
+
+    let results = (outs F64Tensor:$output);
+
+    let builders = [
+        OpBuilder<(ins "Value":$frequencies, "Value":$magnitudes)>
+    ];
+    let hasVerifier = 1;
+}
+
+//===----------------------------------------------------------------------===//
+// RecoverDTMFDigitOp
+//===----------------------------------------------------------------------===//
+
+def RecoverDTMFDigitOp : Dsp_Op<"recoverDtmfDigit", 
+    [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+    let summary = "Recover digit from given frequency pair else return -1.";
+    let description = [{
+        -----------------------------.
+    }];
+
+    let arguments = (ins F64Tensor:$frequencies, F64Tensor:$freqPairs);
+
+    let results = (outs F64Tensor:$output);
+
+    let builders = [
+        OpBuilder<(ins "Value":$frequencies, "Value":$freqPairs)>
+    ];
+    let hasVerifier = 1; 
+} 
+
+//===----------------------------------------------------------------------===//
+// FFTCombineOp
+//===----------------------------------------------------------------------===//
+
+def FFTCombineOp : Dsp_Op<"fftCombine", 
+    [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+    let summary = "Combines the real and imaginary parts to obtain an amplitude array.";
+    let description = [{
+        This function takes arrays of real and imaginary parts of frequency components 
+        and computes the amplitude of each frequency. The amplitudes are returned as an 
+        array representing the magnitudes of the corresponding complex values.
+    }];
+
+    let arguments = (ins F64Tensor:$real, F64Tensor:$imag);
+
+    let results = (outs F64Tensor:$output);
+
+    let builders = [
+        OpBuilder<(ins "Value":$real, "Value":$imag)>
+    ];
+    let hasVerifier = 1;
+}
+
+//===----------------------------------------------------------------------===//
+// GenerateVoiceSignatureOp
+//===----------------------------------------------------------------------===//
+
+def GenerateVoiceSignatureOp : Dsp_Op<"generateVoiceSignature", 
+    [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+    let summary = "Generate voice signature of the speaker.";
+    let description = [{
+        This function takes two frequencies as input along with the duration and 
+        the sampling frequency, and generate the voice signature of the speaker. 
+    }];
+
+    let arguments = (ins F64Tensor:$f1, F64Tensor:$f2, F64Tensor:$duration, F64Tensor:$fs);
+
+    let results = (outs F64Tensor:$output);
+
+    let builders = [
+        OpBuilder<(ins "Value":$f1, "Value":$f2, "Value":$duration, "Value":$fs)>
+    ];
+    let hasVerifier = 1;
+}
+
+//===----------------------------------------------------------------------===//
+// SqrtOp
+//===----------------------------------------------------------------------===//
+
+def SqrtOp : Dsp_Op<"sqrt", 
+    [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+    let summary = "Takes the element wise square root of the tensor.";
+    let description = [{
+        Takes the element wise square root of the tensor.
+    }];
+
+    let arguments = (ins F64Tensor:$input);
+
+    let results = (outs F64Tensor:$output);
+
+    let builders = [
+        OpBuilder<(ins "Value":$input)>
     ];
     let hasVerifier = 1;
 }

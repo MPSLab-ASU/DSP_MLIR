@@ -3069,60 +3069,285 @@ void ThresholdUpOp::inferShapes() { getResult().setType(getInput().getType()); }
 //===----------------------------------------------------------------------===//
 
 mlir::LogicalResult GenerateDTMFOp::verify() {
-  int64_t returnOriginal = 5;
-  Value returnoriginal = getOperand(0);
-  dsp::ConstantOp constantOp1stArg =
-      returnoriginal.getDefiningOp<dsp::ConstantOp>();
-  DenseElementsAttr constantLhsValue = constantOp1stArg.getValue();
-  auto elements = constantLhsValue.getValues<FloatAttr>();
-  float LenN = elements[0].getValueAsDouble();
-  returnOriginal = (int64_t)LenN;
+  auto digitType = llvm::dyn_cast<RankedTensorType>(getDigit().getType());
+  auto durationType = llvm::dyn_cast<RankedTensorType>(getDuration().getType());
+  auto fsType = llvm::dyn_cast<RankedTensorType>(getFs().getType());
+  
+  if (!digitType) {
+    return emitError() << "Digit must be a ranked tensor";
+    return mlir::failure();
+  }
+  if (!durationType) {
+    return emitError() << "Duration must be a ranked tensor";
+    return mlir::failure();
+  }
+  if (!fsType) {
+    return emitError() << "Frequency must be a ranked tensor";
+    return mlir::failure();
+  }
 
-  // DTMF created only for numbers 0-9
-  if (returnOriginal != 0 && returnOriginal != 1 && returnOriginal != 2 &&
-      returnOriginal != 3 && returnOriginal != 4 && returnOriginal != 5 &&
-      returnOriginal != 6 && returnOriginal != 7 && returnOriginal != 8 &&
-      returnOriginal != 9) {
+  auto digitNoOfElements = digitType.getNumElements();
+  auto durationNoOfElements = durationType.getNumElements();
+  auto fsNoOfElements = fsType.getNumElements();
+
+
+  if (digitNoOfElements != 1) {
+    return emitError() << "Digit must contain exactly one element";
+    return mlir::failure();
+  }
+  if (durationNoOfElements != 1) {
+    return emitError() << "Duration must contain exactly one element";
+    return mlir::failure();
+  }
+  if (fsNoOfElements != 1) {
+    return emitError() << "Frequency must contain exactly one element";
+    return mlir::failure();
+  }
+
+  auto digit = getDigit();
+  auto digitConst = digit.getDefiningOp<dsp::ConstantOp>();
+  auto digitValue = digitConst.getValue();
+  auto digitFloat = digitValue.getValues<FloatAttr>();
+  auto dig = digitFloat[0].getValueAsDouble();
+
+  if (dig != 0 && dig != 1 && dig != 2 &&
+      dig != 3 && dig != 4 && dig != 5 &&
+      dig != 6 && dig != 7 && dig != 8 &&
+      dig != 9) {
+    return emitError() << "Digit can only take one of the following values: 0,1,2,3,4,5,6,7,8,9";
+    return mlir::failure();
+  }
+
+  return mlir::success();
+}
+
+void GenerateDTMFOp::build(mlir::OpBuilder &builder,
+                           mlir::OperationState &state, mlir::Value digit,
+                           mlir::Value duration, mlir::Value fs) {
+  state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
+  state.addOperands({digit, duration, fs});
+}
+void GenerateDTMFOp::inferShapes() {
+  auto digitType = llvm::dyn_cast<RankedTensorType>(getDigit().getType());
+  auto durationType = llvm::dyn_cast<RankedTensorType>(getDuration().getType());
+  auto fsType = llvm::dyn_cast<RankedTensorType>(getFs().getType());
+  // auto digitElementType = digitType.getElementType();
+  
+  auto duration = getDuration();
+  auto durationConst = duration.getDefiningOp<dsp::ConstantOp>();
+  auto durationValue = durationConst.getValue();
+  auto durationFloat = durationValue.getValues<FloatAttr>();
+  auto dur = durationFloat[0].getValueAsDouble();
+
+  auto fs = getFs();
+  auto fsConst = fs.getDefiningOp<dsp::ConstantOp>();
+  auto fsValue = fsConst.getValue();
+  auto fsFloat = fsValue.getValues<FloatAttr>();
+  auto freq = fsFloat[0].getValueAsDouble();
+
+  auto output = dur * freq;
+  auto outputShape = (int64_t)output;
+
+  getResult().setType(RankedTensorType::get(outputShape, digitType.getElementType()));
+}
+
+//===----------------------------------------------------------------------===//
+// FFTFreqOp
+//===----------------------------------------------------------------------===//
+
+void FFTFreqOp::build(mlir::OpBuilder &builder,
+                           mlir::OperationState &state, mlir::Value length, mlir::Value distance) {
+  state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
+  state.addOperands({length, distance});
+}
+
+mlir::LogicalResult FFTFreqOp::verify() {
+  
+  return mlir::success();
+}
+
+void FFTFreqOp::inferShapes() { 
+  auto lengthType = llvm::dyn_cast<RankedTensorType>(getLength().getType());  
+  auto length = getLength();
+  auto lengthConst = length.getDefiningOp<dsp::ConstantOp>();
+  auto lengthValue = lengthConst.getValue();
+  auto lengthFloat = lengthValue.getValues<FloatAttr>();
+  auto l = lengthFloat[0].getValueAsDouble();
+  auto outputShape = (int64_t)l;
+
+  getResult().setType(RankedTensorType::get(outputShape, lengthType.getElementType()));
+}
+
+//===----------------------------------------------------------------------===//
+// FindDominantPeaksOp
+//===----------------------------------------------------------------------===//
+
+void FindDominantPeaksOp::build(mlir::OpBuilder &builder,
+                           mlir::OperationState &state, mlir::Value frequencies, mlir::Value magnitudes) {
+  state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
+  state.addOperands({frequencies, magnitudes});
+}
+
+void FindDominantPeaksOp::inferShapes() { 
+  auto frequenciesType = llvm::dyn_cast<RankedTensorType>(getFrequencies().getType());
+  SmallVector<int64_t, 1> resultShape{2};
+  auto resultType = RankedTensorType::get(resultShape, frequenciesType.getElementType());
+  getResult().setType(resultType); 
+}
+
+mlir::LogicalResult FindDominantPeaksOp::verify() {
+  auto frequenciesType = llvm::dyn_cast<RankedTensorType>(getFrequencies().getType());
+  auto magnitudesType = llvm::dyn_cast<RankedTensorType>(getMagnitudes().getType());
+  return mlir::success(); 
+}
+
+//===----------------------------------------------------------------------===//
+// RecoverDTMFDigitOp
+//===----------------------------------------------------------------------===//
+
+void RecoverDTMFDigitOp::build(mlir::OpBuilder &builder,
+                           mlir::OperationState &state, mlir::Value frequencies, mlir::Value freqPairs) {
+  state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
+  state.addOperands({frequencies, freqPairs});
+}
+
+void RecoverDTMFDigitOp::inferShapes() { 
+  auto frequenciesType = llvm::dyn_cast<RankedTensorType>(getFrequencies().getType());
+  SmallVector<int64_t, 1> resultShape{1};
+  auto resultType = RankedTensorType::get(resultShape, frequenciesType.getElementType());
+  getResult().setType(resultType); 
+}
+
+mlir::LogicalResult RecoverDTMFDigitOp::verify() {
+  auto frequenciesType = llvm::dyn_cast<RankedTensorType>(getFrequencies().getType());
+  auto freqPairsType = llvm::dyn_cast<RankedTensorType>(getFreqPairs().getType());
+  return mlir::success();  
+}
+
+
+//===----------------------------------------------------------------------===//
+// FFTCombineOp
+//===----------------------------------------------------------------------===//
+
+void FFTCombineOp::build(mlir::OpBuilder &builder,
+                           mlir::OperationState &state, mlir::Value real, mlir::Value imag) {
+  state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
+  state.addOperands({real, imag});
+}
+
+mlir::LogicalResult FFTCombineOp::verify() {
+  auto realType = llvm::dyn_cast<RankedTensorType>(getReal().getType());
+  auto imagType = llvm::dyn_cast<RankedTensorType>(getImag().getType());
+
+  auto realNoOfElements = realType.getNumElements();
+  auto imagNoOfElements = imagType.getNumElements();
+
+  if (realNoOfElements != imagNoOfElements) {
+    return emitError() << "Real and Imaginary parts should have same number of elements.\n";
     return mlir::failure();
   }
   return mlir::success();
 }
 
-void GenerateDTMFOp::build(mlir::OpBuilder &builder,
-                           mlir::OperationState &state, mlir::Value input,
-                           mlir::Value duration, mlir::Value freq) {
+void FFTCombineOp::inferShapes() { getResult().setType(getReal().getType()); }
+
+//===----------------------------------------------------------------------===//
+// GenerateVoiceSignatureOp
+//===----------------------------------------------------------------------===//
+
+void GenerateVoiceSignatureOp::build(mlir::OpBuilder &builder,
+                           mlir::OperationState &state, mlir::Value f1, mlir::Value f2, mlir::Value duration, mlir::Value fs) {
   state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
-  state.addOperands({input, duration, freq});
+  state.addOperands({f1, f2, duration, fs});
 }
-void GenerateDTMFOp::inferShapes() {
-  std::vector<int64_t> shapeForOutput;
-  double duration = 1;
-  int64_t freq = 1;
 
-  // To extract value from the SSA value:
-  // get the Operand
-  // convert it to ConstantOp
-  // convert it to corresponding elements attribute
-  // extract the value as float then convert to int
-  Value durationval = getOperand(1);
-  dsp::ConstantOp constantOp1stArg = durationval.getDefiningOp<dsp::ConstantOp>();
-  DenseElementsAttr constantLhsValue = constantOp1stArg.getValue();
-  auto elements = constantLhsValue.getValues<FloatAttr>();
-  duration = elements[0].getValueAsDouble();
+mlir::LogicalResult GenerateVoiceSignatureOp::verify() {
+  auto f1Type = llvm::dyn_cast<RankedTensorType>(getF1().getType());
+  auto f2Type = llvm::dyn_cast<RankedTensorType>(getF2().getType());
+  auto durationType = llvm::dyn_cast<RankedTensorType>(getDuration().getType());
+  auto fsType = llvm::dyn_cast<RankedTensorType>(getFs().getType());
+  
+  if (!f1Type) {
+    return emitError() << "f1 must be a ranked tensor";
+    return mlir::failure();
+  }
+  if (!f2Type) {
+    return emitError() << "f2 must be a ranked tensor";
+    return mlir::failure();
+  }
+  if (!durationType) {
+    return emitError() << "Duration must be a ranked tensor";
+    return mlir::failure();
+  }
+  if (!fsType) {
+    return emitError() << "Frequency must be a ranked tensor";
+    return mlir::failure();
+  }
+  auto f1NoOfElements = f1Type.getNumElements();
+  auto f2NoOfElements = f2Type.getNumElements();
+  auto durationNoOfElements = durationType.getNumElements();
+  auto fsNoOfElements = fsType.getNumElements();
 
-  Value freqval = getOperand(2);
-  dsp::ConstantOp constantOp2ndArg = freqval.getDefiningOp<dsp::ConstantOp>();
-  DenseElementsAttr constantRhsValue = constantOp2ndArg.getValue();
-  auto elements2 = constantRhsValue.getValues<FloatAttr>();
-  float LenN2 = elements2[0].getValueAsDouble();
-  freq = (int64_t)LenN2;
-auto finalShape = freq * duration;
-  shapeForOutput.push_back(finalShape);
-  mlir::TensorType outputType = mlir::RankedTensorType::get(
-      shapeForOutput, getInput().getType().getElementType());
 
-  getResult().setType(outputType);
+  if (f1NoOfElements != 1) {
+    return emitError() << "f1 must contain exactly one element";
+    return mlir::failure();
+  }
+  if (f2NoOfElements != 1) {
+    return emitError() << "f2 must contain exactly one element";
+    return mlir::failure();
+  }
+  if (durationNoOfElements != 1) {
+    return emitError() << "Duration must contain exactly one element";
+    return mlir::failure();
+  }
+  if (fsNoOfElements != 1) {
+    return emitError() << "Frequency must contain exactly one element";
+    return mlir::failure();
+  }
+  return mlir::success();
 }
+
+void GenerateVoiceSignatureOp::inferShapes() {
+  auto durationType = llvm::dyn_cast<RankedTensorType>(getDuration().getType());
+  auto fsType = llvm::dyn_cast<RankedTensorType>(getFs().getType());
+  // auto digitElementType = digitType.getElementType();
+  
+  auto duration = getDuration();
+  auto durationConst = duration.getDefiningOp<dsp::ConstantOp>();
+  auto durationValue = durationConst.getValue();
+  auto durationFloat = durationValue.getValues<FloatAttr>();
+  auto dur = durationFloat[0].getValueAsDouble();
+
+  auto fs = getFs();
+  auto fsConst = fs.getDefiningOp<dsp::ConstantOp>();
+  auto fsValue = fsConst.getValue();
+  auto fsFloat = fsValue.getValues<FloatAttr>();
+  auto freq = fsFloat[0].getValueAsDouble();
+
+  auto output = dur * freq;
+  auto outputShape = (int64_t)output;
+
+  getResult().setType(RankedTensorType::get(outputShape, fsType.getElementType()));
+}
+
+//===----------------------------------------------------------------------===//
+// SqrtOp
+//===----------------------------------------------------------------------===//
+
+void SqrtOp::build(mlir::OpBuilder &builder,
+                           mlir::OperationState &state, mlir::Value input) {
+  state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
+  state.addOperands({input});
+}
+
+mlir::LogicalResult SqrtOp::verify() {
+  auto inputType = llvm::dyn_cast<RankedTensorType>(getInput().getType());
+  return mlir::success();
+} 
+
+void SqrtOp::inferShapes() { getResult().setType(getInput().getType()); }
+
 
 //===----------------------------------------------------------------------===//
 // QamDemodulateOp
