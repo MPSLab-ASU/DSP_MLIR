@@ -9496,7 +9496,8 @@ struct FFTCombineOpLowering : public ConversionPattern {
 
 struct RecoverDTMFDigitOpLowering : public ConversionPattern {
   RecoverDTMFDigitOpLowering(MLIRContext *ctx)
-      : ConversionPattern(dsp::RecoverDTMFDigitOp::getOperationName(), 1, ctx) {}
+      : ConversionPattern(dsp::RecoverDTMFDigitOp::getOperationName(), 1, ctx) {
+  }
 
   LogicalResult
   matchAndRewrite(Operation *op, ArrayRef<Value> operands,
@@ -9508,7 +9509,8 @@ struct RecoverDTMFDigitOpLowering : public ConversionPattern {
     auto alloc = insertAllocAndDealloc(memRefType, loc, rewriter);
 
     auto indexMemRefType = MemRefType::get({}, rewriter.getIndexType());
-    auto finalMatchIndex_alloc = insertAllocAndDealloc(indexMemRefType, loc, rewriter);
+    auto finalMatchIndex_alloc =
+        insertAllocAndDealloc(indexMemRefType, loc, rewriter);
 
     RecoverDTMFDigitOpAdaptor recoverDTMFDigitOpAdaptor(operands);
 
@@ -9518,13 +9520,17 @@ struct RecoverDTMFDigitOpLowering : public ConversionPattern {
     auto highFreqIndex = rewriter.create<arith::ConstantIndexOp>(loc, 0);
     auto lowFreqIndex = rewriter.create<arith::ConstantIndexOp>(loc, 1);
 
-    auto highFreq = rewriter.create<memref::LoadOp>(loc, frequencies, ValueRange{highFreqIndex});
-    auto lowFreq = rewriter.create<memref::LoadOp>(loc, frequencies, ValueRange{lowFreqIndex});
+    auto highFreq = rewriter.create<memref::LoadOp>(loc, frequencies,
+                                                    ValueRange{highFreqIndex});
+    auto lowFreq = rewriter.create<memref::LoadOp>(loc, frequencies,
+                                                   ValueRange{lowFreqIndex});
 
     auto initialMatchIndex = rewriter.create<arith::ConstantIndexOp>(loc, -1);
-    rewriter.create<AffineStoreOp>(loc, initialMatchIndex, finalMatchIndex_alloc, ValueRange{});	
+    rewriter.create<AffineStoreOp>(loc, initialMatchIndex,
+                                   finalMatchIndex_alloc, ValueRange{});
 
-    auto tolerance = rewriter.create<arith::ConstantFloatOp>(loc, llvm::APFloat(3.0), rewriter.getF64Type());
+    auto tolerance = rewriter.create<arith::ConstantFloatOp>(
+        loc, llvm::APFloat(3.0), rewriter.getF64Type());
 
     auto lb = rewriter.create<arith::ConstantIndexOp>(loc, 0);
     auto ub = rewriter.create<arith::ConstantIndexOp>(loc, 10);
@@ -9534,34 +9540,47 @@ struct RecoverDTMFDigitOpLowering : public ConversionPattern {
     rewriter.setInsertionPointToStart(forOp.getBody());
     auto iv = forOp.getInductionVar();
 
-    auto matchIndex = rewriter.create<memref::LoadOp>(loc, finalMatchIndex_alloc, ValueRange{});
+    auto matchIndex = rewriter.create<memref::LoadOp>(
+        loc, finalMatchIndex_alloc, ValueRange{});
 
-    auto highFreqOg = rewriter.create<memref::LoadOp>(loc, freqPairs, ValueRange{iv, highFreqIndex});
-    auto lowFreqOg = rewriter.create<memref::LoadOp>(loc, freqPairs, ValueRange{iv, lowFreqIndex});
+    auto highFreqOg = rewriter.create<memref::LoadOp>(
+        loc, freqPairs, ValueRange{iv, highFreqIndex});
+    auto lowFreqOg = rewriter.create<memref::LoadOp>(
+        loc, freqPairs, ValueRange{iv, lowFreqIndex});
 
-    auto highFreqDiff = rewriter.create<arith::SubFOp>(loc, highFreqOg, highFreq);
+    auto highFreqDiff =
+        rewriter.create<arith::SubFOp>(loc, highFreqOg, highFreq);
     auto lowFreqDiff = rewriter.create<arith::SubFOp>(loc, lowFreqOg, lowFreq);
 
     auto absHighFreqDiff = rewriter.create<math::AbsFOp>(loc, highFreqDiff);
     auto absLowFreqDiff = rewriter.create<math::AbsFOp>(loc, lowFreqDiff);
 
-    auto highFreqMatch = rewriter.create<arith::CmpFOp>(loc, arith::CmpFPredicate::OLE, absHighFreqDiff, tolerance);
-    auto lowFreqMatch = rewriter.create<arith::CmpFOp>(loc, arith::CmpFPredicate::OLE, absLowFreqDiff, tolerance);
-    auto bothMatch = rewriter.create<arith::AndIOp>(loc, highFreqMatch, lowFreqMatch);
+    auto highFreqMatch = rewriter.create<arith::CmpFOp>(
+        loc, arith::CmpFPredicate::OLE, absHighFreqDiff, tolerance);
+    auto lowFreqMatch = rewriter.create<arith::CmpFOp>(
+        loc, arith::CmpFPredicate::OLE, absLowFreqDiff, tolerance);
+    auto bothMatch =
+        rewriter.create<arith::AndIOp>(loc, highFreqMatch, lowFreqMatch);
 
-    auto newMatchIndex = rewriter.create<arith::SelectOp>(loc, bothMatch, iv, matchIndex);
+    auto newMatchIndex =
+        rewriter.create<arith::SelectOp>(loc, bothMatch, iv, matchIndex);
 
-    rewriter.create<memref::StoreOp>(loc, newMatchIndex, finalMatchIndex_alloc, ValueRange{});	
+    rewriter.create<memref::StoreOp>(loc, newMatchIndex, finalMatchIndex_alloc,
+                                     ValueRange{});
 
     rewriter.setInsertionPointAfter(forOp);
 
-    auto finalMatchIndex = rewriter.create<memref::LoadOp>(loc, finalMatchIndex_alloc, ValueRange{});
+    auto finalMatchIndex = rewriter.create<memref::LoadOp>(
+        loc, finalMatchIndex_alloc, ValueRange{});
 
-    auto finalMatchIndexI64 = rewriter.create<arith::IndexCastOp>(loc, rewriter.getI64Type(), finalMatchIndex);  
-    auto finalMatchIndexF64 = rewriter.create<arith::SIToFPOp>(loc, rewriter.getF64Type(), finalMatchIndexI64);
+    auto finalMatchIndexI64 = rewriter.create<arith::IndexCastOp>(
+        loc, rewriter.getI64Type(), finalMatchIndex);
+    auto finalMatchIndexF64 = rewriter.create<arith::SIToFPOp>(
+        loc, rewriter.getF64Type(), finalMatchIndexI64);
 
     auto zero = rewriter.create<arith::ConstantIndexOp>(loc, 0);
-    rewriter.create<memref::StoreOp>(loc, finalMatchIndexF64, alloc, ValueRange{zero});
+    rewriter.create<memref::StoreOp>(loc, finalMatchIndexF64, alloc,
+                                     ValueRange{zero});
 
     rewriter.replaceOp(op, alloc);
 
@@ -9569,9 +9588,10 @@ struct RecoverDTMFDigitOpLowering : public ConversionPattern {
   }
 };
 
- // Store finalMatchIndexF64 into alloc
-    // auto zero = rewriter.create<arith::ConstantIndexOp>(loc, 0);
-    // rewriter.create<memref::StoreOp>(loc, finalMatchIndexF64, alloc, ValueRange{zero});
+// Store finalMatchIndexF64 into alloc
+// auto zero = rewriter.create<arith::ConstantIndexOp>(loc, 0);
+// rewriter.create<memref::StoreOp>(loc, finalMatchIndexF64, alloc,
+// ValueRange{zero});
 
 //===----------------------------------------------------------------------===//
 // ToyToAffine RewritePatterns: GenerateVoiceSignatureOpLowering operations
@@ -9579,7 +9599,8 @@ struct RecoverDTMFDigitOpLowering : public ConversionPattern {
 
 struct GenerateVoiceSignatureOpLowering : public ConversionPattern {
   GenerateVoiceSignatureOpLowering(MLIRContext *ctx)
-      : ConversionPattern(dsp::GenerateVoiceSignatureOp::getOperationName(), 1, ctx) {}
+      : ConversionPattern(dsp::GenerateVoiceSignatureOp::getOperationName(), 1,
+                          ctx) {}
 
   LogicalResult
   matchAndRewrite(Operation *op, ArrayRef<Value> operands,
@@ -9614,15 +9635,21 @@ struct GenerateVoiceSignatureOpLowering : public ConversionPattern {
     float freq = elements3[0].getValueAsDouble();
 
     auto lb = rewriter.create<arith::ConstantIndexOp>(loc, 0);
-    auto ub = rewriter.create<arith::ConstantIndexOp>(loc, tensorType.getShape()[0]);
+    auto ub =
+        rewriter.create<arith::ConstantIndexOp>(loc, tensorType.getShape()[0]);
     auto step = rewriter.create<arith::ConstantIndexOp>(loc, 1);
 
     // Create constants
-    auto const2pi = rewriter.create<arith::ConstantOp>(loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(6.28318530718));
-    auto const05 = rewriter.create<arith::ConstantOp>(loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(0.5));
-    auto constFs = rewriter.create<arith::ConstantOp>(loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(freq));
-    auto constF1 = rewriter.create<arith::ConstantOp>(loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(f1));
-    auto constF2 = rewriter.create<arith::ConstantOp>(loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(f2));
+    auto const2pi = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(6.28318530718));
+    auto const05 = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(0.5));
+    auto constFs = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(freq));
+    auto constF1 = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(f1));
+    auto constF2 = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(f2));
 
     // Create a loop to generate the DTMF tone
     auto forOp = rewriter.create<scf::ForOp>(loc, lb, ub, step);
@@ -9631,8 +9658,10 @@ struct GenerateVoiceSignatureOpLowering : public ConversionPattern {
     auto iv = forOp.getInductionVar();
 
     // Convert loop index to time
-    auto indexToI64 = rewriter.create<arith::IndexCastOp>(loc, rewriter.getI64Type(), iv);
-    auto indexToFloat = rewriter.create<arith::SIToFPOp>(loc, rewriter.getF64Type(), indexToI64);
+    auto indexToI64 =
+        rewriter.create<arith::IndexCastOp>(loc, rewriter.getI64Type(), iv);
+    auto indexToFloat = rewriter.create<arith::SIToFPOp>(
+        loc, rewriter.getF64Type(), indexToI64);
     auto time = rewriter.create<arith::DivFOp>(loc, indexToFloat, constFs);
 
     // Generate sine wave for f1
@@ -9681,9 +9710,9 @@ struct FFTCombineOpLowering : public ConversionPattern {
     auto real = fftCombineOpAdaptor.getReal();
     auto imag = fftCombineOpAdaptor.getImag();
 
-
     auto lb = rewriter.create<arith::ConstantIndexOp>(loc, 0);
-    auto ub = rewriter.create<arith::ConstantIndexOp>(loc, tensorType.getShape()[0]);
+    auto ub =
+        rewriter.create<arith::ConstantIndexOp>(loc, tensorType.getShape()[0]);
     auto step = rewriter.create<arith::ConstantIndexOp>(loc, 1);
 
     auto forOp = rewriter.create<scf::ForOp>(loc, lb, ub, step);
@@ -9692,12 +9721,15 @@ struct FFTCombineOpLowering : public ConversionPattern {
 
     auto realInput = rewriter.create<memref::LoadOp>(loc, real, ValueRange{iv});
     auto imagInput = rewriter.create<memref::LoadOp>(loc, imag, ValueRange{iv});
-    auto realInputSquared = rewriter.create<arith::MulFOp>(loc, realInput, realInput);
-    auto imagInputSquared = rewriter.create<arith::MulFOp>(loc, imagInput, imagInput);
-    auto sum = rewriter.create<arith::AddFOp>(loc, realInputSquared, imagInputSquared);
+    auto realInputSquared =
+        rewriter.create<arith::MulFOp>(loc, realInput, realInput);
+    auto imagInputSquared =
+        rewriter.create<arith::MulFOp>(loc, imagInput, imagInput);
+    auto sum =
+        rewriter.create<arith::AddFOp>(loc, realInputSquared, imagInputSquared);
     auto root = rewriter.create<math::SqrtOp>(loc, sum);
 
-    rewriter.create<memref::StoreOp>(loc, root, alloc,ValueRange{iv});
+    rewriter.create<memref::StoreOp>(loc, root, alloc, ValueRange{iv});
 
     rewriter.setInsertionPointAfter(forOp);
 
@@ -9706,7 +9738,6 @@ struct FFTCombineOpLowering : public ConversionPattern {
     return success();
   }
 };
-
 
 struct QamModulateRealOpLowering : public ConversionPattern {
   QamModulateRealOpLowering(MLIRContext *ctx)
