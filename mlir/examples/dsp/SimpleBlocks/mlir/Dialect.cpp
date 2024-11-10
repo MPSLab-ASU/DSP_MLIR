@@ -3578,6 +3578,35 @@ void FIRFilterResSymmThresholdUpOptimizedOp::inferShapes() {
 }
 
 //===----------------------------------------------------------------------===//
+// FFTOp
+//===----------------------------------------------------------------------===//
+
+void FFTOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                      mlir::Value lhs) {
+  state.addTypes({lhs.getType(), lhs.getType()});
+  state.addOperands({lhs});
+}
+
+void FFTOp::inferShapes() { 
+  getResult(0).setType(getLhs().getType()); 
+  getResult(1).setType(getLhs().getType()); 
+}
+
+//===----------------------------------------------------------------------===//
+// DTMFOp
+//===----------------------------------------------------------------------===//
+
+void FFTAbsOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                      mlir::Value input) {
+  state.addTypes(input.getType());
+  state.addOperands({input});
+}
+
+void FFTAbsOp::inferShapes() { 
+  getResult().setType(getInput().getType()); 
+}
+
+//===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//
 

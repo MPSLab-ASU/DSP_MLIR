@@ -608,6 +608,8 @@ def FFTRealOp : Dsp_Op<"fftReal", [Pure, DeclareOpInterfaceMethods<ShapeInferenc
   let builders = [
     OpBuilder<(ins "Value":$lhs)>
   ]; 
+
+  let hasCanonicalizer = 1;
 }
 
 //===----------------------------------------------------------------------===//
@@ -2806,6 +2808,46 @@ def FIRFilterResSymmThresholdUpOptimizedOp : Dsp_Op<"FIRFilterResSymmThresholdUp
     OpBuilder<(ins "Value":$lhs, "Value":$rhs, "Value":$threshold, "Value":$returnoriginal)>
   ];
 
+}
+
+//===----------------------------------------------------------------------===//
+// FFTOp
+//===----------------------------------------------------------------------===//
+
+def FFTOp : Dsp_Op<"fft", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+  let summary = "Performs FFT Operation on the input";
+  let description = [{
+      This function accepts a 1D input array of size 2^n and returns the real part of its Fourier transform, 
+      producing an output array of the same size. The function is designed to work exclusively with input sizes that are powers of 2. 
+      Providing an array of any other size will result in a segmentation fault.
+  }];
+
+  let arguments = (ins F64Tensor:$lhs);
+  let results = (outs F64Tensor:$real, F64Tensor:$imag);
+
+  let builders = [
+    OpBuilder<(ins "Value":$lhs)>
+  ]; 
+
+  // let hasCanonicalizer = 1;
+}
+
+//===----------------------------------------------------------------------===//
+// FFTAbsOp
+//===----------------------------------------------------------------------===//
+
+def FFTAbsOp : Dsp_Op<"FFTAbsOp", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+  let summary = "FFTAbsOp";
+  let description = [{
+      ------------------
+  }];
+
+  let arguments = (ins F64Tensor:$input);
+  let results = (outs F64Tensor:$amplitude);
+
+  let builders = [
+    OpBuilder<(ins "Value":$input)>
+  ]; 
 }
 
 #endif // TOY_OPS
