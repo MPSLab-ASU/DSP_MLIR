@@ -295,18 +295,20 @@ struct SimplifyFindPeaks2Diff2Mean : public mlir::OpRewritePattern<MeanOp> {
     if (!prev_diffOp)
       return failure();
 
-	mlir::Value prev_diffOp_operand0 = prev_diffOp.getOperand(0);
-	FindPeaksOp prev_findPeaksOp = prev_diffOp_operand0.getDefiningOp<FindPeaksOp>();
+    mlir::Value prev_diffOp_operand0 = prev_diffOp.getOperand(0);
+    FindPeaksOp prev_findPeaksOp =
+        prev_diffOp_operand0.getDefiningOp<FindPeaksOp>();
 
     if (!prev_findPeaksOp)
       return failure();
-  
-	mlir::Value prev_findPeaksOp_operand0 = prev_findPeaksOp.getOperand(0);
-	mlir::Value prev_findPeaksOp_operand1 = prev_findPeaksOp.getOperand(1);
-	mlir::Value prev_findPeaksOp_operand2 = prev_findPeaksOp.getOperand(2);
+
+    mlir::Value prev_findPeaksOp_operand0 = prev_findPeaksOp.getOperand(0);
+    mlir::Value prev_findPeaksOp_operand1 = prev_findPeaksOp.getOperand(1);
+    mlir::Value prev_findPeaksOp_operand2 = prev_findPeaksOp.getOperand(2);
 
     auto optimizedOp = rewriter.create<dsp::FindPeaks2Diff2MeanOptimizedOp>(
-        op.getLoc(), prev_findPeaksOp_operand0, prev_findPeaksOp_operand1, prev_findPeaksOp_operand2);
+        op.getLoc(), prev_findPeaksOp_operand0, prev_findPeaksOp_operand1,
+        prev_findPeaksOp_operand2);
 
     // Repalce the use of original diff operation with this operation
     rewriter.replaceOp(op, optimizedOp.getResult());
@@ -314,24 +316,26 @@ struct SimplifyFindPeaks2Diff2Mean : public mlir::OpRewritePattern<MeanOp> {
   }
 };
 
-
-struct SimplifyMedian2Sliding : public mlir::OpRewritePattern<SlidingWindowAvgOp> {
+struct SimplifyMedian2Sliding
+    : public mlir::OpRewritePattern<SlidingWindowAvgOp> {
   //
   SimplifyMedian2Sliding(mlir::MLIRContext *context)
       : OpRewritePattern<SlidingWindowAvgOp>(context, 1) {}
 
   mlir::LogicalResult
-  matchAndRewrite(SlidingWindowAvgOp op, mlir::PatternRewriter &rewriter) const override {
+  matchAndRewrite(SlidingWindowAvgOp op,
+                  mlir::PatternRewriter &rewriter) const override {
 
     mlir::Value slidingOp_operand0 = op.getOperand();
 
     // check if this is coming from medianFilter operation.
-    MedianFilterOp prev_medianFilterOp = slidingOp_operand0.getDefiningOp<MedianFilterOp>();
+    MedianFilterOp prev_medianFilterOp =
+        slidingOp_operand0.getDefiningOp<MedianFilterOp>();
 
     if (!prev_medianFilterOp)
       return failure();
 
-	mlir::Value prev_medianFilterOp_operand0 = prev_medianFilterOp.getOperand();
+    mlir::Value prev_medianFilterOp_operand0 = prev_medianFilterOp.getOperand();
 
     auto optimizedOp = rewriter.create<dsp::Median2SlidingOptimizedOp>(
         op.getLoc(), prev_medianFilterOp_operand0);
@@ -340,10 +344,6 @@ struct SimplifyMedian2Sliding : public mlir::OpRewritePattern<SlidingWindowAvgOp
     return mlir::success();
   }
 };
-
-
-
-
 
 struct SimplifyBack2BackDelay : public mlir::OpRewritePattern<DelayOp> {
   //
@@ -700,7 +700,8 @@ struct SimplifyFFTRealAtInputRealSymm : public OpRewritePattern<FFT1DRealOp> {
   SimplifyFFTRealAtInputRealSymm(MLIRContext *context)
       : OpRewritePattern<FFT1DRealOp>(context, /*benefit=*/1) {}
 
-  LogicalResult matchAndRewrite(FFT1DRealOp Op,PatternRewriter &rewriter) const override {
+  LogicalResult matchAndRewrite(FFT1DRealOp Op,
+                                PatternRewriter &rewriter) const override {
     // Check if there is a corresponding FFT1DImgOp with the same input.
     mlir::Value fftOperand_input = Op.getInput();
     dsp::FIRFilterYSymmOptimizedOp op_FIRFilterYSymmOptimizedOp =
@@ -729,7 +730,8 @@ struct SimplifyFFTImgAtInputRealSymm : public OpRewritePattern<FFT1DImgOp> {
   SimplifyFFTImgAtInputRealSymm(MLIRContext *context)
       : OpRewritePattern<FFT1DImgOp>(context, /*benefit=*/1) {}
 
-  LogicalResult matchAndRewrite(FFT1DImgOp Op, PatternRewriter &rewriter) const override {
+  LogicalResult matchAndRewrite(FFT1DImgOp Op,
+                                PatternRewriter &rewriter) const override {
     // Check if there is a corresponding FFT1DImgOp with the same input.
     mlir::Value fftOperand_input = Op.getInput();
     dsp::FIRFilterYSymmOptimizedOp op_FIRFilterYSymmOptimizedOp =
@@ -830,87 +832,97 @@ struct SimplifySpaceModDemodulate
   }
 };
 
-struct SimplifyNormLMSFilterResponse : public mlir::OpRewritePattern<NormalizeOp> { 
-    SimplifyNormLMSFilterResponse(mlir::MLIRContext *ctx) : OpRewritePattern<NormalizeOp>(ctx, 1) {}
+struct SimplifyNormLMSFilterResponse
+    : public mlir::OpRewritePattern<NormalizeOp> {
+  SimplifyNormLMSFilterResponse(mlir::MLIRContext *ctx)
+      : OpRewritePattern<NormalizeOp>(ctx, 1) {}
 
-    mlir::LogicalResult
-        matchAndRewrite(NormalizeOp op, mlir::PatternRewriter &rewriter) const override {
+  mlir::LogicalResult
+  matchAndRewrite(NormalizeOp op,
+                  mlir::PatternRewriter &rewriter) const override {
 
-            Value signal = op.getOperand();
-            Operation* filterOp = signal.getDefiningOp<LMSFilterResponseOp>();
+    Value signal = op.getOperand();
+    Operation *filterOp = signal.getDefiningOp<LMSFilterResponseOp>();
 
-            if(!filterOp) return failure();
-            
-            Value filterOp_operand0 = filterOp->getOperand(0);
-            Value filterOp_operand1 = filterOp->getOperand(1);
-            Value filterOp_operand2 = filterOp->getOperand(2);
-            Value filterOp_operand3 = filterOp->getOperand(3);
+    if (!filterOp)
+      return failure();
 
-            auto normLMSfilterOpt = rewriter.create<NormLMSFilterResponseOptimizeOp> (
-                    op.getLoc(), filterOp_operand0, filterOp_operand1, filterOp_operand2, filterOp_operand3
-                    );
+    Value filterOp_operand0 = filterOp->getOperand(0);
+    Value filterOp_operand1 = filterOp->getOperand(1);
+    Value filterOp_operand2 = filterOp->getOperand(2);
+    Value filterOp_operand3 = filterOp->getOperand(3);
 
-            rewriter.replaceOp(op, normLMSfilterOpt);
-            if(filterOp->use_empty()) {
-                rewriter.eraseOp(filterOp);
-            }
+    auto normLMSfilterOpt = rewriter.create<NormLMSFilterResponseOptimizeOp>(
+        op.getLoc(), filterOp_operand0, filterOp_operand1, filterOp_operand2,
+        filterOp_operand3);
 
-            return mlir::success();
-        }
+    rewriter.replaceOp(op, normLMSfilterOpt);
+    if (filterOp->use_empty()) {
+      rewriter.eraseOp(filterOp);
+    }
+
+    return mlir::success();
+  }
 };
 
 struct SimplifyDSSDPass : public mlir::OpRewritePattern<DivOp> {
-    SimplifyDSSDPass(mlir::MLIRContext *ctx) : OpRewritePattern<DivOp>(ctx, 1) {}
+  SimplifyDSSDPass(mlir::MLIRContext *ctx) : OpRewritePattern<DivOp>(ctx, 1) {}
 
-    mlir::LogicalResult
-        matchAndRewrite(DivOp op, mlir::PatternRewriter &rewriter) const override {
+  mlir::LogicalResult
+  matchAndRewrite(DivOp op, mlir::PatternRewriter &rewriter) const override {
 
-#define CHECK(x) if(!x) return failure();
-#define REMOVE(x) if(x->use_empty()) rewriter.eraseOp(x);
-#define DEBUG(x) {llvm::errs() << "check for " << x << "\n";}
+#define CHECK(x)                                                               \
+  if (!x)                                                                      \
+    return failure();
+#define REMOVE(x)                                                              \
+  if (x->use_empty())                                                          \
+    rewriter.eraseOp(x);
+#define DEBUG(x)                                                               \
+  { llvm::errs() << "check for " << x << "\n"; }
 #define PASS llvm::errs() << "pass\n";
 
-            auto loc = op.getLoc();
+    auto loc = op.getLoc();
 
-            // pattern -> CHECK()
-            Operation* sumOp = op.getOperand(0).getDefiningOp<SumOp>();
-            CHECK(sumOp);
+    // pattern -> CHECK()
+    Operation *sumOp = op.getOperand(0).getDefiningOp<SumOp>();
+    CHECK(sumOp);
 
-            Operation* addOp = sumOp->getOperand(0).getDefiningOp<AddOp>();
-            CHECK(addOp);
+    Operation *addOp = sumOp->getOperand(0).getDefiningOp<AddOp>();
+    CHECK(addOp);
 
-            Operation* sqrtOp0 = addOp->getOperand(0).getDefiningOp<SquareOp>();
-            CHECK(sqrtOp0);
+    Operation *sqrtOp0 = addOp->getOperand(0).getDefiningOp<SquareOp>();
+    CHECK(sqrtOp0);
 
-            Operation* sqrtOp1 = addOp->getOperand(1).getDefiningOp<SquareOp>();
-            CHECK(sqrtOp1);
+    Operation *sqrtOp1 = addOp->getOperand(1).getDefiningOp<SquareOp>();
+    CHECK(sqrtOp1);
 
-            Operation* fftRealOp = sqrtOp0->getOperand(0).getDefiningOp<FFT1DRealOp>();
-            CHECK(fftRealOp);
+    Operation *fftRealOp = sqrtOp0->getOperand(0).getDefiningOp<FFT1DRealOp>();
+    CHECK(fftRealOp);
 
-            // See defining op: suppose to be fftImg, but modified beforhand by <label> pass 1st
-            Operation* fftImgOp = sqrtOp1->getOperand(0).getDefiningOp<FFT1DRealOp>();
-            CHECK(fftImgOp);
+    // See defining op: suppose to be fftImg, but modified beforhand by <label>
+    // pass 1st
+    Operation *fftImgOp = sqrtOp1->getOperand(0).getDefiningOp<FFT1DRealOp>();
+    CHECK(fftImgOp);
 
-            // check if come from same input
-            Value input1 = fftRealOp->getOperand(0);
-            Value input2 = fftImgOp->getOperand(0);
-            CHECK((input1==input2));
+    // check if come from same input
+    Value input1 = fftRealOp->getOperand(0);
+    Value input2 = fftImgOp->getOperand(0);
+    CHECK((input1 == input2));
 
-            auto newSqrt = rewriter.create<SquareOp>(loc, input1);
-            auto newResult = rewriter.create<SumOp>(loc, newSqrt);
+    auto newSqrt = rewriter.create<SquareOp>(loc, input1);
+    auto newResult = rewriter.create<SumOp>(loc, newSqrt);
 
-            rewriter.replaceOp(op, newResult);
+    rewriter.replaceOp(op, newResult);
 
-            REMOVE(fftImgOp);
-            REMOVE(fftRealOp);
-            REMOVE(sqrtOp1);
-            REMOVE(sqrtOp0);
-            REMOVE(addOp);
-            REMOVE(sumOp);
+    REMOVE(fftImgOp);
+    REMOVE(fftRealOp);
+    REMOVE(sqrtOp1);
+    REMOVE(sqrtOp0);
+    REMOVE(addOp);
+    REMOVE(sumOp);
 
-            return mlir::success();
-        }
+    return mlir::success();
+  }
 };
 
 struct SimplifyFIRFilterHammingThreholdUpOptimized
@@ -933,11 +945,12 @@ struct SimplifyFIRFilterHammingThreholdUpOptimized
     if (!prev_FIRFilterSymmOp) {
       return failure();
     }
-Value input1 = prev_FIRFilterSymmOp->getOperand(0);
-Value input2 = prev_FIRFilterSymmOp->getOperand(1);
+    Value input1 = prev_FIRFilterSymmOp->getOperand(0);
+    Value input2 = prev_FIRFilterSymmOp->getOperand(1);
     auto fIRFilterResSymmThresholdUpOptimizedOp =
         rewriter.create<FIRFilterResSymmThresholdUpOptimizedOp>(
-            op.getLoc(),input1, input2, Operand1_threshold, Operand2_threshold);
+            op.getLoc(), input1, input2, Operand1_threshold,
+            Operand2_threshold);
 
     DEBUG_PRINT_NO_ARGS();
     rewriter.replaceOp(op, fIRFilterResSymmThresholdUpOptimizedOp);
@@ -984,11 +997,15 @@ struct SimplifyFFTAbs : public OpRewritePattern<FFTRealOp> {
     Operation *nextofSquare2Op = square2Op->getNextNode();
     if (!nextofSquare2Op || !isa<AddOp>(nextofSquare2Op))
       return failure();
-// (addOp.getLhs() != squareOp.getResult()) || (addOp.getRhs() != square2Op.getResult())   &&  (addOp.getRhs() != squareOp.getResult()) && (addOp.getLhs() != square2Op.getResult())
+    // (addOp.getLhs() != squareOp.getResult()) || (addOp.getRhs() !=
+    // square2Op.getResult())   &&  (addOp.getRhs() != squareOp.getResult()) &&
+    // (addOp.getLhs() != square2Op.getResult())
     DEBUG_PRINT_NO_ARGS();
     auto addOp = cast<AddOp>(nextofSquare2Op);
-    if ((addOp.getLhs() != square1Op.getResult() || addOp.getRhs() != square2Op.getResult()) &&
-        (addOp.getRhs() != square1Op.getResult() || addOp.getLhs() != square2Op.getResult()))
+    if ((addOp.getLhs() != square1Op.getResult() ||
+         addOp.getRhs() != square2Op.getResult()) &&
+        (addOp.getRhs() != square1Op.getResult() ||
+         addOp.getLhs() != square2Op.getResult()))
       return failure();
 
     Operation *nextofAddOp = addOp->getNextNode();
@@ -997,11 +1014,12 @@ struct SimplifyFFTAbs : public OpRewritePattern<FFTRealOp> {
 
     DEBUG_PRINT_NO_ARGS();
     auto sqrtOp = cast<SqrtOp>(nextofAddOp);
-    if ( sqrtOp.getInput() != addOp.getResult() )
+    if (sqrtOp.getInput() != addOp.getResult())
       return failure();
 
     DEBUG_PRINT_NO_ARGS();
-    auto combinedOp = rewriter.create<FFTAbsOp>(realOp.getLoc(), realOp.getLhs());
+    auto combinedOp =
+        rewriter.create<FFTAbsOp>(realOp.getLoc(), realOp.getLhs());
     rewriter.replaceOp(sqrtOp, combinedOp.getAmplitude());
 
     rewriter.eraseOp(addOp);
@@ -1033,16 +1051,13 @@ struct SimplifyFFTRealAndImagToFFT : public OpRewritePattern<FFTRealOp> {
 
     // Replace the two operations with the combined FFT1D operation.
     DEBUG_PRINT_NO_ARGS();
-    auto combinedOp =
-        rewriter.create<FFTOp>(realOp.getLoc(), realOp.getLhs());
+    auto combinedOp = rewriter.create<FFTOp>(realOp.getLoc(), realOp.getLhs());
     rewriter.replaceOp(realOp, combinedOp.getResult(0));
     rewriter.replaceOp(imgOp, combinedOp.getResult(1));
 
     return success();
   }
 };
-
-
 
 // ===================================
 // ===================================
@@ -1066,8 +1081,7 @@ void FFT1DImgOp::getCanonicalizationPatterns(RewritePatternSet &results,
 void FFT1DRealOp::getCanonicalizationPatterns(RewritePatternSet &results,
                                               MLIRContext *context) {
   if (getEnableCanonicalOpt()) {
-    results.add<SimplifyFFTRealAndImg,
-        SimplifyFFTRealAtInputRealSymm>(context);
+    results.add<SimplifyFFTRealAndImg, SimplifyFFTRealAtInputRealSymm>(context);
   }
 }
 
@@ -1132,8 +1146,8 @@ void GainOp::getCanonicalizationPatterns(RewritePatternSet &results,
 void MeanOp::getCanonicalizationPatterns(RewritePatternSet &results,
                                          MLIRContext *context) {
   if (getEnableCanonicalOpt()) {
-    //results.add<SimplifyDiff2Mean>(context);
-	results.add<SimplifyFindPeaks2Diff2Mean>(context);
+    // results.add<SimplifyDiff2Mean>(context);
+    results.add<SimplifyFindPeaks2Diff2Mean>(context);
   }
 }
 
@@ -1145,17 +1159,16 @@ void FindPeaksOp::getCanonicalizationPatterns(RewritePatternSet &results,
 }
 
 void SlidingWindowAvgOp::getCanonicalizationPatterns(RewritePatternSet &results,
-                                              MLIRContext *context) {
+                                                     MLIRContext *context) {
   if (getEnableCanonicalOpt()) {
     results.add<SimplifyMedian2Sliding>(context);
   }
 }
 
-
-
 /// Register our patterns as "canonicalization" patterns on the ReshapeOp so
 /// that they can be picked up by the Canonicalization framework.
-void ReshapeOp::getCanonicalizationPatterns(RewritePatternSet &results, MLIRContext *context) {
+void ReshapeOp::getCanonicalizationPatterns(RewritePatternSet &results,
+                                            MLIRContext *context) {
   if (getEnableCanonicalOpt()) {
     results.add<ReshapeReshapeOptPattern, RedundantReshapeOptPattern,
                 FoldConstantReshapeOptPattern>(context);
@@ -1163,35 +1176,36 @@ void ReshapeOp::getCanonicalizationPatterns(RewritePatternSet &results, MLIRCont
 }
 
 void SpaceDemodulateOp::getCanonicalizationPatterns(RewritePatternSet &results,
-        MLIRContext *context) {
-            if(getEnableCanonicalOpt()) {
-            results.add<SimplifySpaceModDemodulate>(context);
-            }
-} 
-
-void NormalizeOp::getCanonicalizationPatterns(RewritePatternSet &results, MLIRContext *ctx) {
-    if(getEnableCanonicalOpt()) {
-        results.add<SimplifyNormLMSFilterResponse>(ctx);
-    }
+                                                    MLIRContext *context) {
+  if (getEnableCanonicalOpt()) {
+    results.add<SimplifySpaceModDemodulate>(context);
+  }
 }
 
-void DivOp::getCanonicalizationPatterns(RewritePatternSet &results, MLIRContext *ctx) {
-    if(getEnableCanonicalOpt()) {
-        results.add<SimplifyDSSDPass>(ctx);
-    }
+void NormalizeOp::getCanonicalizationPatterns(RewritePatternSet &results,
+                                              MLIRContext *ctx) {
+  if (getEnableCanonicalOpt()) {
+    results.add<SimplifyNormLMSFilterResponse>(ctx);
+  }
 }
 
-void ThresholdUpOp::getCanonicalizationPatterns(RewritePatternSet &results, MLIRContext *ctx) {
-    if(getEnableCanonicalOpt()) {
-        results.add<SimplifyFIRFilterHammingThreholdUpOptimized>(ctx);
-    }
+void DivOp::getCanonicalizationPatterns(RewritePatternSet &results,
+                                        MLIRContext *ctx) {
+  if (getEnableCanonicalOpt()) {
+    results.add<SimplifyDSSDPass>(ctx);
+  }
+}
+
+void ThresholdUpOp::getCanonicalizationPatterns(RewritePatternSet &results,
+                                                MLIRContext *ctx) {
+  if (getEnableCanonicalOpt()) {
+    results.add<SimplifyFIRFilterHammingThreholdUpOptimized>(ctx);
+  }
 }
 
 void FFTRealOp::getCanonicalizationPatterns(RewritePatternSet &results,
-                                              MLIRContext *context) {
+                                            MLIRContext *context) {
   if (getEnableCanonicalOpt()) {
     results.add<SimplifyFFTAbs, SimplifyFFTRealAndImagToFFT>(context);
   }
 }
-
-

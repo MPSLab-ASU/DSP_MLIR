@@ -1861,10 +1861,9 @@ struct FFTRealOpLowering : public ConversionPattern {
         loc, rewriter.getIndexType(), finalRevIndex);
 
     // Load from alloc_temp and store in alloc_reversed
-    auto realValue =
-        rewriter.create<memref::LoadOp>(loc, input, ValueRange{i});
-    auto imagValue =
-        rewriter.create<arith::ConstantFloatOp>(loc, llvm::APFloat(0.0), rewriter.getF64Type());
+    auto realValue = rewriter.create<memref::LoadOp>(loc, input, ValueRange{i});
+    auto imagValue = rewriter.create<arith::ConstantFloatOp>(
+        loc, llvm::APFloat(0.0), rewriter.getF64Type());
     rewriter.create<memref::StoreOp>(loc, realValue, alloc_reversed_real,
                                      ValueRange{revIndex});
     rewriter.create<memref::StoreOp>(loc, imagValue, alloc_reversed_imag,
@@ -1982,7 +1981,7 @@ struct FFTImagOpLowering : public ConversionPattern {
     auto alloc_temp_imag = insertAllocAndDealloc(memrefType, loc, rewriter);
 
     FFTRealOpAdaptor fftRealOpAdaptor(operands);
-    
+
     auto input = fftRealOpAdaptor.getLhs();
     auto lb = rewriter.create<arith::ConstantIndexOp>(loc, 0);
     auto ub =
@@ -2057,10 +2056,9 @@ struct FFTImagOpLowering : public ConversionPattern {
         loc, rewriter.getIndexType(), finalRevIndex);
 
     // Load from alloc_temp and store in alloc_reversed
-    auto realValue =
-        rewriter.create<memref::LoadOp>(loc, input, ValueRange{i});
-    auto imagValue =
-        rewriter.create<arith::ConstantFloatOp>(loc, llvm::APFloat(0.0), rewriter.getF64Type());
+    auto realValue = rewriter.create<memref::LoadOp>(loc, input, ValueRange{i});
+    auto imagValue = rewriter.create<arith::ConstantFloatOp>(
+        loc, llvm::APFloat(0.0), rewriter.getF64Type());
     rewriter.create<memref::StoreOp>(loc, realValue, alloc_reversed_real,
                                      ValueRange{revIndex});
     rewriter.create<memref::StoreOp>(loc, imagValue, alloc_reversed_imag,
@@ -9738,7 +9736,7 @@ struct BeamFormOpLowering : public ConversionPattern {
     llvm::SmallVector<int64_t, 2> signalShapeVec{antennas, timeDim};
     llvm::ArrayRef<int64_t> signalShape(signalShapeVec);
 
-    auto signalType = output.clone(signalShape, output.getElementType()); 
+    auto signalType = output.clone(signalShape, output.getElementType());
     auto signalMemRefType = convertTensorToMemRef(signalType);
     auto allocSignal = insertAllocAndDealloc(signalMemRefType, loc, rewriter);
 
@@ -9753,7 +9751,6 @@ struct BeamFormOpLowering : public ConversionPattern {
     AffineMap timeMap =
         AffineMap::get(2 /* dim */, 0 /* sym */, ArrayRef<AffineExpr>{d1},
                        rewriter.getContext());
-
 
     auto pi = rewriter.create<arith::ConstantOp>(
         loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(3.1415926));
@@ -10907,10 +10904,9 @@ struct FFTOpLowering : public ConversionPattern {
         loc, rewriter.getIndexType(), finalRevIndex);
 
     // Load from alloc_temp and store in alloc_reversed
-    auto realValue =
-        rewriter.create<memref::LoadOp>(loc, input, ValueRange{i});
-    auto imagValue =
-        rewriter.create<arith::ConstantFloatOp>(loc, llvm::APFloat(0.0), rewriter.getF64Type());
+    auto realValue = rewriter.create<memref::LoadOp>(loc, input, ValueRange{i});
+    auto imagValue = rewriter.create<arith::ConstantFloatOp>(
+        loc, llvm::APFloat(0.0), rewriter.getF64Type());
     rewriter.create<memref::StoreOp>(loc, realValue, alloc_reversed_real,
                                      ValueRange{revIndex});
     rewriter.create<memref::StoreOp>(loc, imagValue, alloc_reversed_imag,
@@ -11003,7 +10999,8 @@ struct FFTOpLowering : public ConversionPattern {
                                      ValueRange{odd_index});
 
     // replace the operation with the final value
-    rewriter.replaceOp(op, ValueRange{alloc_reversed_real, alloc_reversed_imag});
+    rewriter.replaceOp(op,
+                       ValueRange{alloc_reversed_real, alloc_reversed_imag});
     return success();
   }
 };
@@ -11103,10 +11100,9 @@ struct FFTAbsOpLowering : public ConversionPattern {
         loc, rewriter.getIndexType(), finalRevIndex);
 
     // Load from alloc_temp and store in alloc_reversed
-    auto realValue =
-        rewriter.create<memref::LoadOp>(loc, input, ValueRange{i});
-    auto imagValue =
-        rewriter.create<arith::ConstantFloatOp>(loc, llvm::APFloat(0.0), rewriter.getF64Type());
+    auto realValue = rewriter.create<memref::LoadOp>(loc, input, ValueRange{i});
+    auto imagValue = rewriter.create<arith::ConstantFloatOp>(
+        loc, llvm::APFloat(0.0), rewriter.getF64Type());
     rewriter.create<memref::StoreOp>(loc, realValue, alloc_reversed_real,
                                      ValueRange{revIndex});
     rewriter.create<memref::StoreOp>(loc, imagValue, alloc_reversed_imag,
@@ -11189,24 +11185,36 @@ struct FFTAbsOpLowering : public ConversionPattern {
     auto new_odd_imag = rewriter.create<arith::SubFOp>(loc, even_imag, t_imag);
 
     // Calculate amplitude for even index
-    auto new_even_real_squared = rewriter.create<arith::MulFOp>(loc, new_even_real, new_even_real);
-    auto new_even_imag_squared = rewriter.create<arith::MulFOp>(loc, new_even_imag, new_even_imag);
-    auto sum_even = rewriter.create<arith::AddFOp>(loc, new_even_real_squared, new_even_imag_squared);
+    auto new_even_real_squared =
+        rewriter.create<arith::MulFOp>(loc, new_even_real, new_even_real);
+    auto new_even_imag_squared =
+        rewriter.create<arith::MulFOp>(loc, new_even_imag, new_even_imag);
+    auto sum_even = rewriter.create<arith::AddFOp>(loc, new_even_real_squared,
+                                                   new_even_imag_squared);
     auto sqrt_even = rewriter.create<math::SqrtOp>(loc, sum_even);
 
     // Calculate amplitude for odd index
-    auto new_odd_real_squared = rewriter.create<arith::MulFOp>(loc, new_odd_real, new_odd_real);
-    auto new_odd_imag_squared = rewriter.create<arith::MulFOp>(loc, new_odd_imag, new_odd_imag);
-    auto sum_odd = rewriter.create<arith::AddFOp>(loc, new_odd_real_squared, new_odd_imag_squared);
+    auto new_odd_real_squared =
+        rewriter.create<arith::MulFOp>(loc, new_odd_real, new_odd_real);
+    auto new_odd_imag_squared =
+        rewriter.create<arith::MulFOp>(loc, new_odd_imag, new_odd_imag);
+    auto sum_odd = rewriter.create<arith::AddFOp>(loc, new_odd_real_squared,
+                                                  new_odd_imag_squared);
     auto sqrt_odd = rewriter.create<math::SqrtOp>(loc, sum_odd);
 
     // Store results
-    rewriter.create<memref::StoreOp>(loc, new_even_real, alloc_reversed_real, ValueRange{even_index});
-    rewriter.create<memref::StoreOp>(loc, new_even_imag, alloc_reversed_imag, ValueRange{even_index});
-    rewriter.create<memref::StoreOp>(loc, new_odd_real, alloc_reversed_real, ValueRange{odd_index});
-    rewriter.create<memref::StoreOp>(loc, new_odd_imag, alloc_reversed_imag, ValueRange{odd_index});
-    rewriter.create<memref::StoreOp>(loc, sqrt_even, alloc_amplitude, ValueRange{even_index});
-    rewriter.create<memref::StoreOp>(loc, sqrt_odd, alloc_amplitude, ValueRange{odd_index});                                 
+    rewriter.create<memref::StoreOp>(loc, new_even_real, alloc_reversed_real,
+                                     ValueRange{even_index});
+    rewriter.create<memref::StoreOp>(loc, new_even_imag, alloc_reversed_imag,
+                                     ValueRange{even_index});
+    rewriter.create<memref::StoreOp>(loc, new_odd_real, alloc_reversed_real,
+                                     ValueRange{odd_index});
+    rewriter.create<memref::StoreOp>(loc, new_odd_imag, alloc_reversed_imag,
+                                     ValueRange{odd_index});
+    rewriter.create<memref::StoreOp>(loc, sqrt_even, alloc_amplitude,
+                                     ValueRange{even_index});
+    rewriter.create<memref::StoreOp>(loc, sqrt_odd, alloc_amplitude,
+                                     ValueRange{odd_index});
 
     // replace the operation with the final value
     rewriter.replaceOp(op, alloc_amplitude);
@@ -11298,7 +11306,8 @@ void ToyToAffineLoweringPass::runOnOperation() {
       FIRFilterResSymmThresholdUpOptimizedOpLowering, FFTCombineOpLowering,
       GenerateDTMFOpLowering, GenerateVoiceSignatureOpLowering, SqrtOpLowering,
       FFTFreqOpLowering, FindDominantPeaksOpLowering,
-      RecoverDTMFDigitOpLowering, FFTOpLowering, FFTAbsOpLowering>(&getContext());
+      RecoverDTMFDigitOpLowering, FFTOpLowering, FFTAbsOpLowering>(
+      &getContext());
 
   // With the target and rewrite patterns defined, we can now attempt the
   // conversion. The conversion will signal failure if any of our `illegal`
