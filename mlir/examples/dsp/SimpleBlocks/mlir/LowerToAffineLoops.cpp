@@ -1782,8 +1782,8 @@ struct FFTRealOpLowering : public ConversionPattern {
     auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
     auto memrefType = convertTensorToMemRef(tensorType);
 
-    auto alloc_temp_real = insertAllocAndDealloc(memrefType, loc, rewriter);
-    auto alloc_temp_imag = insertAllocAndDealloc(memrefType, loc, rewriter);
+    // auto alloc_temp_real = insertAllocAndDealloc(memrefType, loc, rewriter);
+    // auto alloc_temp_imag = insertAllocAndDealloc(memrefType, loc, rewriter);
 
     FFTRealOpAdaptor fftRealOpAdaptor(operands);
 
@@ -1977,8 +1977,8 @@ struct FFTImagOpLowering : public ConversionPattern {
     auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
     auto memrefType = convertTensorToMemRef(tensorType);
 
-    auto alloc_temp_real = insertAllocAndDealloc(memrefType, loc, rewriter);
-    auto alloc_temp_imag = insertAllocAndDealloc(memrefType, loc, rewriter);
+    // auto alloc_temp_real = insertAllocAndDealloc(memrefType, loc, rewriter);
+    // auto alloc_temp_imag = insertAllocAndDealloc(memrefType, loc, rewriter);
 
     FFTRealOpAdaptor fftRealOpAdaptor(operands);
 
@@ -7957,8 +7957,8 @@ struct FindPeaks2Diff2MeanOptimizedOpLowering : public ConversionPattern {
     // addMapForPrev, ValueRange{peaks_count}); HWISOO: It does not work since
     // it gives "error: 'affine.load' op index must be a valid dimension or
     // symbol identifier" here.
-    Value last_peaks_count =
-        rewriter.create<arith::SubIOp>(loc, peaks_count, constant_index_one);
+    // Value last_peaks_count =
+    //     rewriter.create<arith::SubIOp>(loc, peaks_count, constant_index_one);
     auto last_peak_index_fp =
         rewriter.create<memref::LoadOp>(loc, alloc_output_last, ValueRange{});
     // f64 to index
@@ -8961,12 +8961,6 @@ struct GenerateDTMFOpLowering : public ConversionPattern {
     auto elements1 = inputvalue.getValues<FloatAttr>();
     float input = elements1[0].getValueAsDouble();
 
-    auto GetDurationOp = op->getOperand(1);
-    auto constantOp2ndArg = GetDurationOp.getDefiningOp<dsp::ConstantOp>();
-    auto constant2ndValue = constantOp2ndArg.getValue();
-    auto elements2 = constant2ndValue.getValues<FloatAttr>();
-    float duration = elements2[0].getValueAsDouble();
-
     auto GetFreqOp = op->getOperand(2);
     auto constantOp3rdArg = GetFreqOp.getDefiningOp<dsp::ConstantOp>();
     auto constant3rdValue = constantOp3rdArg.getValue();
@@ -8977,7 +8971,7 @@ struct GenerateDTMFOpLowering : public ConversionPattern {
     auto f1 = pair[0];
     auto f2 = pair[1];
     auto ub = tensorType.getShape()[0];
-    auto step = 1;
+    // auto step = 1;
 
     // Create constants
     auto const2pi = rewriter.create<arith::ConstantOp>(
@@ -9227,14 +9221,6 @@ struct FindDominantPeaksOpLowering : public ConversionPattern {
 
     rewriter.setInsertionPointAfter(forOp);
 
-    // Store the two highest peak frequencies in the result memref
-    auto storeFreq1 = rewriter.create<memref::StoreOp>(
-        loc, forOp.getResult(2), alloc,
-        ValueRange{rewriter.create<arith::ConstantIndexOp>(loc, 0)});
-    auto storeFreq2 = rewriter.create<memref::StoreOp>(
-        loc, forOp.getResult(3), alloc,
-        ValueRange{rewriter.create<arith::ConstantIndexOp>(loc, 1)});
-
     rewriter.replaceOp(op, alloc);
 
     return success();
@@ -9373,12 +9359,6 @@ struct GenerateVoiceSignatureOpLowering : public ConversionPattern {
     auto elements1 = constant1stValue.getValues<FloatAttr>();
     float f2 = elements1[0].getValueAsDouble();
 
-    auto GetDurationOp = op->getOperand(2);
-    auto constantOp2ndArg = GetDurationOp.getDefiningOp<dsp::ConstantOp>();
-    auto constant2ndValue = constantOp2ndArg.getValue();
-    auto elements2 = constant2ndValue.getValues<FloatAttr>();
-    float duration = elements2[0].getValueAsDouble();
-
     auto GetFreqOp = op->getOperand(3);
     auto constantOp3rdArg = GetFreqOp.getDefiningOp<dsp::ConstantOp>();
     auto constant3rdValue = constantOp3rdArg.getValue();
@@ -9393,8 +9373,8 @@ struct GenerateVoiceSignatureOpLowering : public ConversionPattern {
     // Create constants
     auto const2pi = rewriter.create<arith::ConstantOp>(
         loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(6.28318530718));
-    auto const05 = rewriter.create<arith::ConstantOp>(
-        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(0.5));
+    // auto const05 = rewriter.create<arith::ConstantOp>(loc,
+    // rewriter.getF64Type(), rewriter.getF64FloatAttr(0.5));
     auto constFs = rewriter.create<arith::ConstantOp>(
         loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(freq));
     auto constF1 = rewriter.create<arith::ConstantOp>(
@@ -10047,10 +10027,8 @@ struct ArgMaxOpLowering : public ConversionPattern {
         llvm::dyn_cast<RankedTensorType>(op->getOperand(0).getType());
 
     // get operation
-    auto argmaxOp = llvm::dyn_cast<dsp::ArgMaxOp>(op);
-
     // get attribute
-    int64_t axis = argmaxOp.getAxis();
+    // int64_t axis = argmaxOp.getAxis();
 
     // output allocation
     auto output = llvm::dyn_cast<RankedTensorType>((*op->result_type_begin()));
@@ -10825,8 +10803,8 @@ struct FFTOpLowering : public ConversionPattern {
     auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
     auto memrefType = convertTensorToMemRef(tensorType);
 
-    auto alloc_temp_real = insertAllocAndDealloc(memrefType, loc, rewriter);
-    auto alloc_temp_imag = insertAllocAndDealloc(memrefType, loc, rewriter);
+    // auto alloc_temp_real = insertAllocAndDealloc(memrefType, loc, rewriter);
+    // auto alloc_temp_imag = insertAllocAndDealloc(memrefType, loc, rewriter);
 
     FFTRealOpAdaptor fftRealOpAdaptor(operands);
 
@@ -11020,8 +10998,8 @@ struct FFTAbsOpLowering : public ConversionPattern {
     auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
     auto memrefType = convertTensorToMemRef(tensorType);
 
-    auto alloc_temp_real = insertAllocAndDealloc(memrefType, loc, rewriter);
-    auto alloc_temp_imag = insertAllocAndDealloc(memrefType, loc, rewriter);
+    // auto alloc_temp_real = insertAllocAndDealloc(memrefType, loc, rewriter);
+    // auto alloc_temp_imag = insertAllocAndDealloc(memrefType, loc, rewriter);
 
     FFTAbsOpAdaptor fftAbsOpAdaptor(operands);
 

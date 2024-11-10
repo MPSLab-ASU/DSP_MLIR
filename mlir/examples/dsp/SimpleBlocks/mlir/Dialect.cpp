@@ -3112,9 +3112,10 @@ void GenerateDTMFOp::build(mlir::OpBuilder &builder,
 }
 void GenerateDTMFOp::inferShapes() {
   auto digitType = llvm::dyn_cast<RankedTensorType>(getDigit().getType());
-  auto durationType = llvm::dyn_cast<RankedTensorType>(getDuration().getType());
-  auto fsType = llvm::dyn_cast<RankedTensorType>(getFs().getType());
-  // auto digitElementType = digitType.getElementType();
+  // auto durationType =
+  // llvm::dyn_cast<RankedTensorType>(getDuration().getType()); auto fsType =
+  // llvm::dyn_cast<RankedTensorType>(getFs().getType()); auto digitElementType
+  // = digitType.getElementType();
 
   auto duration = getDuration();
   auto durationConst = duration.getDefiningOp<dsp::ConstantOp>();
@@ -3182,10 +3183,10 @@ void FindDominantPeaksOp::inferShapes() {
 }
 
 mlir::LogicalResult FindDominantPeaksOp::verify() {
-  auto frequenciesType =
-      llvm::dyn_cast<RankedTensorType>(getFrequencies().getType());
-  auto magnitudesType =
-      llvm::dyn_cast<RankedTensorType>(getMagnitudes().getType());
+  // auto frequenciesType =
+  // llvm::dyn_cast<RankedTensorType>(getFrequencies().getType());
+  // auto magnitudesType =
+  // llvm::dyn_cast<RankedTensorType>(getMagnitudes().getType());
   return mlir::success();
 }
 
@@ -3210,10 +3211,10 @@ void RecoverDTMFDigitOp::inferShapes() {
 }
 
 mlir::LogicalResult RecoverDTMFDigitOp::verify() {
-  auto frequenciesType =
-      llvm::dyn_cast<RankedTensorType>(getFrequencies().getType());
-  auto freqPairsType =
-      llvm::dyn_cast<RankedTensorType>(getFreqPairs().getType());
+  // auto frequenciesType =
+  //     llvm::dyn_cast<RankedTensorType>(getFrequencies().getType());
+  // auto freqPairsType =
+  //     llvm::dyn_cast<RankedTensorType>(getFreqPairs().getType());
   return mlir::success();
 }
 
@@ -3303,10 +3304,7 @@ mlir::LogicalResult GenerateVoiceSignatureOp::verify() {
 }
 
 void GenerateVoiceSignatureOp::inferShapes() {
-  auto durationType = llvm::dyn_cast<RankedTensorType>(getDuration().getType());
   auto fsType = llvm::dyn_cast<RankedTensorType>(getFs().getType());
-  // auto digitElementType = digitType.getElementType();
-
   auto duration = getDuration();
   auto durationConst = duration.getDefiningOp<dsp::ConstantOp>();
   auto durationValue = durationConst.getValue();
@@ -3336,10 +3334,7 @@ void SqrtOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
   state.addOperands({input});
 }
 
-mlir::LogicalResult SqrtOp::verify() {
-  auto inputType = llvm::dyn_cast<RankedTensorType>(getInput().getType());
-  return mlir::success();
-}
+mlir::LogicalResult SqrtOp::verify() { return mlir::success(); }
 
 void SqrtOp::inferShapes() { getResult().setType(getInput().getType()); }
 
@@ -3367,8 +3362,9 @@ void QamDemodulateOp::inferShapes() {
 }
 
 mlir::LogicalResult QamDemodulateOp::verify() {
-  auto realType = llvm::dyn_cast<RankedTensorType>(getReal().getType());
-  auto imagineType = llvm::dyn_cast<RankedTensorType>(getImagine().getType());
+  // auto realType = llvm::dyn_cast<RankedTensorType>(getReal().getType());
+  // auto imagineType =
+  // llvm::dyn_cast<RankedTensorType>(getImagine().getType());
 
   return mlir::success();
 }
