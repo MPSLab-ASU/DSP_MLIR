@@ -144,10 +144,7 @@ int main() {
     double* GetThresholdReal = malloc(INPUT_LENGTH * sizeof(double));
     thresholdUp(GetThresholdReal, FIRfilterResponse, threshold, 0, INPUT_LENGTH);
     
-    for (int i = 0; i < INPUT_LENGTH; i++) {
-        printf("%f ", GetThresholdReal[i]);
-    }
-    printf("\n");
+    printf("%f\n", GetThresholdReal[3]);
     
     // Free allocated memory
     free(input);
