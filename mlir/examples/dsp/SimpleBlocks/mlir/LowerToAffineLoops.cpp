@@ -2151,7 +2151,7 @@ struct FFTImagOpLowering : public ConversionPattern {
                                      ValueRange{odd_index});
 
     // replace the operation with the final value
-    rewriter.replaceOp(op, alloc_reversed_real);
+    rewriter.replaceOp(op, alloc_reversed_imag);
     return success();
   }
 };
