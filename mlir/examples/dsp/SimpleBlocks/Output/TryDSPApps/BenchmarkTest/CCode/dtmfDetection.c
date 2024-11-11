@@ -58,7 +58,7 @@ void findDominantPeaks(double* frequencies, double* magnitudes, int fft_size, do
     int idx1 = -1, idx2 = -1;       // Indices for the two largest magnitudes
 
     // Iterate over the magnitude array to find the two highest magnitudes
-    for (int i = 0; i < fft_size / 2; i++) {
+    for (int i = 0; i < fft_size; i++) {
         if (magnitudes[i] > max1) {
             // Shift max1 to max2 and update max1
             max2 = max1;
@@ -97,7 +97,7 @@ int recoverDtmfDigit(double* peaks, const double freqPairs[10][2], int peak_coun
 }
 
 int main() {
-    int digit = 10; // DTMF digit to be generated
+    int digit = 9; // DTMF digit to be generated
     double duration = DURATION;
     int fs = SAMPLING_FREQUENCY;
 
