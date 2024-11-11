@@ -1161,6 +1161,34 @@ struct SimplifyFFTRealAndImagToFFT : public OpRewritePattern<FFTRealOp> {
   }
 };
 
+
+struct SimplifyCorrel2Max : public mlir::OpRewritePattern<MaxOp> {
+  SimplifyCorrel2Max(mlir::MLIRContext *context)
+      : OpRewritePattern<MaxOp>(context, 1) {}
+
+  mlir::LogicalResult
+  matchAndRewrite(MaxOp op, mlir::PatternRewriter &rewriter) const override {
+
+    mlir::Value maxOp_operand0 = op.getOperand();
+
+    CorrelateOp prev_correlateOp = maxOp_operand0.getDefiningOp<CorrelateOp>();
+
+    if (!prev_correlateOp)
+      return failure();
+
+    mlir::Value prev_correlateOp_operand1 = prev_correlateOp.getOperand(0);
+	mlir::Value prev_correlateOp_operand2 = prev_correlateOp.getOperand(1);
+
+    auto optimizedOp = rewriter.create<dsp::Correl2MaxOptimizedOp>(
+        op.getLoc(), prev_correlateOp_operand1, prev_correlateOp_operand2);
+
+    // Repalce the use of original diff operation with this operation
+    rewriter.replaceOp(op, optimizedOp.getResult());
+    return mlir::success();
+  }
+};
+
+
 // ===================================
 // ===================================
 // ===================================
@@ -1311,5 +1339,12 @@ void FFTRealOp::getCanonicalizationPatterns(RewritePatternSet &results,
                                             MLIRContext *context) {
   if (getEnableCanonicalOpt()) {
     results.add<SimplifyFFTAbs, SimplifyFFTRealAndImagToFFT>(context);
+  }
+}
+
+void MaxOp::getCanonicalizationPatterns(RewritePatternSet &results,
+                                         MLIRContext *context) {
+  if (getEnableCanonicalOpt()) {
+    results.add<SimplifyCorrel2Max>(context);
   }
 }

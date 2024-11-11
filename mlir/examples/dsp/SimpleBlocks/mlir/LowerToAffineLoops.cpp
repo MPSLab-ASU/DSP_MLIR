@@ -11559,6 +11559,345 @@ struct DFTAbsThresholdUpOpLowering : public ConversionPattern {
   }
 };
 
+
+struct CorrelateOpLowering : public ConversionPattern {
+  CorrelateOpLowering(MLIRContext *ctx)
+      : ConversionPattern(dsp::CorrelateOp::getOperationName(), 1, ctx) {}
+
+  LogicalResult
+  matchAndRewrite(Operation *op, ArrayRef<Value> operands,
+                  ConversionPatternRewriter &rewriter) const final {
+
+    auto loc = op->getLoc();
+
+    auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
+    auto memRefType = convertTensorToMemRef(tensorType);
+    auto alloc_output = insertAllocAndDealloc(memRefType, loc, rewriter);
+
+    typename dsp::CorrelateOp::Adaptor correlateOpAdaptor(operands);
+
+    Value cst_idx_zero = rewriter.create<arith::ConstantIndexOp>(loc, 0);
+    Value cst_idx_one = rewriter.create<arith::ConstantIndexOp>(loc, 1);
+
+    // ranked tensor type
+    auto inputType =
+        llvm::dyn_cast<RankedTensorType>(op->getOperand(0).getType());
+
+    ArrayRef<int64_t> inputShape = inputType.getShape();
+
+    int64_t N = inputShape[0];
+	
+	// First outer loop for k in range (0, N)
+    auto lb1 = rewriter.create<arith::ConstantIndexOp>(loc, 0);
+	auto ub1 = rewriter.create<arith::ConstantIndexOp>(loc, N);
+    auto step = rewriter.create<arith::ConstantIndexOp>(loc, 1);
+	
+    Value constant_N_minus_one = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getIndexType(), rewriter.getIndexAttr(N-1));
+	
+    auto floatMemRefType = MemRefType::get({}, rewriter.getF64Type());
+    auto alloc_iter_sum =
+        insertAllocAndDealloc(floatMemRefType, loc, rewriter);
+		
+    Value constant_zero = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(0));
+	
+    auto forOp1 = rewriter.create<scf::ForOp>(loc, lb1, ub1, step);	
+    auto k1 = forOp1.getInductionVar();
+    rewriter.setInsertionPointToStart(forOp1.getBody());
+	
+	rewriter.create<memref::StoreOp>(loc, constant_zero, alloc_iter_sum, ValueRange{});
+	
+    Value lb1_inner = rewriter.create<arith::SubIOp>(loc, constant_N_minus_one, k1);
+        
+	auto forOp1_1 = rewriter.create<scf::ForOp>(loc, lb1_inner, ub1, step);	
+    auto iy1 = forOp1_1.getInductionVar();
+    rewriter.setInsertionPointToStart(forOp1_1.getBody());
+	
+	Value ix1 = rewriter.create<arith::SubIOp>(loc, iy1, lb1_inner);
+	Value loadedLhs = rewriter.create<memref::LoadOp>(loc,
+							correlateOpAdaptor.getLhs(), ValueRange{ix1});
+	Value loadedRhs = rewriter.create<memref::LoadOp>(loc,
+							correlateOpAdaptor.getRhs(), ValueRange{iy1});
+	Value mul1 = rewriter.create<arith::MulFOp>(loc, loadedLhs, loadedRhs);
+	
+	Value loaded_sum1 = rewriter.create<memref::LoadOp>(loc,
+							alloc_iter_sum, ValueRange{});
+							
+	Value inter_sum1 = rewriter.create<arith::AddFOp>(loc, loaded_sum1, mul1);
+	
+	rewriter.create<memref::StoreOp>(loc, inter_sum1, alloc_iter_sum, ValueRange{});
+
+	rewriter.setInsertionPointAfter(forOp1_1);
+	
+	auto loaded_sum1_outer = rewriter.create<memref::LoadOp>(loc,
+							alloc_iter_sum, ValueRange{});
+	rewriter.create<memref::StoreOp>(loc, loaded_sum1_outer, alloc_output, ValueRange{k1});							
+	
+	rewriter.setInsertionPointAfter(forOp1);
+
+	// Second outer loop for k in range (N, 2*N-1)
+	auto ub2 = rewriter.create<arith::ConstantIndexOp>(loc, 2*N-1);
+
+    //lb2 = ub1	
+    auto forOp2 = rewriter.create<scf::ForOp>(loc, ub1, ub2, step);	
+    auto k2 = forOp2.getInductionVar();
+    rewriter.setInsertionPointToStart(forOp2.getBody());
+	
+	rewriter.create<memref::StoreOp>(loc, constant_zero, alloc_iter_sum, ValueRange{});
+	
+    Value lb2_inner = rewriter.create<arith::SubIOp>(loc, k2, constant_N_minus_one);
+        
+	//NOTE: ub = ub1 (N)
+	auto forOp2_1 = rewriter.create<scf::ForOp>(loc, lb2_inner, ub1, step);	
+    auto ix2 = forOp2_1.getInductionVar();
+    rewriter.setInsertionPointToStart(forOp2_1.getBody());
+	
+	Value iy2 = rewriter.create<arith::SubIOp>(loc, ix2, lb2_inner);
+	Value loadedLhs2 = rewriter.create<memref::LoadOp>(loc,
+							correlateOpAdaptor.getLhs(), ValueRange{ix2});
+	Value loadedRhs2 = rewriter.create<memref::LoadOp>(loc,
+							correlateOpAdaptor.getRhs(), ValueRange{iy2});
+	Value mul2 = rewriter.create<arith::MulFOp>(loc, loadedLhs2, loadedRhs2);
+	
+	Value loaded_sum2 = rewriter.create<memref::LoadOp>(loc,
+							alloc_iter_sum, ValueRange{});
+							
+	Value inter_sum2 = rewriter.create<arith::AddFOp>(loc, loaded_sum2, mul2);
+	
+	rewriter.create<memref::StoreOp>(loc, inter_sum2, alloc_iter_sum, ValueRange{});
+
+	rewriter.setInsertionPointAfter(forOp2_1);
+	
+	auto loaded_sum2_outer = rewriter.create<memref::LoadOp>(loc,
+							alloc_iter_sum, ValueRange{});
+	rewriter.create<memref::StoreOp>(loc, loaded_sum2_outer, alloc_output, ValueRange{k2});
+	
+	rewriter.setInsertionPointAfter(forOp2);
+
+
+    rewriter.replaceOp(op, alloc_output);
+
+    return success();
+  }
+};
+
+
+struct SetSingleElemAtIdxOpLowering : public ConversionPattern {
+  SetSingleElemAtIdxOpLowering(MLIRContext *ctx)
+      : ConversionPattern(dsp::SetSingleElemAtIdxOp::getOperationName(), 1, ctx) {}
+
+  LogicalResult
+  matchAndRewrite(Operation *op, ArrayRef<Value> operands,
+                  ConversionPatternRewriter &rewriter) const final {
+    auto loc = op->getLoc();
+
+    // output for result type
+    SetSingleElemAtIdxOpAdaptor setSingleElemAtIdxAdaptor(operands);
+    auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
+
+    // allocation & deallocation for the result of this operation
+    auto memRefType = convertTensorToMemRef(tensorType);
+    auto alloc = insertAllocAndDealloc(memRefType, loc, rewriter);
+
+
+    auto indxArgType =
+        llvm::dyn_cast<RankedTensorType>(op->getOperand(1).getType());
+
+    int indxArgShape = indxArgType.getShape().size();
+
+    ValueRange indexValueRange;
+
+    Value cst_idx_zero = rewriter.create<arith::ConstantIndexOp>(loc, 0);
+
+    if (indxArgShape == 0)
+      indexValueRange = ValueRange{};
+    else 
+      indexValueRange = ValueRange{cst_idx_zero};
+
+    Value loadedIndx = rewriter.create<AffineLoadOp>(
+        loc, setSingleElemAtIdxAdaptor.getIndx(), indexValueRange);
+		
+    // f64 to index
+    Value indx_ui = rewriter.create<arith::FPToUIOp>(
+        loc, rewriter.getIntegerType(32), loadedIndx);
+    Value indx_index = rewriter.create<arith::IndexCastOp>(
+        loc, rewriter.getIndexType(), indx_ui);
+
+    ValueRange valValueRange;
+
+    if (indxArgShape == 0)
+      valValueRange = ValueRange{};
+    else
+      valValueRange = ValueRange{cst_idx_zero};
+
+    Value loadedVal = rewriter.create<AffineLoadOp>(
+        loc, setSingleElemAtIdxAdaptor.getVal(), valValueRange);
+
+    rewriter.create<AffineStoreOp>(loc, loadedVal,
+                                   setSingleElemAtIdxAdaptor.getInput(),
+                                   ValueRange{indx_index});
+
+    rewriter.replaceOp(op, alloc);
+
+    return success();
+  }
+};
+
+
+
+struct Correl2MaxOptimizedOpLowering : public ConversionPattern {
+  Correl2MaxOptimizedOpLowering(MLIRContext *ctx)
+      : ConversionPattern(dsp::Correl2MaxOptimizedOp::getOperationName(), 1, ctx) {}
+
+  LogicalResult
+  matchAndRewrite(Operation *op, ArrayRef<Value> operands,
+                  ConversionPatternRewriter &rewriter) const final {
+
+    auto loc = op->getLoc();
+
+    auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
+    auto memRefType = convertTensorToMemRef(tensorType);
+    auto alloc_output = insertAllocAndDealloc(memRefType, loc, rewriter);
+
+    typename dsp::Correl2MaxOptimizedOp::Adaptor correl2MaxOpAdaptor(operands);
+
+    Value cst_idx_zero = rewriter.create<arith::ConstantIndexOp>(loc, 0);
+    Value cst_idx_one = rewriter.create<arith::ConstantIndexOp>(loc, 1);
+
+    // ranked tensor type
+    auto inputType =
+        llvm::dyn_cast<RankedTensorType>(op->getOperand(0).getType());
+
+    ArrayRef<int64_t> inputShape = inputType.getShape();
+
+    int64_t N = inputShape[0];
+	
+	// First outer loop for k in range (0, N)
+    auto lb1 = rewriter.create<arith::ConstantIndexOp>(loc, 0);
+	auto ub1 = rewriter.create<arith::ConstantIndexOp>(loc, N);
+    auto step = rewriter.create<arith::ConstantIndexOp>(loc, 1);
+	
+    Value constant_N_minus_one = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getIndexType(), rewriter.getIndexAttr(N-1));
+	
+    auto floatMemRefType = MemRefType::get({}, rewriter.getF64Type());
+    auto alloc_iter_sum =
+        insertAllocAndDealloc(floatMemRefType, loc, rewriter);
+		
+    Value constant_zero = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(0));
+		
+	rewriter.create<memref::StoreOp>(loc, constant_zero, alloc_output, ValueRange{});							
+	
+    auto forOp1 = rewriter.create<scf::ForOp>(loc, lb1, ub1, step);	
+    auto k1 = forOp1.getInductionVar();
+    rewriter.setInsertionPointToStart(forOp1.getBody());
+	
+	rewriter.create<memref::StoreOp>(loc, constant_zero, alloc_iter_sum, ValueRange{});
+	
+    Value lb1_inner = rewriter.create<arith::SubIOp>(loc, constant_N_minus_one, k1);
+        
+	auto forOp1_1 = rewriter.create<scf::ForOp>(loc, lb1_inner, ub1, step);	
+    auto iy1 = forOp1_1.getInductionVar();
+    rewriter.setInsertionPointToStart(forOp1_1.getBody());
+	
+	Value ix1 = rewriter.create<arith::SubIOp>(loc, iy1, lb1_inner);
+	Value loadedLhs = rewriter.create<memref::LoadOp>(loc,
+							correl2MaxOpAdaptor.getLhs(), ValueRange{ix1});
+	Value loadedRhs = rewriter.create<memref::LoadOp>(loc,
+							correl2MaxOpAdaptor.getRhs(), ValueRange{iy1});
+	Value mul1 = rewriter.create<arith::MulFOp>(loc, loadedLhs, loadedRhs);
+	
+	Value loaded_sum1 = rewriter.create<memref::LoadOp>(loc,
+							alloc_iter_sum, ValueRange{});
+							
+	Value inter_sum1 = rewriter.create<arith::AddFOp>(loc, loaded_sum1, mul1);
+	
+	rewriter.create<memref::StoreOp>(loc, inter_sum1, alloc_iter_sum, ValueRange{});
+
+	rewriter.setInsertionPointAfter(forOp1_1);
+	
+	auto loaded_sum1_outer = rewriter.create<memref::LoadOp>(loc,
+							alloc_iter_sum, ValueRange{});
+	auto loaded_output1 = rewriter.create<memref::LoadOp>(loc,
+							alloc_output, ValueRange{});
+
+	// If this is larger than current max, we need to change max
+    auto compare_sum1_output1 = rewriter.create<arith::CmpFOp>(
+        loc, arith::CmpFPredicate::OGT, loaded_sum1_outer, loaded_output1);
+
+    auto ifOp1 = rewriter.create<scf::IfOp>(loc, compare_sum1_output1, false);
+
+    rewriter.setInsertionPointToStart(ifOp1.thenBlock());
+	
+	rewriter.create<memref::StoreOp>(loc, loaded_sum1_outer, alloc_output, ValueRange{});
+	
+	rewriter.setInsertionPointAfter(forOp1);
+
+	// Second outer loop for k in range (N, 2*N-1)
+	auto ub2 = rewriter.create<arith::ConstantIndexOp>(loc, 2*N-1);
+
+    //lb2 = ub1	
+    auto forOp2 = rewriter.create<scf::ForOp>(loc, ub1, ub2, step);	
+    auto k2 = forOp2.getInductionVar();
+    rewriter.setInsertionPointToStart(forOp2.getBody());
+	
+	rewriter.create<memref::StoreOp>(loc, constant_zero, alloc_iter_sum, ValueRange{});
+	
+    Value lb2_inner = rewriter.create<arith::SubIOp>(loc, k2, constant_N_minus_one);
+        
+	//NOTE: ub = ub1 (N)
+	auto forOp2_1 = rewriter.create<scf::ForOp>(loc, lb2_inner, ub1, step);	
+    auto ix2 = forOp2_1.getInductionVar();
+    rewriter.setInsertionPointToStart(forOp2_1.getBody());
+	
+	Value iy2 = rewriter.create<arith::SubIOp>(loc, ix2, lb2_inner);
+	Value loadedLhs2 = rewriter.create<memref::LoadOp>(loc,
+							correl2MaxOpAdaptor.getLhs(), ValueRange{ix2});
+	Value loadedRhs2 = rewriter.create<memref::LoadOp>(loc,
+							correl2MaxOpAdaptor.getRhs(), ValueRange{iy2});
+	Value mul2 = rewriter.create<arith::MulFOp>(loc, loadedLhs2, loadedRhs2);
+	
+	Value loaded_sum2 = rewriter.create<memref::LoadOp>(loc,
+							alloc_iter_sum, ValueRange{});
+							
+	Value inter_sum2 = rewriter.create<arith::AddFOp>(loc, loaded_sum2, mul2);
+	
+	rewriter.create<memref::StoreOp>(loc, inter_sum2, alloc_iter_sum, ValueRange{});
+
+	rewriter.setInsertionPointAfter(forOp2_1);
+	
+	auto loaded_sum2_outer = rewriter.create<memref::LoadOp>(loc,
+							alloc_iter_sum, ValueRange{});
+	auto loaded_output2 = rewriter.create<memref::LoadOp>(loc,
+							alloc_output, ValueRange{});
+
+	// If this is larger than current max, we need to change max
+    auto compare_sum2_output2 = rewriter.create<arith::CmpFOp>(
+        loc, arith::CmpFPredicate::OGT, loaded_sum2_outer, loaded_output2);
+
+    auto ifOp2 = rewriter.create<scf::IfOp>(loc, compare_sum2_output2, false);
+
+    rewriter.setInsertionPointToStart(ifOp2.thenBlock());
+	
+	rewriter.create<memref::StoreOp>(loc, loaded_sum2_outer, alloc_output, ValueRange{});							
+
+	
+	rewriter.setInsertionPointAfter(forOp2);
+
+
+    rewriter.replaceOp(op, alloc_output);
+
+    return success();
+  }
+};
+
+
+
+
+
+
 // namespace
 
 //===----------------------------------------------------------------------===//
@@ -11644,7 +11983,8 @@ void ToyToAffineLoweringPass::runOnOperation() {
       GenerateDTMFOpLowering, GenerateVoiceSignatureOpLowering, SqrtOpLowering,
       FFTFreqOpLowering, FindDominantPeaksOpLowering,
       RecoverDTMFDigitOpLowering, FFTOpLowering, FFTAbsOpLowering,
-      DFTAbsOpLowering, DFTAbsThresholdUpOpLowering>(&getContext());
+      DFTAbsOpLowering, DFTAbsThresholdUpOpLowering, ArgMaxOpLowering, CorrelateOpLowering,
+	  SetSingleElemAtIdxOpLowering, Correl2MaxOptimizedOpLowering>(&getContext());
 
   // With the target and rewrite patterns defined, we can now attempt the
   // conversion. The conversion will signal failure if any of our `illegal`

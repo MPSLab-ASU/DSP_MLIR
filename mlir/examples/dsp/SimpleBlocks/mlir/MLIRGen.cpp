@@ -1169,6 +1169,40 @@ private:
       }
       return builder.create<SpaceErrCorrectionOp>(location, operands[0]);
     }
+	
+	// Correlate Op
+    if (callee == "correlate") {
+      if (call.getArgs().size() != 2) {
+        emitError(location, "MLIR codegen encountered an error: dsp.correlate "
+                            "accepts only 2 arguments: lhs rhs");
+        return nullptr;
+      }
+      return builder.create<CorrelateOp>(location, operands[0], operands[1]);
+    }
+	
+    // Set Single Element At Op
+    if (callee == "setSingleElemAtIndx") {
+      if (call.getArgs().size() != 3) {
+        emitError(location,
+                  "MLIR codegen encountered an error: dsp.setSingleElemAtIndx "
+                  "accepts only 3 arguments");
+        return nullptr;
+      }
+      return builder.create<SetSingleElemAtIdxOp>(location, operands[0],
+                                                  operands[1], operands[2]);
+    }
+
+    // Correl2MaxOptimizedOp Op
+    if (callee == "correl2max") {
+      if (call.getArgs().size() != 1) {
+        emitError(location, "MLIR codegen encountered an error: dsp.correl2max "
+                            "accepts only 2 argument.");
+        return nullptr;
+      }
+      return builder.create<Correl2MaxOptimizedOp>(location, operands[0], operands[1]);
+    }
+
+	
     // Builtin calls have their custom operation, meaning this is a
     // straightforward emission.
     // if(callee == "delay"){

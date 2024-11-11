@@ -3650,6 +3650,71 @@ mlir::LogicalResult DFTAbsThresholdUpOp::verify() {
   return mlir::success();
 }
 
+
+//===----------------------------------------------------------------------===//
+ // CorrelateOp
+ //===----------------------------------------------------------------------===//
+
+ void CorrelateOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                   mlir::Value lhs, mlir::Value rhs) {
+    state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+    state.addOperands({lhs, rhs});
+ }
+
+ void CorrelateOp::inferShapes() {
+  auto tensorLhs = getLhs().getType();
+  auto shapeOfLhs = tensorLhs.getShape();
+
+  std::vector<int64_t> shapeForOutput;   
+  shapeForOutput.push_back(shapeOfLhs[0]*2-1);
+  
+  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(
+	  shapeForOutput, tensorLhs.getElementType());
+
+  getResult().setType(manipulatedType);
+}
+
+//===----------------------------------------------------------------------===//
+// SetSingleElemAtIdxOp
+//===----------------------------------------------------------------------===//
+
+void SetSingleElemAtIdxOp::build(mlir::OpBuilder &builder,
+                            mlir::OperationState &state, mlir::Value input,
+                            mlir::Value indx, mlir::Value val) {
+  state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
+  state.addOperands({input, indx, val});
+}
+
+void SetSingleElemAtIdxOp::inferShapes() {
+  std::vector<int64_t> shapeForOutput;
+  
+  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(
+  shapeForOutput, getInput().getType().getElementType());
+  getResult().setType(manipulatedType);
+}
+
+
+//===----------------------------------------------------------------------===//
+// Correl2MaxOptimizedOp
+//===----------------------------------------------------------------------===//
+
+ void Correl2MaxOptimizedOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                   mlir::Value lhs, mlir::Value rhs) {
+    state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+    state.addOperands({lhs, rhs});
+ }
+
+ void Correl2MaxOptimizedOp::inferShapes() {
+  auto tensorInput = getLhs().getType();
+  std::vector<int64_t> shapeForOutput;
+  
+  mlir::TensorType manipulatedType = mlir::RankedTensorType::get(
+      shapeForOutput, tensorInput.getElementType());
+
+  getResult().setType(manipulatedType);      
+}
+
+
 //===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//

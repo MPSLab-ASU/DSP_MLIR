@@ -2629,6 +2629,7 @@ def MaxOp : Dsp_Op<"max", [Pure , DeclareOpInterfaceMethods<ShapeInferenceOpInte
    // let hasCustomAssemblyFormat = 1;
 
    // let hasVerifier = 1;
+   let hasCanonicalizer = 1;
  }
  
 
@@ -2886,6 +2887,73 @@ def DFTAbsThresholdUpOp : Dsp_Op<"DFTAbsThresholdUpOp", [Pure, DeclareOpInterfac
   ]; 
   let hasVerifier = 1;
 }
+
+
+//===----------------------------------------------------------------------===//
+// CorrelateOp
+//===----------------------------------------------------------------------===//
+
+def CorrelateOp : Dsp_Op<"correlate", [Pure , DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+   let summary = "This implements scp.correlate. Right now we assume size of lhs == size of rhs";
+   let description = [{
+		This operation finds and returns the maximum value of the tensor.
+   }]; 
+
+   let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);
+   let results = (outs F64Tensor);
+
+   // Indicate that the operation has a custom parser and printer method.
+   // let hasCustomAssemblyFormat = 1;
+   // let assemblyFormat = [{
+   //   `(` $input `:` type($input1 , $input2) `)` attr-dict `to` type(results)
+   // }];
+   // Allow building a MulOp with from the two input operands.
+   
+   let builders = [
+     OpBuilder<(ins "Value":$lhs, "Value":$rhs)>
+   ];
+
+   // let hasVerifier = 1;
+ }
+ 
+ 
+//===----------------------------------------------------------------------===//
+// SetSingleElemAtIdxOp
+//===----------------------------------------------------------------------===//
+
+def SetSingleElemAtIdxOp : Dsp_Op<"setSingleElemAtIndx",
+    [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+  let summary = "This one access ranked tensor at idx and sets signle tensor with or without dimension.";
+
+  let arguments = (ins F64Tensor:$input, F64Tensor:$indx , F64Tensor:$val);
+  let results = (outs F64Tensor);
+
+  let builders = [
+    OpBuilder<(ins "Value":$input, "Value":$indx, "Value":$val)>
+  ];
+
+  // Indicate that additional verification for this operation is necessary.
+  //let hasVerifier = 1;
+}
+
+
+//===----------------------------------------------------------------------===//
+// Correl2MaxOptimizedOp
+//===----------------------------------------------------------------------===//
+
+def Correl2MaxOptimizedOp : Dsp_Op<"correl2max", [Pure , DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+   let summary = "Find the index of maximum value in tensor. outputs with floating point-converted index";
+   let description = [{
+		This operation fuses loops for correlate and max.
+   }]; 
+
+   let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);
+   let results = (outs F64Tensor);
+   
+   let builders = [
+     OpBuilder<(ins "Value":$lhs, "Value":$rhs)>
+   ];
+ }
 
 
 #endif // TOY_OPS
