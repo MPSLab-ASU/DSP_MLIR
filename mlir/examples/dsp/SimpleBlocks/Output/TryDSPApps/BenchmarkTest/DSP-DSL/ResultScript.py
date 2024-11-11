@@ -16,7 +16,7 @@ import time
 
 # Path to the input file
 # Apps = "hearingAid.py" , "lowPassFull.py" , " audioCompression.py", "lowPassFIRFilterDesign.py" , "EnergyOfSignal.py", "periodogram2Conv1.py", "audioEqualizer.py", "vibrationAnalysis.py", "signalSmoothing.py", "targetDetection.py", "biomedicalSignalProcessing.py", "spaceCommunication.py", "echocancelling", "noisecancelling.py", "digitalModulation", "underWaterCommunication", "voiceActivityDetection", "radarSignalProcessing"
-input_file_path = "dtmfDetection.py"
+input_file_path = "vibrationAnalysis.py"
 BasePathForLLVM = "/home/local/ASURITE/apkhedka/ForLLVM/"
 OutputScriptPath = (
     "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/DSP-DSL/"
@@ -100,14 +100,16 @@ for key, value in inputValues.items():
     value2 = 1 / value
     dur = value / 8192
     print(f"\n{key}", end="\t")
-    
-    with open(input_file_path, 'r') as file:
+
+    with open(input_file_path, "r") as file:
         lines = file.readlines()
-    
-    with open(input_file_path, 'w') as file:
+
+    with open(input_file_path, "w") as file:
         for line in lines:
             if line.strip().startswith("var input = getRangeOfVector("):
-                updated_line = f"\tvar input = getRangeOfVector(0, {value}, 0.000125);\n"
+                updated_line = (
+                    f"\tvar input = getRangeOfVector(0, {value}, 0.000125);\n"
+                )
                 file.write(updated_line)
             elif line.strip().startswith("var duration ="):
                 updated_line = f"\tvar duration = {dur};\n"
