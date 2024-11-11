@@ -1,119 +1,142 @@
-#include <complex.h>
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <math.h>
 
-#define PI 3.14159265358979323846
-#define INPUT_LENGTH 100000000
+#define SAMPLING_FREQUENCY 8192  // Sampling frequency
+#define DURATION 0.5             // Duration of the DTMF signal
+#define N_SAMPLES (int)(SAMPLING_FREQUENCY * DURATION) // Number of samples for the DTMF signal
+
 // DTMF frequencies
-const int dtmf_freqs[12][2] = {
-    {697, 1209}, {697, 1336}, {697, 1477}, {770, 1209}, {770, 1336},
-    {770, 1477}, {852, 1209}, {852, 1336}, {852, 1477}, {941, 1336}};
+const double freqPairs[10][2] = {
+    {941, 1336},   // 0
+    {697, 1209},   // 1
+    {697, 1336},   // 2
+    {697, 1477},   // 3
+    {770, 1209},   // 4
+    {770, 1336},   // 5
+    {770, 1477},   // 6
+    {852, 1209},   // 7
+    {852, 1336},   // 8
+    {852, 1477}    // 9
+};
 
-const char dtmf_digits[12] = {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'};
-
-void generate_dtmf_tone(double *signal, char digit, int N, int fs) {
-  int f1 = 0, f2 = 0;
-  for (int i = 0; i < 12; i++) {
-    if (dtmf_digits[i] == digit) {
-      f1 = dtmf_freqs[i][0];
-      f2 = dtmf_freqs[i][1];
-      break;
+// Function to generate the DTMF tone for a given digit
+void generateDtmf(int digit, double* dtmf_tone, int fs) {
+    double f1 = freqPairs[digit][0];
+    double f2 = freqPairs[digit][1];
+    
+    for (int i = 0; i < N_SAMPLES; i++) {
+        double t = (double)i / fs;
+        dtmf_tone[i] = 10 * (sin(2 * M_PI * f1 * t) + sin(2 * M_PI * f2 * t));
     }
-  }
-
-  for (int i = 0; i < N; i++) {
-    double t = (double)i / fs;
-    signal[i] = sin(2 * PI * f1 * t) + sin(2 * PI * f2 * t);
-  }
 }
 
-double goertzel(double *data, int N, double frequency, int fs) {
-  double omega = 2.0 * PI * frequency / fs;
-  double cosine = cos(omega);
-  double coeff = 2.0 * cosine;
-  double q0 = 0, q1 = 0, q2 = 0;
-
-  for (int i = 0; i < N; i++) {
-    q0 = coeff * q1 - q2 + data[i];
-    q2 = q1;
-    q1 = q0;
-  }
-
-  return sqrt(q1 * q1 + q2 * q2 - coeff * q1 * q2);
+// Function to perform the Discrete Fourier Transform (DFT)
+void dft(double* signal, double* real_out, double* imag_out, int N) {
+    for (int k = 0; k < N; k++) {
+        real_out[k] = 0;
+        imag_out[k] = 0;
+        for (int n = 0; n < N; n++) {
+            double angle = 2 * M_PI * k * n / N;
+            real_out[k] += signal[n] * cos(angle);
+            imag_out[k] -= signal[n] * sin(angle);
+        }
+    }
 }
 
-char detect_dtmf(double *signal, int N, int fs) {
-  double magnitudes[8];
-  int frequencies[] = {697, 770, 852, 941, 1209, 1336, 1477, 1633};
+// Function to calculate the magnitudes from the real and imaginary parts of DFT
+void calculateMagnitudes(double* real, double* imag, double* magnitudes, int N) {
+    for (int i = 0; i < N; i++) {
+        magnitudes[i] = sqrt(real[i] * real[i] + imag[i] * imag[i]);
+    }
+}
 
-  // Calculate magnitudes for all 8 DTMF frequencies
-  for (int i = 0; i < 8; i++) {
-    magnitudes[i] = goertzel(signal, N, frequencies[i], fs);
-  }
+// Function to find dominant peaks in the magnitude spectrum and ensure they are in ascending order
+// Function to find the two highest peaks in the magnitude spectrum and return their frequencies
+void findDominantPeaks(double* frequencies, double* magnitudes, int fft_size, double* peaks) {
+    double max1 = 0.0, max2 = 0.0;  // Variables to hold the two largest magnitudes
+    int idx1 = -1, idx2 = -1;       // Indices for the two largest magnitudes
 
-  // Find the maximum magnitude in low and high frequency groups
-  int max_low_index = 0, max_high_index = 4;
-  for (int i = 1; i < 4; i++) {
-    if (magnitudes[i] > magnitudes[max_low_index])
-      max_low_index = i;
-  }
-  for (int i = 5; i < 8; i++) {
-    if (magnitudes[i] > magnitudes[max_high_index])
-      max_high_index = i;
-  }
+    // Iterate over the magnitude array to find the two highest magnitudes
+    for (int i = 0; i < fft_size / 2; i++) {
+        if (magnitudes[i] > max1) {
+            // Shift max1 to max2 and update max1
+            max2 = max1;
+            idx2 = idx1;
+            max1 = magnitudes[i];
+            idx1 = i;
+        } else if (magnitudes[i] > max2) {
+            max2 = magnitudes[i];
+            idx2 = i;
+        }
+    }
 
-  // Calculate the average magnitude
-  double avg_magnitude = 0;
-  for (int i = 0; i < 8; i++) {
-    avg_magnitude += magnitudes[i];
-  }
-  avg_magnitude /= 8;
+    // Assign the corresponding frequencies to the peaks array in ascending order
+    if (frequencies[idx1] < frequencies[idx2]) {
+        peaks[0] = frequencies[idx1];
+        peaks[1] = frequencies[idx2];
+    } else {
+        peaks[0] = frequencies[idx2];
+        peaks[1] = frequencies[idx1];
+    }
+}
 
-  // Set thresholds
-  double threshold = avg_magnitude * 2;
 
-  // Check if the detected magnitudes are significantly above the threshold
-  if (magnitudes[max_low_index] > threshold &&
-      magnitudes[max_high_index] > threshold) {
-    return dtmf_digits[max_low_index * 3 + (max_high_index - 4)];
-  }
+// Function to recover the DTMF digit from frequency peaks
+int recoverDtmfDigit(double* peaks, const double freqPairs[10][2], int peak_count) {
+    for (int i = 0; i < 10; i++) {
+        double f1 = freqPairs[i][0];
+        double f2 = freqPairs[i][1];
 
-  return '\0';
+        if ((fabs(peaks[0] - f1) < 10 && fabs(peaks[1] - f2) < 10) ||
+            (fabs(peaks[0] - f2) < 10 && fabs(peaks[1] - f1) < 10)) {
+            return i; // Digit found
+        }
+    }
+    return -1; // No match found
 }
 
 int main() {
-  int fs = 8000;
-  char test_digit = '5'; // Changed to char type
-  double duration = (double)INPUT_LENGTH / fs;
-  int N = INPUT_LENGTH;
+    int digit = 10; // DTMF digit to be generated
+    double duration = DURATION;
+    int fs = SAMPLING_FREQUENCY;
 
-  double *input = (double *)malloc(N * sizeof(double));
-  if (!input) {
-    perror("Memory allocation failed for input");
-    exit(EXIT_FAILURE);
-  }
+    // Allocate memory for the DTMF signal and DFT output
+    double* dtmf_tone = (double*)malloc(N_SAMPLES * sizeof(double));
+    double* real_out = (double*)malloc(N_SAMPLES * sizeof(double));
+    double* imag_out = (double*)malloc(N_SAMPLES * sizeof(double));
+    double* magnitudes = (double*)malloc(N_SAMPLES * sizeof(double));
+    double* frequencies = (double*)malloc(N_SAMPLES * sizeof(double));
 
-  generate_dtmf_tone(input, test_digit, N, fs);
+    // Generate the DTMF tone
+    generateDtmf(digit, dtmf_tone, fs);
 
-  int delay_samples = fs / 100;
-  for (int j = N - 1; j >= delay_samples; j--) {
-    input[j] = input[j - delay_samples];
-  }
-  for (int j = 0; j < delay_samples; j++) {
-    input[j] = 0;
-  }
+    // Perform DFT
+    dft(dtmf_tone, real_out, imag_out, N_SAMPLES);
 
-  char detected_digit = detect_dtmf(input, N, fs);
+    // Calculate magnitudes and frequencies
+    for (int i = 0; i < N_SAMPLES / 2; i++) {
+        magnitudes[i] = sqrt(real_out[i] * real_out[i] + imag_out[i] * imag_out[i]);
+        frequencies[i] = (double)i * fs / N_SAMPLES;
+    }
 
-  if (detected_digit != '\0') {
-    printf("Generated: %c, Detected: %c\n", test_digit, detected_digit);
-  } else {
-    printf("Generated: %c, No DTMF digit detected\n", test_digit);
-  }
+    // Find dominant frequency peaks (in ascending order)
+    double peaks[2] = {0, 0}; // We expect 2 dominant peaks
+    findDominantPeaks(frequencies, magnitudes, N_SAMPLES, peaks);
+    // Recover the DTMF digit
+    int recovered_digit = recoverDtmfDigit(peaks, freqPairs, 2);
+    if (recovered_digit >= 0) {
+        printf("Recovered DTMF digit: %d\n", recovered_digit);
+    } else {
+        printf("No DTMF digit detected.\n");
+    }
 
-  free(input);
+    // Cleanup
+    free(dtmf_tone);
+    free(real_out);
+    free(imag_out);
+    free(magnitudes);
+    free(frequencies);
 
-  return 0;
+    return 0;
 }
