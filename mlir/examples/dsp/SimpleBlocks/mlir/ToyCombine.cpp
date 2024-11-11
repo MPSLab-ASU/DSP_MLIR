@@ -1091,7 +1091,7 @@ struct SimplifyDFTAbs : public OpRewritePattern<FFT1DRealOp> {
 
     DEBUG_PRINT_NO_ARGS();
     auto combinedOp =
-        rewriter.create<FFTAbsOp>(realOp.getLoc(), realOp.getInput());
+        rewriter.create<DFTAbsOp>(realOp.getLoc(), realOp.getInput());
     rewriter.replaceOp(sqrtOp, combinedOp.getAmplitude());
 
     rewriter.eraseOp(addOp);
@@ -1101,6 +1101,36 @@ struct SimplifyDFTAbs : public OpRewritePattern<FFT1DRealOp> {
     rewriter.eraseOp(realOp);
 
     return success();
+  }
+};
+
+struct SimplifyDFTAbsThreshold : public mlir::OpRewritePattern<ThresholdUpOp> {
+  SimplifyDFTAbsThreshold(mlir::MLIRContext *context)
+      : OpRewritePattern<ThresholdUpOp>(context, /*benefit=*/1) {}
+
+  /// This method attempts to match a pattern and rewrite it. The rewriter
+  /// argument is the orchestrator of the sequence of rewrites. The pattern is
+  /// expected to interact with it to perform any changes to the IR from here.
+  mlir::LogicalResult
+  matchAndRewrite(ThresholdUpOp op,
+                  mlir::PatternRewriter &rewriter) const override {
+    mlir::Value Operand0_threshold = op.getOperand(0);
+    mlir::Value Operand1_threshold = op.getOperand(1);
+    mlir::Value Operand2_threshold = op.getOperand(2);
+    dsp::DFTAbsOp prev_dftAbsOp = Operand0_threshold.getDefiningOp<DFTAbsOp>();
+
+    if (!prev_dftAbsOp) {
+      return failure();
+    }
+    Value input1 = prev_dftAbsOp->getOperand(0);
+
+    auto combinedOp = rewriter.create<DFTAbsThresholdUpOp>(
+        op.getLoc(), input1, Operand1_threshold, Operand2_threshold);
+
+    DEBUG_PRINT_NO_ARGS();
+    rewriter.replaceOp(op, combinedOp);
+
+    return mlir::success();
   }
 };
 
@@ -1153,7 +1183,8 @@ void FFT1DImgOp::getCanonicalizationPatterns(RewritePatternSet &results,
 void FFT1DRealOp::getCanonicalizationPatterns(RewritePatternSet &results,
                                               MLIRContext *context) {
   if (getEnableCanonicalOpt()) {
-    results.add<SimplifyDFTAbs, SimplifyFFTRealAndImg, SimplifyFFTRealAtInputRealSymm>(context);
+    results.add<SimplifyDFTAbs, SimplifyFFTRealAndImg,
+                SimplifyFFTRealAtInputRealSymm>(context);
   }
 }
 
@@ -1271,7 +1302,8 @@ void DivOp::getCanonicalizationPatterns(RewritePatternSet &results,
 void ThresholdUpOp::getCanonicalizationPatterns(RewritePatternSet &results,
                                                 MLIRContext *ctx) {
   if (getEnableCanonicalOpt()) {
-    results.add<SimplifyFIRFilterHammingThreholdUpOptimized>(ctx);
+    results.add<SimplifyFIRFilterHammingThreholdUpOptimized,
+                SimplifyDFTAbsThreshold>(ctx);
   }
 }
 

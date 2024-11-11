@@ -2,7 +2,7 @@ def main() {
   var fs = 1000;
   # var step = 1/fs; 
   # print(step);
-	var input = getRangeOfVector(0, 30000, 1);
+	var input = getRangeOfVector(0, 300, 0.000125);
   var pi = 3.14159265359;
   var getMultiplier = 2 * pi * 50;
   # print(getMultiplier);
@@ -15,18 +15,13 @@ def main() {
   var signal = sig1 + sig2;
   var noise = delay(signal, 5);
   var noisy_sig = signal + noise;
-  var threshold = 0.2;
+  var threshold = 20;
   
   var fft_real = fft1dreal(noisy_sig);
   var fft_img = fft1dimg(noisy_sig);
-
-  var sq_abs = square(fft_real) + square(fft_img)  ;
-
-  var sum1 = sum(sq_abs);
-  var len1 = len(input);
-  var res = sum1 / len1;
-  print(res);
-  print(sq_abs);
-  var GetThresholdReal = threshold( sq_abs , threshold);
-  print(GetThresholdReal);
+  var sq_abs = square(fft_real) + square(fft_img);
+  var magnitudes = sqrt(sq_abs);
+  var GetThresholdReal = thresholdUp( magnitudes , threshold,1);
+  var final1 = getElemAtIndx(GetThresholdReal , [2]); 
+  print(final1);
 }

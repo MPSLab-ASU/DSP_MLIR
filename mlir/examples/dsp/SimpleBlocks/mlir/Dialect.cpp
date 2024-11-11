@@ -3606,18 +3606,49 @@ void FFTAbsOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
 void FFTAbsOp::inferShapes() { getResult().setType(getInput().getType()); }
 
 //===----------------------------------------------------------------------===//
-// FFT1DAbsOp
+// DFTAbsOp
 //===----------------------------------------------------------------------===//
 
-// void FFT1DAbsOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-//                       mlir::Value input) {
-//   state.addTypes(input.getType());
-//   state.addOperands({input});
-// }
+void DFTAbsOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+                     mlir::Value input) {
+  state.addTypes(input.getType());
+  state.addOperands({input});
+}
 
-// void FFTAbsOp::inferShapes() { 
-//   getResult().setType(getInput().getType()); 
-// }
+void DFTAbsOp::inferShapes() { getResult().setType(getInput().getType()); }
+
+//===----------------------------------------------------------------------===//
+// DFTAbsThresholdUpOp
+//===----------------------------------------------------------------------===//
+
+void DFTAbsThresholdUpOp::build(mlir::OpBuilder &builder,
+                                mlir::OperationState &state, mlir::Value input,
+                                mlir::Value threshold,
+                                mlir::Value returnoriginal) {
+  state.addTypes(input.getType());
+  state.addOperands({input, threshold, returnoriginal});
+}
+
+void DFTAbsThresholdUpOp::inferShapes() {
+  getResult().setType(getInput().getType());
+}
+
+mlir::LogicalResult DFTAbsThresholdUpOp::verify() {
+  int64_t returnOriginal = 5;
+  Value returnoriginal = getOperand(2);
+  dsp::ConstantOp constantOp1stArg =
+      returnoriginal.getDefiningOp<dsp::ConstantOp>();
+  DenseElementsAttr constantLhsValue = constantOp1stArg.getValue();
+  auto elements = constantLhsValue.getValues<FloatAttr>();
+  float LenN = elements[0].getValueAsDouble();
+  returnOriginal = (int64_t)LenN;
+
+  // filter-order even not supported -- so making it odd
+  if (returnOriginal != 0 && returnOriginal != 1) {
+    return mlir::failure();
+  }
+  return mlir::success();
+}
 
 //===----------------------------------------------------------------------===//
 // TableGen'd op method definitions

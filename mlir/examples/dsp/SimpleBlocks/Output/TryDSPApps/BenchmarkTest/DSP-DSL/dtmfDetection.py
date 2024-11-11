@@ -13,16 +13,16 @@ def main() {
      var sum = squared_fft_real + squared_fft_imag;
      # print(sum);
      var magnitudes = sqrt(sum);
-     # print(magnitudes);
+    #  print(magnitudes);
      var frequencies = fftfreq(4096, 0.000122);
-     # print(frequencies);
+    #  # print(frequencies);
      var peaks = findDominantPeaks(frequencies, magnitudes);
-    #  print(peaks);
+     print(peaks);
      var freqPairs = [
      [941, 1336],
      [697, 1209],
      [697, 1336],
-     [697, 1477],
+     [697, 1477], 
      [770, 1209],
      [770, 1336],
      [770, 1477],

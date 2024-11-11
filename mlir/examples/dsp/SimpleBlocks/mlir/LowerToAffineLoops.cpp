@@ -9230,21 +9230,25 @@ struct FindDominantPeaksOpLowering : public ConversionPattern {
     // Compare freq1 and freq2 to determine the order
     auto cmpFreq = rewriter.create<arith::CmpFOp>(
         loc, arith::CmpFPredicate::OLT, forOp.getResult(2), forOp.getResult(3));
-    
+
     auto ifFreq = rewriter.create<scf::IfOp>(
-        loc, TypeRange{rewriter.getF64Type(), rewriter.getF64Type()}, cmpFreq, true);
+        loc, TypeRange{rewriter.getF64Type(), rewriter.getF64Type()}, cmpFreq,
+        true);
 
     rewriter.setInsertionPointToStart(&ifFreq.getThenRegion().front());
     // freq1 < freq2, so keep the order
-    rewriter.create<scf::YieldOp>(loc, ValueRange{forOp.getResult(2), forOp.getResult(3)});
+    rewriter.create<scf::YieldOp>(
+        loc, ValueRange{forOp.getResult(2), forOp.getResult(3)});
 
     rewriter.setInsertionPointToStart(&ifFreq.getElseRegion().front());
     // freq1 >= freq2, so swap the order
-    rewriter.create<scf::YieldOp>(loc, ValueRange{forOp.getResult(3), forOp.getResult(2)});
+    rewriter.create<scf::YieldOp>(
+        loc, ValueRange{forOp.getResult(3), forOp.getResult(2)});
 
     rewriter.setInsertionPointAfter(ifFreq);
 
-    // Store the two highest peak frequencies in the result memref, now in the correct order
+    // Store the two highest peak frequencies in the result memref, now in the
+    // correct order
     auto storeFreq1 = rewriter.create<memref::StoreOp>(
         loc, ifFreq.getResult(0), alloc,
         ValueRange{rewriter.create<arith::ConstantIndexOp>(loc, 0)});
@@ -9506,254 +9510,10 @@ struct FFTCombineOpLowering : public ConversionPattern {
   }
 };
 
-//===----------------------------------------------------------------------===//
-// ToyToAffine RewritePatterns: RecoverDTMFDigitOpLowering operations
-//===----------------------------------------------------------------------===//
-
-struct RecoverDTMFDigitOpLowering : public ConversionPattern {
-  RecoverDTMFDigitOpLowering(MLIRContext *ctx)
-      : ConversionPattern(dsp::RecoverDTMFDigitOp::getOperationName(), 1, ctx) {
-  }
-
-  LogicalResult
-  matchAndRewrite(Operation *op, ArrayRef<Value> operands,
-                  ConversionPatternRewriter &rewriter) const final {
-    auto loc = op->getLoc();
-
-    auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
-    auto memRefType = convertTensorToMemRef(tensorType);
-    auto alloc = insertAllocAndDealloc(memRefType, loc, rewriter);
-
-    auto indexMemRefType = MemRefType::get({}, rewriter.getIndexType());
-    auto finalMatchIndex_alloc =
-        insertAllocAndDealloc(indexMemRefType, loc, rewriter);
-
-    RecoverDTMFDigitOpAdaptor recoverDTMFDigitOpAdaptor(operands);
-
-    auto frequencies = recoverDTMFDigitOpAdaptor.getFrequencies();
-    auto freqPairs = recoverDTMFDigitOpAdaptor.getFreqPairs();
-
-    auto highFreqIndex = rewriter.create<arith::ConstantIndexOp>(loc, 0);
-    auto lowFreqIndex = rewriter.create<arith::ConstantIndexOp>(loc, 1);
-
-    auto highFreq = rewriter.create<memref::LoadOp>(loc, frequencies,
-                                                    ValueRange{highFreqIndex});
-    auto lowFreq = rewriter.create<memref::LoadOp>(loc, frequencies,
-                                                   ValueRange{lowFreqIndex});
-
-    auto initialMatchIndex = rewriter.create<arith::ConstantIndexOp>(loc, -1);
-    rewriter.create<AffineStoreOp>(loc, initialMatchIndex,
-                                   finalMatchIndex_alloc, ValueRange{});
-
-    auto tolerance = rewriter.create<arith::ConstantFloatOp>(
-        loc, llvm::APFloat(3.0), rewriter.getF64Type());
-
-    auto lb = rewriter.create<arith::ConstantIndexOp>(loc, 0);
-    auto ub = rewriter.create<arith::ConstantIndexOp>(loc, 10);
-    auto step = rewriter.create<arith::ConstantIndexOp>(loc, 1);
-
-    auto forOp = rewriter.create<scf::ForOp>(loc, lb, ub, step);
-    rewriter.setInsertionPointToStart(forOp.getBody());
-    auto iv = forOp.getInductionVar();
-
-    auto matchIndex = rewriter.create<memref::LoadOp>(
-        loc, finalMatchIndex_alloc, ValueRange{});
-
-    auto highFreqOg = rewriter.create<memref::LoadOp>(
-        loc, freqPairs, ValueRange{iv, highFreqIndex});
-    auto lowFreqOg = rewriter.create<memref::LoadOp>(
-        loc, freqPairs, ValueRange{iv, lowFreqIndex});
-
-    auto highFreqDiff =
-        rewriter.create<arith::SubFOp>(loc, highFreqOg, highFreq);
-    auto lowFreqDiff = rewriter.create<arith::SubFOp>(loc, lowFreqOg, lowFreq);
-
-    auto absHighFreqDiff = rewriter.create<math::AbsFOp>(loc, highFreqDiff);
-    auto absLowFreqDiff = rewriter.create<math::AbsFOp>(loc, lowFreqDiff);
-
-    auto highFreqMatch = rewriter.create<arith::CmpFOp>(
-        loc, arith::CmpFPredicate::OLE, absHighFreqDiff, tolerance);
-    auto lowFreqMatch = rewriter.create<arith::CmpFOp>(
-        loc, arith::CmpFPredicate::OLE, absLowFreqDiff, tolerance);
-    auto bothMatch =
-        rewriter.create<arith::AndIOp>(loc, highFreqMatch, lowFreqMatch);
-
-    auto newMatchIndex =
-        rewriter.create<arith::SelectOp>(loc, bothMatch, iv, matchIndex);
-
-    rewriter.create<memref::StoreOp>(loc, newMatchIndex, finalMatchIndex_alloc,
-                                     ValueRange{});
-
-    rewriter.setInsertionPointAfter(forOp);
-
-    auto finalMatchIndex = rewriter.create<memref::LoadOp>(
-        loc, finalMatchIndex_alloc, ValueRange{});
-
-    auto finalMatchIndexI64 = rewriter.create<arith::IndexCastOp>(
-        loc, rewriter.getI64Type(), finalMatchIndex);
-    auto finalMatchIndexF64 = rewriter.create<arith::SIToFPOp>(
-        loc, rewriter.getF64Type(), finalMatchIndexI64);
-
-    auto zero = rewriter.create<arith::ConstantIndexOp>(loc, 0);
-    rewriter.create<memref::StoreOp>(loc, finalMatchIndexF64, alloc,
-                                     ValueRange{zero});
-
-    rewriter.replaceOp(op, alloc);
-
-    return success();
-  }
-};
-
 // Store finalMatchIndexF64 into alloc
 // auto zero = rewriter.create<arith::ConstantIndexOp>(loc, 0);
 // rewriter.create<memref::StoreOp>(loc, finalMatchIndexF64, alloc,
 // ValueRange{zero});
-
-//===----------------------------------------------------------------------===//
-// ToyToAffine RewritePatterns: GenerateVoiceSignatureOpLowering operations
-//===----------------------------------------------------------------------===//
-
-struct GenerateVoiceSignatureOpLowering : public ConversionPattern {
-  GenerateVoiceSignatureOpLowering(MLIRContext *ctx)
-      : ConversionPattern(dsp::GenerateVoiceSignatureOp::getOperationName(), 1,
-                          ctx) {}
-
-  LogicalResult
-  matchAndRewrite(Operation *op, ArrayRef<Value> operands,
-                  ConversionPatternRewriter &rewriter) const final {
-    auto loc = op->getLoc();
-    auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
-    auto memRefType = convertTensorToMemRef(tensorType);
-    auto alloc = insertAllocAndDealloc(memRefType, loc, rewriter);
-
-    auto GetF1Op = op->getOperand(0);
-    auto constantOp0thArg = GetF1Op.getDefiningOp<dsp::ConstantOp>();
-    auto constant0thValue = constantOp0thArg.getValue();
-    auto elements0 = constant0thValue.getValues<FloatAttr>();
-    float f1 = elements0[0].getValueAsDouble();
-
-    auto GetF2Op = op->getOperand(1);
-    auto constantOp1stArg = GetF2Op.getDefiningOp<dsp::ConstantOp>();
-    auto constant1stValue = constantOp1stArg.getValue();
-    auto elements1 = constant1stValue.getValues<FloatAttr>();
-    float f2 = elements1[0].getValueAsDouble();
-
-    auto GetDurationOp = op->getOperand(2);
-    auto constantOp2ndArg = GetDurationOp.getDefiningOp<dsp::ConstantOp>();
-    auto constant2ndValue = constantOp2ndArg.getValue();
-    auto elements2 = constant2ndValue.getValues<FloatAttr>();
-    float duration = elements2[0].getValueAsDouble();
-
-    auto GetFreqOp = op->getOperand(3);
-    auto constantOp3rdArg = GetFreqOp.getDefiningOp<dsp::ConstantOp>();
-    auto constant3rdValue = constantOp3rdArg.getValue();
-    auto elements3 = constant3rdValue.getValues<FloatAttr>();
-    float freq = elements3[0].getValueAsDouble();
-
-    auto lb = rewriter.create<arith::ConstantIndexOp>(loc, 0);
-    auto ub =
-        rewriter.create<arith::ConstantIndexOp>(loc, tensorType.getShape()[0]);
-    auto step = rewriter.create<arith::ConstantIndexOp>(loc, 1);
-
-    // Create constants
-    auto const2pi = rewriter.create<arith::ConstantOp>(
-        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(6.28318530718));
-    auto const05 = rewriter.create<arith::ConstantOp>(
-        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(0.5));
-    auto constFs = rewriter.create<arith::ConstantOp>(
-        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(freq));
-    auto constF1 = rewriter.create<arith::ConstantOp>(
-        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(f1));
-    auto constF2 = rewriter.create<arith::ConstantOp>(
-        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(f2));
-
-    // Create a loop to generate the DTMF tone
-    auto forOp = rewriter.create<scf::ForOp>(loc, lb, ub, step);
-    rewriter.setInsertionPointToStart(forOp.getBody());
-    // Get the loop induction variable
-    auto iv = forOp.getInductionVar();
-
-    // Convert loop index to time
-    auto indexToI64 =
-        rewriter.create<arith::IndexCastOp>(loc, rewriter.getI64Type(), iv);
-    auto indexToFloat = rewriter.create<arith::SIToFPOp>(
-        loc, rewriter.getF64Type(), indexToI64);
-    auto time = rewriter.create<arith::DivFOp>(loc, indexToFloat, constFs);
-
-    // Generate sine wave for f1
-    auto mulFreqTime1 = rewriter.create<arith::MulFOp>(loc, constF1, time);
-    auto mul2Pi1 = rewriter.create<arith::MulFOp>(loc, const2pi, mulFreqTime1);
-    auto sine1 = rewriter.create<math::SinOp>(loc, mul2Pi1);
-
-    // Generate sine wave for f2
-    auto mulFreqTime2 = rewriter.create<arith::MulFOp>(loc, constF2, time);
-    auto mul2Pi2 = rewriter.create<arith::MulFOp>(loc, const2pi, mulFreqTime2);
-    auto sine2 = rewriter.create<math::SinOp>(loc, mul2Pi2);
-
-    // Combine the two sine waves
-    auto sumSines = rewriter.create<arith::AddFOp>(loc, sine1, sine2);
-    // auto scaledSum = rewriter.create<arith::MulFOp>(loc, const05, sumSines);
-
-    // Store the result in the allocated memref
-    rewriter.create<memref::StoreOp>(loc, sumSines, alloc, iv);
-
-    rewriter.setInsertionPointAfter(forOp);
-
-    rewriter.replaceOp(op, alloc);
-
-    return success();
-  }
-};
-
-//===----------------------------------------------------------------------===//
-// ToyToAffine RewritePatterns: FFTCombineOpLowering operations
-//===----------------------------------------------------------------------===//
-
-struct FFTCombineOpLowering : public ConversionPattern {
-  FFTCombineOpLowering(MLIRContext *ctx)
-      : ConversionPattern(dsp::FFTCombineOp::getOperationName(), 1, ctx) {}
-
-  LogicalResult
-  matchAndRewrite(Operation *op, ArrayRef<Value> operands,
-                  ConversionPatternRewriter &rewriter) const final {
-    auto loc = op->getLoc();
-    auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
-    auto memRefType = convertTensorToMemRef(tensorType);
-    auto alloc = insertAllocAndDealloc(memRefType, loc, rewriter);
-
-    FFTCombineOpAdaptor fftCombineOpAdaptor(operands);
-
-    auto real = fftCombineOpAdaptor.getReal();
-    auto imag = fftCombineOpAdaptor.getImag();
-
-    auto lb = rewriter.create<arith::ConstantIndexOp>(loc, 0);
-    auto ub =
-        rewriter.create<arith::ConstantIndexOp>(loc, tensorType.getShape()[0]);
-    auto step = rewriter.create<arith::ConstantIndexOp>(loc, 1);
-
-    auto forOp = rewriter.create<scf::ForOp>(loc, lb, ub, step);
-    rewriter.setInsertionPointToStart(forOp.getBody());
-    auto iv = forOp.getInductionVar();
-
-    auto realInput = rewriter.create<memref::LoadOp>(loc, real, ValueRange{iv});
-    auto imagInput = rewriter.create<memref::LoadOp>(loc, imag, ValueRange{iv});
-    auto realInputSquared =
-        rewriter.create<arith::MulFOp>(loc, realInput, realInput);
-    auto imagInputSquared =
-        rewriter.create<arith::MulFOp>(loc, imagInput, imagInput);
-    auto sum =
-        rewriter.create<arith::AddFOp>(loc, realInputSquared, imagInputSquared);
-    auto root = rewriter.create<math::SqrtOp>(loc, sum);
-
-    rewriter.create<memref::StoreOp>(loc, root, alloc, ValueRange{iv});
-
-    rewriter.setInsertionPointAfter(forOp);
-
-    rewriter.replaceOp(op, alloc);
-
-    return success();
-  }
-};
 
 struct QamModulateRealOpLowering : public ConversionPattern {
   QamModulateRealOpLowering(MLIRContext *ctx)
@@ -11487,6 +11247,318 @@ struct FFTAbsOpLowering : public ConversionPattern {
   }
 };
 
+//===----------------------------------------------------------------------===//
+// ToyToAffine RewritePatterns: DFTAbsOp operations
+//===----------------------------------------------------------------------===//
+
+struct DFTAbsOpLowering : public ConversionPattern {
+  DFTAbsOpLowering(MLIRContext *ctx)
+      : ConversionPattern(dsp::DFTAbsOp::getOperationName(), 1, ctx) {}
+
+  LogicalResult
+  matchAndRewrite(Operation *op, ArrayRef<Value> operands,
+                  ConversionPatternRewriter &rewriter) const final {
+
+    auto loc = op->getLoc();
+
+    // Pseudo-code:
+    //   y[k] = y_real[k] + j *y_img[k]
+    //  y_real = sumOver_n(x[n]*cos[2*pi * k *n/N ]
+    //  y_img = sumOver_n(x[n]*sin[2*pi * k *n/N ] * -1
+    // init  output mem for y_real & y_img as 0
+    // iterate for output from k=0 to last
+    // iterate for all x from n=0 to last
+    // perform the calculations : ie x[n] * cos[2*pi * k *n/N ] and sum and
+    // store them at y[k]
+    //
+    // replace this upsampling op with the output_mem_allocation op
+
+    // DEBUG_PRINT_NO_ARGS() ;
+
+    // output for result type
+    auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
+    // iterate to result1 --not needed for now but for future reference
+    //  auto tensorType1 =
+    //  llvm::cast<RankedTensorType>(*std::next(op->result_type_begin(), 1));
+
+    // DEBUG_PRINT_NO_ARGS() ;
+    // tensorType.getShape()[0]
+    // llvm::errs() << "tensorType1.getShape()[0] " << tensorType1.getShape()[0]
+    // << " func= " << __func__ << "\n";
+
+    // allocation & deallocation for the result of this operation
+    auto memRefType = convertTensorToMemRef(tensorType);
+    // auto memRefType2 = convertTensorToMemRef(tensorType1);
+    auto alloc_real = insertAllocAndDealloc(memRefType, loc, rewriter);
+    auto alloc_img = insertAllocAndDealloc(memRefType, loc, rewriter);
+    auto alloc_mag = insertAllocAndDealloc(memRefType, loc, rewriter);
+
+    // construct affine loops for the input
+    SmallVector<int64_t, 4> lowerBounds(tensorType.getRank(), /*Value*/ 0);
+    SmallVector<int64_t, 4> steps(tensorType.getRank(), /*Value=*/1);
+
+    // affine.for %y = 0 to 4 {
+    //     affine.store %cst_3, %alloc_real[%y] : memref<4xf64>
+    //     affine.store %cst_3, %alloc_img[%y] : memref<4xf64>
+    // }
+    Value constant0 = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(0));
+
+    // For loop -- iterate from 1 to last
+    int64_t lb = 0;
+    int64_t ub = tensorType.getShape()[0];
+    int64_t step = 1;
+
+    affine::AffineForOp forOp1 =
+        rewriter.create<AffineForOp>(loc, lb, ub, step);
+    auto iv = forOp1.getInductionVar();
+    rewriter.setInsertionPointToStart(forOp1.getBody());
+    rewriter.create<AffineStoreOp>(loc, constant0, alloc_real, ValueRange{iv});
+    rewriter.create<AffineStoreOp>(loc, constant0, alloc_img, ValueRange{iv});
+    rewriter.create<AffineStoreOp>(loc, constant0, alloc_mag, ValueRange{iv});
+    rewriter.setInsertionPointAfter(forOp1);
+
+    // loop for Y
+    affine::AffineForOp forOpY =
+        rewriter.create<AffineForOp>(loc, lb, ub, step);
+    auto ivY = forOpY.getInductionVar();
+    rewriter.setInsertionPointToStart(forOpY.getBody());
+
+    // loop for X
+    affine::AffineForOp forOpX =
+        rewriter.create<AffineForOp>(loc, lb, ub, step);
+    auto ivX = forOpX.getInductionVar();
+    rewriter.setInsertionPointToStart(forOpX.getBody());
+
+    // load from X, & y1 & y2
+    DFTAbsOpAdaptor fft1DAdaptor(operands);
+    Value inputX = rewriter.create<AffineLoadOp>(loc, fft1DAdaptor.getInput(),
+                                                 ValueRange{ivX});
+    Value loadYReal =
+        rewriter.create<AffineLoadOp>(loc, alloc_real, ValueRange{ivY});
+    Value loadYImg =
+        rewriter.create<AffineLoadOp>(loc, alloc_img, ValueRange{ivY});
+
+    // convert index to f64
+    Value IndxY = rewriter.create<arith::IndexCastUIOp>(
+        loc, rewriter.getIntegerType(32), ivY);
+    Value k =
+        rewriter.create<arith::UIToFPOp>(loc, rewriter.getF64Type(), IndxY);
+
+    Value IndxX = rewriter.create<arith::IndexCastUIOp>(
+        loc, rewriter.getIntegerType(32), ivX);
+    Value i =
+        rewriter.create<arith::UIToFPOp>(loc, rewriter.getF64Type(), IndxX);
+
+    // get 2*pi * k * i / N
+    Value muli_k = rewriter.create<arith::MulFOp>(loc, k, i);
+
+    Value const2pi = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(6.28318530718));
+    Value mul2piKI = rewriter.create<arith::MulFOp>(loc, const2pi, muli_k);
+
+    // getOperand().getType()
+    // auto inputTensorType =
+    // llvm::cast<RankedTensorType>(op->getOperand(0).getType());
+    float LengthOfInput = (float)ub;
+    Value N = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(LengthOfInput));
+    // Value N = inputTensorType.getShape()[0];
+
+    Value divIndxByN = rewriter.create<arith::DivFOp>(loc, mul2piKI, N);
+
+    // Real part = Sum(x[i] * cos(div) )
+    Value GetCos = rewriter.create<math::CosOp>(loc, divIndxByN);
+    Value xMulCos = rewriter.create<arith::MulFOp>(loc, inputX, GetCos);
+    Value realSum = rewriter.create<arith::AddFOp>(loc, loadYReal, xMulCos);
+    rewriter.create<AffineStoreOp>(loc, realSum, alloc_real, ValueRange{ivY});
+
+    // Img part = -1 * Sum(x[i] * sin(div) )
+    Value GetSin = rewriter.create<math::SinOp>(loc, divIndxByN);
+    Value xMulSin = rewriter.create<arith::MulFOp>(loc, inputX, GetSin);
+    Value imgSum = rewriter.create<arith::SubFOp>(loc, loadYImg, xMulSin);
+
+    rewriter.create<AffineStoreOp>(loc, imgSum, alloc_img, ValueRange{ivY});
+    rewriter.setInsertionPointAfter(forOpX);
+    Value final_real =
+        rewriter.create<AffineLoadOp>(loc, alloc_real, ValueRange{ivY});
+    Value final_img =
+        rewriter.create<AffineLoadOp>(loc, alloc_img, ValueRange{ivY});
+
+    // Calculate amplitude
+    auto real_squared =
+        rewriter.create<arith::MulFOp>(loc, final_real, final_real);
+    auto img_squared =
+        rewriter.create<arith::MulFOp>(loc, final_img, final_img);
+    auto sum_odd =
+        rewriter.create<arith::AddFOp>(loc, real_squared, img_squared);
+    auto amplitude = rewriter.create<math::SqrtOp>(loc, sum_odd);
+
+    // replace the operation with the final value
+    rewriter.create<AffineStoreOp>(loc, amplitude, alloc_mag, ValueRange{ivY});
+    rewriter.setInsertionPointAfter(forOpY);
+    rewriter.replaceOp(op, alloc_mag);
+    return success();
+  }
+};
+
+//===----------------------------------------------------------------------===//
+// ToyToAffine RewritePatterns: DFTAbsThresholdUpOp operations
+//===----------------------------------------------------------------------===//
+
+struct DFTAbsThresholdUpOpLowering : public ConversionPattern {
+  DFTAbsThresholdUpOpLowering(MLIRContext *ctx)
+      : ConversionPattern(dsp::DFTAbsThresholdUpOp::getOperationName(), 1,
+                          ctx) {}
+
+  LogicalResult
+  matchAndRewrite(Operation *op, ArrayRef<Value> operands,
+                  ConversionPatternRewriter &rewriter) const final {
+
+    auto loc = op->getLoc();
+    // output for result type
+    auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
+
+    // allocation & deallocation for the result of this operation
+    auto memRefType = convertTensorToMemRef(tensorType);
+    // auto memRefType2 = convertTensorToMemRef(tensorType1);
+    auto alloc_real = insertAllocAndDealloc(memRefType, loc, rewriter);
+    auto alloc_img = insertAllocAndDealloc(memRefType, loc, rewriter);
+    auto alloc_mag = insertAllocAndDealloc(memRefType, loc, rewriter);
+
+    // construct affine loops for the input
+    SmallVector<int64_t, 4> lowerBounds(tensorType.getRank(), /*Value*/ 0);
+    SmallVector<int64_t, 4> steps(tensorType.getRank(), /*Value=*/1);
+
+    Value constant0 = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(0));
+
+    // For loop -- iterate from 1 to last
+    int64_t lb = 0;
+    int64_t ub = tensorType.getShape()[0];
+    int64_t step = 1;
+
+    affine::AffineForOp forOp1 =
+        rewriter.create<AffineForOp>(loc, lb, ub, step);
+    auto iv = forOp1.getInductionVar();
+    rewriter.setInsertionPointToStart(forOp1.getBody());
+    rewriter.create<AffineStoreOp>(loc, constant0, alloc_real, ValueRange{iv});
+    rewriter.create<AffineStoreOp>(loc, constant0, alloc_img, ValueRange{iv});
+    rewriter.create<AffineStoreOp>(loc, constant0, alloc_mag, ValueRange{iv});
+    rewriter.setInsertionPointAfter(forOp1);
+
+    // loop for Y
+    affine::AffineForOp forOpY =
+        rewriter.create<AffineForOp>(loc, lb, ub, step);
+    auto ivY = forOpY.getInductionVar();
+    rewriter.setInsertionPointToStart(forOpY.getBody());
+
+    // loop for X
+    affine::AffineForOp forOpX =
+        rewriter.create<AffineForOp>(loc, lb, ub, step);
+    auto ivX = forOpX.getInductionVar();
+    rewriter.setInsertionPointToStart(forOpX.getBody());
+
+    // load from X, & y1 & y2
+    DFTAbsThresholdUpOpAdaptor dftAbsThresholdUpOp(operands);
+    Value inputX = rewriter.create<AffineLoadOp>(
+        loc, dftAbsThresholdUpOp.getInput(), ValueRange{ivX});
+    Value loadYReal =
+        rewriter.create<AffineLoadOp>(loc, alloc_real, ValueRange{ivY});
+    Value loadYImg =
+        rewriter.create<AffineLoadOp>(loc, alloc_img, ValueRange{ivY});
+
+    // convert index to f64
+    Value IndxY = rewriter.create<arith::IndexCastUIOp>(
+        loc, rewriter.getIntegerType(32), ivY);
+    Value k =
+        rewriter.create<arith::UIToFPOp>(loc, rewriter.getF64Type(), IndxY);
+
+    Value IndxX = rewriter.create<arith::IndexCastUIOp>(
+        loc, rewriter.getIntegerType(32), ivX);
+    Value i =
+        rewriter.create<arith::UIToFPOp>(loc, rewriter.getF64Type(), IndxX);
+
+    // get 2*pi * k * i / N
+    Value muli_k = rewriter.create<arith::MulFOp>(loc, k, i);
+
+    Value const2pi = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(6.28318530718));
+    Value mul2piKI = rewriter.create<arith::MulFOp>(loc, const2pi, muli_k);
+
+    // getOperand().getType()
+    // auto inputTensorType =
+    // llvm::cast<RankedTensorType>(op->getOperand(0).getType());
+    float LengthOfInput = (float)ub;
+    Value N = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(LengthOfInput));
+    // Value N = inputTensorType.getShape()[0];
+
+    Value divIndxByN = rewriter.create<arith::DivFOp>(loc, mul2piKI, N);
+
+    // Real part = Sum(x[i] * cos(div) )
+    Value GetCos = rewriter.create<math::CosOp>(loc, divIndxByN);
+    Value xMulCos = rewriter.create<arith::MulFOp>(loc, inputX, GetCos);
+    Value realSum = rewriter.create<arith::AddFOp>(loc, loadYReal, xMulCos);
+    rewriter.create<AffineStoreOp>(loc, realSum, alloc_real, ValueRange{ivY});
+
+    // Img part = -1 * Sum(x[i] * sin(div) )
+    Value GetSin = rewriter.create<math::SinOp>(loc, divIndxByN);
+    Value xMulSin = rewriter.create<arith::MulFOp>(loc, inputX, GetSin);
+    Value imgSum = rewriter.create<arith::SubFOp>(loc, loadYImg, xMulSin);
+
+    rewriter.create<AffineStoreOp>(loc, imgSum, alloc_img, ValueRange{ivY});
+    rewriter.setInsertionPointAfter(forOpX);
+    Value final_real =
+        rewriter.create<AffineLoadOp>(loc, alloc_real, ValueRange{ivY});
+    Value final_img =
+        rewriter.create<AffineLoadOp>(loc, alloc_img, ValueRange{ivY});
+
+    // Calculate amplitude
+    auto real_squared =
+        rewriter.create<arith::MulFOp>(loc, final_real, final_real);
+    auto img_squared =
+        rewriter.create<arith::MulFOp>(loc, final_img, final_img);
+    auto sum_odd =
+        rewriter.create<arith::AddFOp>(loc, real_squared, img_squared);
+    auto amplitude = rewriter.create<math::SqrtOp>(loc, sum_odd);
+
+    auto thresholdMemRef = dftAbsThresholdUpOp.getThreshold();
+    auto returnOriginalMemRef = dftAbsThresholdUpOp.getReturnoriginal();
+
+    auto threshold =
+        rewriter.create<AffineLoadOp>(loc, thresholdMemRef, ValueRange{});
+    auto returnOriginal =
+        rewriter.create<AffineLoadOp>(loc, returnOriginalMemRef, ValueRange{});
+    Value constant00 = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(0));
+
+    Value constant11 = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(1));
+    // Compare a[i] >= threshold
+    auto cmp1 = rewriter.create<arith::CmpFOp>(loc, arith::CmpFPredicate::OGE,
+                                               amplitude, threshold);
+    // Compare if return original is true or false and return 1 or original
+    // value
+    auto cmpro = rewriter.create<arith::CmpFOp>(loc, arith::CmpFPredicate::OEQ,
+                                                constant11, returnOriginal);
+
+    // Use select to choose between inputX and 1
+    auto selectreturn =
+        rewriter.create<arith::SelectOp>(loc, cmpro, amplitude, constant11);
+
+    // Use select to choose between 0 and selectreturn
+    auto selectOp =
+        rewriter.create<arith::SelectOp>(loc, cmp1, selectreturn, constant00);
+
+    // replace the operation with the final value
+    rewriter.create<AffineStoreOp>(loc, selectOp, alloc_mag, ValueRange{ivY});
+    rewriter.setInsertionPointAfter(forOpY);
+    rewriter.replaceOp(op, alloc_mag);
+    return success();
+  }
+};
+
 // namespace
 
 //===----------------------------------------------------------------------===//
@@ -11571,8 +11643,8 @@ void ToyToAffineLoweringPass::runOnOperation() {
       FIRFilterResSymmThresholdUpOptimizedOpLowering, FFTCombineOpLowering,
       GenerateDTMFOpLowering, GenerateVoiceSignatureOpLowering, SqrtOpLowering,
       FFTFreqOpLowering, FindDominantPeaksOpLowering,
-      RecoverDTMFDigitOpLowering, FFTOpLowering, FFTAbsOpLowering>(
-      &getContext());
+      RecoverDTMFDigitOpLowering, FFTOpLowering, FFTAbsOpLowering,
+      DFTAbsOpLowering, DFTAbsThresholdUpOpLowering>(&getContext());
 
   // With the target and rewrite patterns defined, we can now attempt the
   // conversion. The conversion will signal failure if any of our `illegal`
