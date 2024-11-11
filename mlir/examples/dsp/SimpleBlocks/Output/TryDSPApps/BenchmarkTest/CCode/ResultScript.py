@@ -15,8 +15,8 @@ import time
 # Run the respective commands on the file
 
 # Path to the input file
-# Apps = "lowPassFIRFilterDesign.c", "noisecancelling.c" , "echocancelling.c",  "hearingAid.c", "audioEqualizer.c", "vibrationAnalysis.c", "underWaterCommunication.c", "voiceActivityDetection.c", "signalSmoothing",  "targetDetection", "biomedicalSignalProcessing", "periodogram2Conv", "spaceCommunication", "dtmfDetection"
-input_file_path = "dtmfDetection.c"
+# Apps = "lowPassFIRFilterDesign.c", "noisecancelling.c" , "echocancelling.c",  "hearingAid.c", "audioEqualizer.c", "vibrationAnalysis.c", "underWaterCommunication.c", "voiceActivityDetection.c", "signalSmoothing",  "targetDetection", "biomedicalSignalProcessing", "periodogram2Conv", "spaceCommunication", "dtmfDetection", "speakerIdentification"
+input_file_path = "radarSignalProcessing.c"
 BasePathForLLVM = "/home/local/ASURITE/apkhedka/ForLLVM/"
 OutputScriptPath = "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/CCode/"
 # OutputPath = BasePathForLLVM + "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/Results/TryResultScript/Output/"
