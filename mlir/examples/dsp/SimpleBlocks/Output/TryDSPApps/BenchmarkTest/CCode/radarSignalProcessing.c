@@ -1,149 +1,109 @@
-#include <stdio.h>
 #include <math.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <complex.h>
 
-// Constants
 #define PI 3.1415926
-
-// Function prototypes
-void getRangeOfVector(double start, double end, double step, double* result, long long int size);
-void beam_form(int antennas, double fc, double* input, long long int input_size, double* weights, int weight_size, double* signal);
-void hamming(int N, double* window);
-void lowPassFIRFilter(double wc, int N, double* filter);
-void highPassFIRFilter(double wc, int N, double* filter);
-void FIRFilterResponse(double* input_signal, double* filter, long long int size, double* output_signal);
-long long int argmax(double* array, long long int size);
-double abs_val(double x);
+#define INPUT_LENGTH 10000
+// Function declarations
+double *getRangeOfVector(double start, double end, double step);
+double complex *beam_form(int antennas, double input_fc, double *input, double *weights, int input_length);
+double *abs_array(double complex *array, int length);
+int argmax(double *array, int length);
+double *lowPassFIRFilter(double wc, int length);
+double *highPassFIRFilter(double wc, int length);
+double *hamming(int length);
+double *elementWiseMultiply(double *array1, double *array2, int length);
+double *subtract(double *array1, double *array2, int length);
+double *FIRFilterResponse(double *input, double *filter, int input_length, int filter_length);
+double getElemAtIndx(double *array, int index);
 
 int main() {
     int antennas = 4;
     double input_fc = 5;
     int N = 101;
+    
+    int input_length = INPUT_LENGTH;
+    double *input = getRangeOfVector(0, input_length, 0.000125);
+    
+    int weights_length = (180 - (-90)) / 1 + 1;
+    double *weights = getRangeOfVector(-90, 180, 1);
 
-    // Use long long int for larger size
-    long long int input_size = (100000000 - 0) / 0.000125;
-    double* input = (double*)malloc(input_size * sizeof(double));
-    getRangeOfVector(0, 100000000, 0.000125, input, input_size);
+    double complex *signal = beam_form(antennas, input_fc, input, weights, input_length);
+    double *b1 = abs_array(signal, input_length);
+    
+    double *power_profile = elementWiseMultiply(b1, b1, input_length);
+    int power_angle_max_idx = argmax(power_profile, input_length);
+    double power_angle_max_ele = power_profile[power_angle_max_idx];
 
-    int weight_size = (180 - (-90)) / 1;
-    double* weights = (double*)malloc(weight_size * sizeof(double));
-    getRangeOfVector(-90, 180, 1, weights, weight_size);
+    double fc1 = 1000;
+    double fc2 = 7500;
+    double Fs = 8000;
 
-    // Beamforming and power profile computation
-    double* signal = (double*)malloc(input_size * sizeof(double));
-    beam_form(antennas, input_fc, input, input_size, weights, weight_size, signal);
-
-    double* power_profile = (double*)malloc(input_size * sizeof(double));
-    for (long long int i = 0; i < input_size; i++) {
-        double b1 = abs_val(signal[i]);
-        power_profile[i] = b1 * b1;
-    }
-
-    long long int power_angle_max_idx = argmax(power_profile, input_size);
-    long long int power_angle_max_ele = argmax(power_profile, input_size);
-
-    // FIR Filter Design
-    double fc1 = 1000, fc2 = 7500, Fs = 8000;
     double wc1 = 2 * PI * fc1 / Fs;
+    double *filter1 = lowPassFIRFilter(wc1, N);
+    double *hamming_window = hamming(N);
+    double *filter_hamming_1 = elementWiseMultiply(filter1, hamming_window, N);
+
     double wc2 = 2 * PI * fc2 / Fs;
+    double *filter2 = highPassFIRFilter(wc2, N);
+    double *filter_hamming_2 = elementWiseMultiply(filter2, hamming_window, N);
 
-    double* filter1 = (double*)malloc(N * sizeof(double));
-    double* filter2 = (double*)malloc(N * sizeof(double));
+    double *bpf = subtract(filter_hamming_2, filter_hamming_1, N);
+    double *firFilterResponse = FIRFilterResponse(power_profile, bpf, input_length, N);
+    double final = getElemAtIndx(firFilterResponse, 2);
 
-    lowPassFIRFilter(wc1, N, filter1);
-    highPassFIRFilter(wc2, N, filter2);
+    printf("%f\n", final);
 
-    double* hamming_window = (double*)malloc(N * sizeof(double));
-    hamming(N, hamming_window);
-
-    // Apply Hamming window to filters
-    for (int i = 0; i < N; i++) {
-        filter1[i] *= hamming_window[i];
-        filter2[i] *= hamming_window[i];
-    }
-
-    // Band-pass filter
-    double* bpf = (double*)malloc(N * sizeof(double));
-    for (int i = 0; i < N; i++) {
-        bpf[i] = filter2[i] - filter1[i];
-    }
-
-    // Filter the power profile
-    double* fir_filter_response = (double*)malloc(input_size * sizeof(double));
-    FIRFilterResponse(power_profile, bpf, input_size, fir_filter_response);
-
-    // Get the final value
-    double final = fir_filter_response[2];
-    printf("Final Value: %f\n", final);
-
-    // Clean up memory
+    // Free allocated memory
     free(input);
     free(weights);
     free(signal);
+    free(b1);
     free(power_profile);
     free(filter1);
-    free(filter2);
     free(hamming_window);
+    free(filter_hamming_1);
+    free(filter2);
+    free(filter_hamming_2);
     free(bpf);
-    free(fir_filter_response);
+    free(firFilterResponse);
 
     return 0;
 }
 
-// Helper functions
-
-void getRangeOfVector(double start, double end, double step, double* result, long long int size) {
-    for (long long int i = 0; i < size; i++) {
-        result[i] = start + i * step;
+// Function implementations
+double *getRangeOfVector(double start, double end, double step) {
+    int size = (int)((end - start) / step) + 1;
+    double *vector = malloc(size * sizeof(double));
+    for (int i = 0; i < size; i++) {
+        vector[i] = start + i * step;
     }
+    return vector;
 }
 
-void beam_form(int antennas, double fc, double* input, long long int input_size, double* weights, int weight_size, double* signal) {
-    // Placeholder for beamforming logic
-    for (long long int i = 0; i < input_size; i++) {
-        signal[i] = input[i] * sin(2 * PI * fc * i / input_size);
-    }
-}
-
-void hamming(int N, double* window) {
-    for (int i = 0; i < N; i++) {
-        window[i] = 0.54 - 0.46 * cos(2 * PI * i / (N - 1));
-    }
-}
-
-void lowPassFIRFilter(double wc, int N, double* filter) {
-    for (int i = 0; i < N; i++) {
-        if (i == N / 2) {
-            filter[i] = wc / PI;
-        } else {
-            filter[i] = sin(wc * (i - N / 2)) / (PI * (i - N / 2));
+double complex *beam_form(int antennas, double input_fc, double *input, double *weights, int input_length) {
+    double complex *signal = malloc(input_length * sizeof(double complex));
+    for (int i = 0; i < input_length; i++) {
+        signal[i] = 0;
+        for (int j = 0; j < antennas; j++) {
+            signal[i] += weights[j] * cexp(I * (2 * PI * input_fc * input[i] + j * PI / 2));
         }
     }
+    return signal;
 }
 
-void highPassFIRFilter(double wc, int N, double* filter) {
-    for (int i = 0; i < N; i++) {
-        if (i == N / 2) {
-            filter[i] = 1 - wc / PI;
-        } else {
-            filter[i] = -sin(wc * (i - N / 2)) / (PI * (i - N / 2));
-        }
+double *abs_array(double complex *array, int length) {
+    double *result = malloc(length * sizeof(double));
+    for (int i = 0; i < length; i++) {
+        result[i] = cabs(array[i]);
     }
+    return result;
 }
 
-void FIRFilterResponse(double* input_signal, double* filter, long long int size, double* output_signal) {
-    // Convolution of input signal with FIR filter
-    for (long long int i = 0; i < size; i++) {
-        output_signal[i] = 0;
-        for (long long int j = 0; j <= i; j++) {
-            output_signal[i] += input_signal[j] * filter[i - j];
-        }
-    }
-}
-
-long long int argmax(double* array, long long int size) {
-    long long int max_idx = 0;
-    for (long long int i = 1; i < size; i++) {
+int argmax(double *array, int length) {
+    int max_idx = 0;
+    for (int i = 1; i < length; i++) {
         if (array[i] > array[max_idx]) {
             max_idx = i;
         }
@@ -151,6 +111,67 @@ long long int argmax(double* array, long long int size) {
     return max_idx;
 }
 
-double abs_val(double x) {
-    return x < 0 ? -x : x;
+double *lowPassFIRFilter(double wc, int length) {
+    double *filter = malloc(length * sizeof(double));
+    int mid = (length - 1) / 2;
+    for (int n = 0; n < length; n++) {
+        if (n == mid) {
+            filter[n] = wc / PI;
+        } else {
+            filter[n] = sin(wc * (n - mid)) / (PI * (n - mid));
+        }
+    }
+    return filter;
+}
+
+double *highPassFIRFilter(double wc, int length) {
+    double *filter = malloc(length * sizeof(double));
+    int mid = (length - 1) / 2;
+    for (int n = 0; n < length; n++) {
+        if (n == mid) {
+            filter[n] = 1 - (wc / PI);
+        } else {
+            filter[n] = -sin(wc * (n - mid)) / (PI * (n - mid));
+        }
+    }
+    return filter;
+}
+
+double *hamming(int length) {
+    double *window = malloc(length * sizeof(double));
+    for (int i = 0; i < length; i++) {
+        window[i] = 0.54 - 0.46 * cos(2 * PI * i / (length - 1));
+    }
+    return window;
+}
+
+double *elementWiseMultiply(double *array1, double *array2, int length) {
+    double *result = malloc(length * sizeof(double));
+    for (int i = 0; i < length; i++) {
+        result[i] = array1[i] * array2[i];
+    }
+    return result;
+}
+
+double *subtract(double *array1, double *array2, int length) {
+    double *result = malloc(length * sizeof(double));
+    for (int i = 0; i < length; i++) {
+        result[i] = array1[i] - array2[i];
+    }
+    return result;
+}
+
+double *FIRFilterResponse(double *input, double *filter, int input_length, int filter_length) {
+    double *response = malloc(input_length * sizeof(double));
+    for (int i = 0; i < input_length; i++) {
+        response[i] = 0;
+        for (int j = 0; j < filter_length && i - j >= 0; j++) {
+            response[i] += input[i - j] * filter[j];
+        }
+    }
+    return response;
+}
+
+double getElemAtIndx(double *array, int index) {
+    return array[index];
 }

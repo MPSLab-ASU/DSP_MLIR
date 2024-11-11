@@ -3,7 +3,7 @@ def main() {
         var antennas = 4;
         var input_fc = 5;
         var N = 101;
-	var input = getRangeOfVector(0, 100000000, 0.000125);
+	var input = getRangeOfVector(0, 1000, 0.000125);
         var weights = getRangeOfVector(-90, 180, 1);
 
         var signal = beam_form(antennas, input_fc, input, weights);
