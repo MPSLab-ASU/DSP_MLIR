@@ -2850,6 +2850,24 @@ def FFTAbsOp : Dsp_Op<"FFTAbsOp", [Pure, DeclareOpInterfaceMethods<ShapeInferenc
   ]; 
 }
 
+// //===----------------------------------------------------------------------===//
+// // FFTAbsOp
+// //===----------------------------------------------------------------------===//
+
+// def FFT1DAbsOp : Dsp_Op<"FFT1DAbsOp", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+//   let summary = "FFT1DAbsOp";
+//   let description = [{
+//       ------------------
+//   }];
+
+//   let arguments = (ins F64Tensor:$input);
+//   let results = (outs F64Tensor:$amplitude);
+
+//   let builders = [
+//     OpBuilder<(ins "Value":$input)>
+//   ]; 
+// }
+
 #endif // TOY_OPS
 
 

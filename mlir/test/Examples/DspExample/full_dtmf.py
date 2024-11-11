@@ -1,6 +1,6 @@
 def main() {
-    var digit = 9; # digit whose dtmf tone is to be calculated
-    var duration = 0.5; # duration of the dtmf signal 
+    var digit = 0; # digit whose dtmf tone is to be calculated
+    var duration = 0.0625; # duration of the dtmf signal 
     var fs = 8192; # sampling frequency 
     var d = 1/fs;
     var N = fs * duration;
@@ -18,10 +18,10 @@ def main() {
     # print(sum);
     var magnitudes = sqrt(sum);
     # print(magnitudes);
-    var frequencies = fftfreq(4096, 0.000122);
+    var frequencies = fftfreq(512, 0.000122);
     # print(frequencies);
     var peaks = findDominantPeaks(frequencies, magnitudes);
-    # print(peaks);
+    print(peaks);
     var freqPairs = [
     [941, 1336],
     [697, 1209],

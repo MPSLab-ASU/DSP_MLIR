@@ -1,7 +1,8 @@
 def main() {
-  var a = [ 1,2,3,4,5,6,7,8];
-  var b = fftReal(a);
-  var c = fftImag(a);
+    var a = generateDtmf(7, 0.5, 16384);
+  var b = fft1dreal(a);
+  var c = fft1dimg(a);
   print(b);
   print(c);
 } 
+  

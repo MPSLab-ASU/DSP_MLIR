@@ -9171,7 +9171,7 @@ struct FindDominantPeaksOpLowering : public ConversionPattern {
     auto zero = rewriter.create<arith::ConstantFloatOp>(loc, llvm::APFloat(0.0),
                                                         rewriter.getF64Type());
     auto isPositive = rewriter.create<arith::CmpFOp>(
-        loc, arith::CmpFPredicate::OGT, currentFreq, zero);
+        loc, arith::CmpFPredicate::OGE, currentFreq, zero);
 
     // Create if operation for positive frequency check
     auto ifOp = rewriter.create<scf::IfOp>(loc, forOp.getResultTypes(),
@@ -9227,14 +9227,30 @@ struct FindDominantPeaksOpLowering : public ConversionPattern {
 
     rewriter.setInsertionPointAfter(forOp);
 
-    // Store the two highest peak frequencies in the result memref
+    // Compare freq1 and freq2 to determine the order
+    auto cmpFreq = rewriter.create<arith::CmpFOp>(
+        loc, arith::CmpFPredicate::OLT, forOp.getResult(2), forOp.getResult(3));
+    
+    auto ifFreq = rewriter.create<scf::IfOp>(
+        loc, TypeRange{rewriter.getF64Type(), rewriter.getF64Type()}, cmpFreq, true);
+
+    rewriter.setInsertionPointToStart(&ifFreq.getThenRegion().front());
+    // freq1 < freq2, so keep the order
+    rewriter.create<scf::YieldOp>(loc, ValueRange{forOp.getResult(2), forOp.getResult(3)});
+
+    rewriter.setInsertionPointToStart(&ifFreq.getElseRegion().front());
+    // freq1 >= freq2, so swap the order
+    rewriter.create<scf::YieldOp>(loc, ValueRange{forOp.getResult(3), forOp.getResult(2)});
+
+    rewriter.setInsertionPointAfter(ifFreq);
+
+    // Store the two highest peak frequencies in the result memref, now in the correct order
     auto storeFreq1 = rewriter.create<memref::StoreOp>(
-        loc, forOp.getResult(2), alloc,
+        loc, ifFreq.getResult(0), alloc,
         ValueRange{rewriter.create<arith::ConstantIndexOp>(loc, 0)});
     auto storeFreq2 = rewriter.create<memref::StoreOp>(
-        loc, forOp.getResult(3), alloc,
+        loc, ifFreq.getResult(1), alloc,
         ValueRange{rewriter.create<arith::ConstantIndexOp>(loc, 1)});
-
     rewriter.replaceOp(op, alloc);
 
     return success();
@@ -11060,7 +11076,7 @@ struct FIRFilterResSymmThresholdUpOptimizedOpLowering
 };
 
 //===----------------------------------------------------------------------===//
-// ToyToAffine RewritePatterns: FFTRealOp operations
+// ToyToAffine RewritePatterns: FFTOp operations
 //===----------------------------------------------------------------------===//
 
 struct FFTOpLowering : public ConversionPattern {

@@ -3594,7 +3594,7 @@ void FFTOp::inferShapes() {
 }
 
 //===----------------------------------------------------------------------===//
-// DTMFOp
+// FFTAbsOp
 //===----------------------------------------------------------------------===//
 
 void FFTAbsOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
@@ -3604,6 +3604,20 @@ void FFTAbsOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
 }
 
 void FFTAbsOp::inferShapes() { getResult().setType(getInput().getType()); }
+
+//===----------------------------------------------------------------------===//
+// FFT1DAbsOp
+//===----------------------------------------------------------------------===//
+
+// void FFT1DAbsOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
+//                       mlir::Value input) {
+//   state.addTypes(input.getType());
+//   state.addOperands({input});
+// }
+
+// void FFTAbsOp::inferShapes() { 
+//   getResult().setType(getInput().getType()); 
+// }
 
 //===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
