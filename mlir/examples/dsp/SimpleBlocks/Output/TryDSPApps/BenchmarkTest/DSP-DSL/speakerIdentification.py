@@ -1,12 +1,13 @@
 def main() {
   var sample_rate = 1000;
-  var person1 = generateVoiceSignature(100, 200, 1, sample_rate); #Alice
-  var person2 = generateVoiceSignature(150, 250, 1, sample_rate); #Bob
-  var person3 = generateVoiceSignature(120, 180, 1, sample_rate); #Charlie
+	var duration = 1220.703125;
+  var person1 = generateVoiceSignature(100, 200, duration, sample_rate); #Alice
+  var person2 = generateVoiceSignature(150, 250, duration, sample_rate); #Bob
+  var person3 = generateVoiceSignature(120, 180, duration, sample_rate); #Charlie
   
-  var unknown_signal = generateVoiceSignature(100, 200, 1, sample_rate);
-  #var unknown_signal = generateVoiceSignature(150, 250, 1, sample_rate);
-  #var unknown_signal = generateVoiceSignature(120, 180, 1, sample_rate);
+  # var unknown_signal = generateVoiceSignature(100, 200, duration, sample_rate);
+  var unknown_signal = generateVoiceSignature(150, 250, duration, sample_rate);
+  # var unknown_signal = generateVoiceSignature(120, 180, duration, sample_rate);
   
   var max1 = max(correlate(person1, unknown_signal));
   var max2 = max(correlate(person2, unknown_signal));
@@ -14,7 +15,6 @@ def main() {
   
   var total_maxes = [0, 0, 0];
 
-  #var temp2 = setElemAtIndx(total_maxes, 0, max1); #not work
   var temp2 = setSingleElemAtIndx(total_maxes, 0, max1); #work
   var temp3 = setSingleElemAtIndx(total_maxes, 1, max2); #work
   var temp4 = setSingleElemAtIndx(total_maxes, 2, max3); #work
