@@ -52,35 +52,42 @@ void calculateMagnitudes(double* real, double* imag, double* magnitudes, int N) 
 }
 
 // Function to find dominant peaks in the magnitude spectrum and ensure they are in ascending order
-// Function to find the two highest peaks in the magnitude spectrum and return their frequencies
 void findDominantPeaks(double* frequencies, double* magnitudes, int fft_size, double* peaks) {
-    double max1 = 0.0, max2 = 0.0;  // Variables to hold the two largest magnitudes
-    int idx1 = -1, idx2 = -1;       // Indices for the two largest magnitudes
+    double max1 = 0.0, max2 = 0.0;
+    double freq1 = 0.0, freq2 = 0.0;
 
-    // Iterate over the magnitude array to find the two highest magnitudes
     for (int i = 0; i < fft_size; i++) {
-        if (magnitudes[i] > max1) {
-            // Shift max1 to max2 and update max1
-            max2 = max1;
-            idx2 = idx1;
-            max1 = magnitudes[i];
-            idx1 = i;
-        } else if (magnitudes[i] > max2) {
-            max2 = magnitudes[i];
-            idx2 = i;
+        double currentFreq = frequencies[i];
+        double currentMag = magnitudes[i];
+
+        // Check if frequency is positive
+        if (currentFreq >= 0.0) {
+            // Compare current magnitude with max1
+            if (currentMag > max1) {
+                // Update max2 and freq2 with previous max1 and freq1
+                max2 = max1;
+                freq2 = freq1;
+                // Update max1 and freq1 with current values
+                max1 = currentMag;
+                freq1 = currentFreq;
+            } else if (currentMag > max2) {
+                // Update max2 and freq2 with current values
+                max2 = currentMag;
+                freq2 = currentFreq;
+            }
         }
+        // No update for negative frequencies
     }
 
-    // Assign the corresponding frequencies to the peaks array in ascending order
-    if (frequencies[idx1] < frequencies[idx2]) {
-        peaks[0] = frequencies[idx1];
-        peaks[1] = frequencies[idx2];
+    // Compare freq1 and freq2 to determine the order
+    if (freq1 < freq2) {
+        peaks[0] = freq1;
+        peaks[1] = freq2;
     } else {
-        peaks[0] = frequencies[idx2];
-        peaks[1] = frequencies[idx1];
+        peaks[0] = freq2;
+        peaks[1] = freq1;
     }
 }
-
 
 // Function to recover the DTMF digit from frequency peaks
 int recoverDtmfDigit(double* peaks, const double freqPairs[10][2], int peak_count) {
@@ -97,7 +104,7 @@ int recoverDtmfDigit(double* peaks, const double freqPairs[10][2], int peak_coun
 }
 
 int main() {
-    int digit = 9; // DTMF digit to be generated
+    int digit = 10; // DTMF digit to be generated
     double duration = DURATION;
     int fs = SAMPLING_FREQUENCY;
 
@@ -115,9 +122,14 @@ int main() {
     dft(dtmf_tone, real_out, imag_out, N_SAMPLES);
 
     // Calculate magnitudes and frequencies
-    for (int i = 0; i < N_SAMPLES / 2; i++) {
+    // Calculate magnitudes and frequencies for the full spectrum
+    for (int i = 0; i < N_SAMPLES; i++) {
         magnitudes[i] = sqrt(real_out[i] * real_out[i] + imag_out[i] * imag_out[i]);
-        frequencies[i] = (double)i * fs / N_SAMPLES;
+        if (i <= N_SAMPLES / 2) {
+            frequencies[i] = (double)i * fs / N_SAMPLES;
+        } else {
+            frequencies[i] = ((double)i - N_SAMPLES) * fs / N_SAMPLES;
+        }
     }
 
     // Find dominant frequency peaks (in ascending order)
