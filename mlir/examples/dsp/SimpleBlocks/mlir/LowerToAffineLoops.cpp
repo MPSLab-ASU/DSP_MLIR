@@ -9138,6 +9138,25 @@ struct FindDominantPeaksOpLowering : public ConversionPattern {
         llvm::dyn_cast<RankedTensorType>(frequencyOperand.getType());
     auto frequenciesLength = frequenciesType.getNumElements();
 
+    auto frequenciesLengthIndex = rewriter.create<arith::ConstantIndexOp>(loc, frequenciesLength);
+    auto frequenciesLengthI64 = rewriter.create<arith::IndexCastOp>(loc, rewriter.getI64Type(), frequenciesLengthIndex);
+
+    auto frequenciesLengthF64 = rewriter.create<arith::SIToFPOp>(loc, 
+    rewriter.getF64Type(), // frequenciesLength);
+    frequenciesLengthI64  
+    );
+
+    auto two = rewriter.create<arith::ConstantOp>(loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(2.0));
+
+    auto frequenciesHalfLength = rewriter.create<arith::DivFOp>(loc, frequenciesLengthF64, two);
+
+    auto frequenciesHalfLengthI32 = rewriter.create<arith::FPToUIOp>(loc, rewriter.getIntegerType(32), frequenciesHalfLength);
+    auto frequenciesHalfLengthIndex = rewriter.create<arith::IndexCastOp>(loc, rewriter.getIndexType(), frequenciesHalfLengthI32);
+    // Value length_ui = rewriter.create<arith::FPToUIOp>(
+    //     loc, rewriter.getIntegerType(32), loadedLength);
+    // Value length_index = rewriter.create<arith::IndexCastOp>(
+    //     loc, rewriter.getIndexType(), length_ui);
+
     FindDominantPeaksOpAdaptor findDominantPeaksOpAdaptor(operands);
     auto frequencies = findDominantPeaksOpAdaptor.getFrequencies();
     auto magnitudes = findDominantPeaksOpAdaptor.getMagnitudes();
@@ -9154,7 +9173,7 @@ struct FindDominantPeaksOpLowering : public ConversionPattern {
         loc, llvm::APFloat(0.0), rewriter.getF64Type());
 
     auto lb = rewriter.create<arith::ConstantIndexOp>(loc, 0);
-    auto ub = rewriter.create<arith::ConstantIndexOp>(loc, frequenciesLength);
+    auto ub = frequenciesHalfLengthIndex; // rewriter.create<arith::ConstantIndexOp>(loc, frequenciesLength);
     auto step = rewriter.create<arith::ConstantIndexOp>(loc, 1);
 
     auto forOp = rewriter.create<scf::ForOp>(
