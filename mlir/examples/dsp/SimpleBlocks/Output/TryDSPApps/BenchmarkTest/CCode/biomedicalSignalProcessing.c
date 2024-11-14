@@ -155,13 +155,32 @@ void hamming(double* hamming, int N) {
     }
 }
 
+// void FIRFilterResponse(double* output, double* input, double* filter, int input_length, int filter_length) {
+//     int i, j;
+//     for (i = 0; i < input_length; i++) {
+//         output[i] = 0;
+//         for (j = 0; j < filter_length; j++) {
+//             if (i - j >= 0) {
+//                 output[i] += input[i - j] * filter[j];
+//             }
+//         }
+//     }
+// }
+
+
 void FIRFilterResponse(double* output, double* input, double* filter, int input_length, int filter_length) {
-    int i, j;
-    for (i = 0; i < input_length; i++) {
-        output[i] = 0;
-        for (j = 0; j < filter_length; j++) {
-            if (i - j >= 0) {
-                output[i] += input[i - j] * filter[j];
+    int outputLen = input_length + filter_length - 1;
+
+    // Initialize output array to zero
+    for (int i = 0; i < outputLen; i++) {
+        output[i] = 0.0;
+    }
+
+    // Perform full convolution
+    for (int i = 0; i < outputLen; i++) {
+        for (int k = 0; k < filter_length; k++) {
+            if (i - k >= 0 && i - k < input_length) {
+                output[i] += filter[k] * input[i - k];
             }
         }
     }

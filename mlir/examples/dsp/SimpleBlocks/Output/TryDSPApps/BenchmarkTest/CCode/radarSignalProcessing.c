@@ -4,313 +4,306 @@
 #include <complex.h>
 
 #define PI 3.1415926
-#define INPUT_LENGTH 100000000
+#define INPUT_LENGTH 10000
 
-// Function declarations
-double *getRangeOfVector(double start, double end, double step);
-double complex *beam_form(int antennas, double input_fc, double *input, double *weights, int input_length);
-double *abs_array(double complex *array, int length);
-int argmax(double *array, int length);
-double *lowPassFIRFilter(double wc, int length);
-double *highPassFIRFilter(double wc, int length);
-double *hamming(int length);
-double *elementWiseMultiply(double *array1, double *array2, int length);
-double *subtract(double *array1, double *array2, int length);
-double *FIRFilterResponse(double *input, double *filter, int input_length, int filter_length);
-double getElemAtIndx(double *array, int index);
+// Function prototypes
+double* getrangeofvector(double first, int64_t N, double step);
+double* beamForm(int antennas, double frequency, double* time, double* weights, int timeDim);
+double* abs_array(double* arr, int size);
+double* power_profile(double* arr, int size);
+double* lowPassFIRFilter(double wc, int N);
+double* highPassFIRFilter(double wc, int N);
+double* hamming(int N);
+double* multiply_arrays(const double* arr1, const double* arr2, int size);
+double* subtract_arrays(const double* arr1, const double* arr2, int size);
+double* FirFilterResponse(const double *input, int inputLen, const double *filter, int filterLen);
 
 int main() {
     // Parameters
     int antennas = 4;
     double input_fc = 5;
     int N = 101;
-    
-    // Generate input vector
-    double *input = getRangeOfVector(0, INPUT_LENGTH, 1);
-    
-    // Generate weights vector
-    int weights_length = (180 - (-90)) / 1 + 1;
-    double *weights = getRangeOfVector(-90, 180, 1);
-
-    // Beamforming
-    double complex *signal = beam_form(antennas, input_fc, input, weights, INPUT_LENGTH);
-    double *b1 = abs_array(signal, INPUT_LENGTH);
-    
-    // Power profile calculation
-    double *power_profile = elementWiseMultiply(b1, b1, INPUT_LENGTH);
-    int power_angle_max_idx = argmax(power_profile, INPUT_LENGTH);
-    double power_angle_max_ele = power_profile[power_angle_max_idx];
-
-    // Filter design parameters
+    int input_length = INPUT_LENGTH;
     double fc1 = 1000;
     double fc2 = 7500;
     double Fs = 8000;
 
-    // Low-pass filter
+    double* input = getrangeofvector(0, input_length, 0.000125);
+    double* weights = getrangeofvector(-90, 180, 1);
+    double* signal = beamForm(antennas, input_fc, input, weights, input_length);
+    double* b1 = abs_array(signal, input_length);
+    double* power = power_profile(b1, input_length);
     double wc1 = 2 * PI * fc1 / Fs;
-    double *filter1 = lowPassFIRFilter(wc1, N);
-    double *hamming_window = hamming(N);
-    double *filter_hamming_1 = elementWiseMultiply(filter1, hamming_window, N);
-
-    // High-pass filter
+    double* filter1 = lowPassFIRFilter(wc1, N);
+    double* filter_hamming_1 = multiply_arrays(filter1, hamming(N), N);
     double wc2 = 2 * PI * fc2 / Fs;
-    double *filter2 = highPassFIRFilter(wc2, N);
-    double *filter_hamming_2 = elementWiseMultiply(filter2, hamming_window, N);
+    double* filter2 = highPassFIRFilter(wc2, N);
+    double* filter_hamming_2 = multiply_arrays(filter2, hamming(N), N);
+    double* bpf = subtract_arrays(filter_hamming_2, filter_hamming_1, N);
+    double* firFilterResponse = FirFilterResponse(power, input_length, bpf, N);
+    double final = firFilterResponse[10099];
+    printf("final: %f\n", final);
 
-    // Band-pass filter
-    double *bpf = subtract(filter_hamming_2, filter_hamming_1, N);
+    // for (int i = 0; i < (input_length + N - 1); ++i) {
+    //     printf("firFilterResponse: %f\n", firFilterResponse[i]);
+    // }
     
-    // FIR filter response
-    double *firFilterResponse = FIRFilterResponse(power_profile, bpf, INPUT_LENGTH, N);
-    
-    // Get final result
-    if (INPUT_LENGTH > 2) {
-        double final_value = getElemAtIndx(firFilterResponse, 2);
-        printf("%f\n", final_value);
-    } else {
-        fprintf(stderr, "Input length is too small to retrieve the element at index 2.\n");
-    }
-
     // Free allocated memory
     free(input);
     free(weights);
     free(signal);
     free(b1);
-    free(power_profile);
+    free(power);
     free(filter1);
-    free(hamming_window);
-    free(filter_hamming_1);
     free(filter2);
+    free(filter_hamming_1);
     free(filter_hamming_2);
     free(bpf);
     free(firFilterResponse);
-
     return 0;
 }
 
-// Function implementations
-
-double *getRangeOfVector(double start, double end, double step) {
-    if (step <= 0) {
-        fprintf(stderr, "Step must be positive\n");
-        exit(EXIT_FAILURE);
-    }
-    
-    int size = (int)((end - start) / step) + 1;
-    
-    if (size <= 0) {
-        fprintf(stderr, "Invalid range for vector\n");
-        exit(EXIT_FAILURE);
-    }
-
-    double *vector = malloc(size * sizeof(double));
-    
-    if (vector == NULL) {
+double* getrangeofvector(double first, int64_t N, double step) {
+    double* result = (double*)malloc(N * sizeof(double));
+    if (result == NULL) {
         fprintf(stderr, "Memory allocation failed\n");
-        exit(EXIT_FAILURE);
+        exit(1);
     }
     
-    for (int i = 0; i < size; i++) {
-        vector[i] = start + i * step;
+    // Initialize the first element
+    result[0] = first;
+    
+    // Calculate the rest of the elements
+    for (int64_t i = 1; i < N; ++i) {
+        result[i] = result[i-1] + step;
     }
     
-    return vector;
+    return result;
 }
 
-double complex *beam_form(int antennas, double input_fc, double *input, double *weights, int input_length) {
-    if (antennas <= 0 || weights == NULL || input == NULL || input_length <= 0) {
-        fprintf(stderr, "Invalid parameters for beam_form function\n");
-        exit(EXIT_FAILURE);
+double* beamForm(int antennas, double frequency, double* time, double* weights, int timeDim) {
+    // Allocate space for output
+    double* output = (double*)malloc(timeDim * sizeof(double));
+    if (output == NULL) {
+        fprintf(stderr, "Memory allocation failed for output\n");
+        exit(1);
     }
 
-    double complex *signal = malloc(input_length * sizeof(double complex));
-    
+    // Allocate space for internal generated signals
+    double** signal = (double**)malloc(antennas * sizeof(double*));
     if (signal == NULL) {
         fprintf(stderr, "Memory allocation failed for signal\n");
-        exit(EXIT_FAILURE);
-    }
-
-    for (int i = 0; i < input_length; i++) {
-        signal[i] = 0;
-        for (int j = 0; j < antennas; j++) {
-            signal[i] += weights[j] * cexp(I * (2.0 * PI * input_fc * input[i] + j * PI / 2));
-        }
+        free(output);
+        exit(1);
     }
     
-    return signal;
+    for (int i = 0; i < antennas; i++) {
+        signal[i] = (double*)malloc(timeDim * sizeof(double));
+        if (signal[i] == NULL) {
+            fprintf(stderr, "Memory allocation failed for signal[%d]\n", i);
+            for (int j = 0; j < i; j++) {
+                free(signal[j]);
+            }
+            free(signal);
+            free(output);
+            exit(1);
+        }
+    }
+
+    // Generate input signals
+    double phase_var = 2 * PI * frequency;
+    for (int i = 0; i < antennas; i++) {
+        double iter_args = (i * PI) / 4.0;
+        for (int j = 0; j < timeDim; j++) {
+            double sin_body = time[j] * phase_var + iter_args;
+            signal[i][j] = sin(sin_body);
+        }
+    }
+
+    // Beam forming
+    for (int i = 0; i < timeDim; i++) {
+        double sum = 0.0;
+        for (int j = 0; j < antennas; j++) {
+            sum += signal[j][i] * weights[j];
+        }
+        output[i] = sum;
+    }
+
+    // Free allocated memory for signal
+    for (int i = 0; i < antennas; i++) {
+        free(signal[i]);
+    }
+    
+    free(signal);
+
+    return output;
 }
 
-double *abs_array(double complex *array, int length) {
-   if (length <= 0 || array == NULL) {
-       fprintf(stderr,"Invalid parameters for abs_array function\n");
-       exit(EXIT_FAILURE); 
-   }
+// Function to calculate absolute values of an array
+double* abs_array(double* arr, int size) {
+    double* result = (double*)malloc(size * sizeof(double));
+    
+    if (result == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(1);
+    }
 
-   double *result = malloc(length * sizeof(double));
-   
-   if (result == NULL) {
-       fprintf(stderr,"Memory allocation failed for result in abs_array\n");
-       exit(EXIT_FAILURE); 
-   }
+    for (int i = 0; i < size; i++) {
+        result[i] = fabs(arr[i]);
+    }
 
-   for (int i = 0; i < length; i++) {
-       result[i] = cabs(array[i]);
-   }
-   
-   return result;
+    return result;
 }
 
-int argmax(double *array, int length) {
-   if (length <= 0 || array == NULL) {
-       fprintf(stderr,"Invalid parameters for argmax function\n");
-       exit(EXIT_FAILURE); 
-   }
+// Function to calculate power profile (element-wise square)
+double* power_profile(double* arr, int size) {
+    double* result = (double*)malloc(size * sizeof(double));
+    
+    if (result == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(1);
+    }
 
-   int max_idx = 0;
-   for (int i = 1; i < length; i++) {
-       if (array[i] > array[max_idx]) {
-           max_idx = i;
-       }
-   }
-   
-   return max_idx;
+    for (int i = 0; i < size; i++) {
+        result[i] = arr[i] * arr[i];
+    }
+
+    return result;
 }
 
-double* lowPassFIRFilter(double wc,int length){
-   if(length <= 0){
-      fprintf(stderr,"Invalid filter length in lowPassFIRFilter\n");
-      exit(EXIT_FAILURE); 
-   }
+double* lowPassFIRFilter(double wc, int N) {
+    double* output = (double*)malloc(N * sizeof(double));
+    if (output == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(1);
+    }
 
-   double* filter=malloc(length*sizeof(double));
-   
-   if(filter==NULL){
-      fprintf(stderr,"Memory allocation failed for low pass filter\n");
-      exit(EXIT_FAILURE); 
-   }
+    int midIndex = (N - 1) / 2;
+    double wcByPi = wc / PI;
 
-   int mid=(length-1)/2;
+    // Handle middle point
+    output[midIndex] = wcByPi;
 
-   for(int n=0;n<length;n++){
-      if(n==mid){
-         filter[n]=wc/PI;
-      }else{
-         filter[n]=sin(wc*(n-mid))/(PI*(n-mid));
-      }
-   }
-   
-   return filter;
+    // First loop: 0 <= i <= (N-1)/2 - 1
+    for (int i = 0; i < midIndex; i++) {
+        double iMinusMid = i - midIndex;
+        double sinArg = wc * iMinusMid;
+        double sinValue = sin(sinArg);
+        output[i] = sinValue / (PI * iMinusMid);
+    }
+
+    // Second loop: (N-1)/2 + 1 <= i < N
+    for (int i = midIndex + 1; i < N; i++) {
+        double iMinusMid = i - midIndex;
+        double sinArg = wc * iMinusMid;
+        double sinValue = sin(sinArg);
+        output[i] = sinValue / (PI * iMinusMid);
+    }
+
+    return output;
 }
 
-double* highPassFIRFilter(double wc,int length){
-   if(length <= 0){
-      fprintf(stderr,"Invalid filter length in highPassFIRFilter\n");
-      exit(EXIT_FAILURE); 
-   }
 
-   double* filter=malloc(length*sizeof(double));
-   
-   if(filter==NULL){
-      fprintf(stderr,"Memory allocation failed for high pass filter\n");
-      exit(EXIT_FAILURE); 
-   }
+double* highPassFIRFilter(double wc, int N) {
+    double* output = (double*)malloc(N * sizeof(double));
+    if (output == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(1);
+    }
 
-   int mid=(length-1)/2;
+    int midIndex = (N - 1) / 2;
+    double wcByPi = wc / PI;
 
-   for(int n=0;n<length;n++){
-      if(n==mid){
-         filter[n]=1-(wc/PI);
-      }else{
-         filter[n]=-sin(wc*(n-mid))/(PI*(n-mid));
-      }
-   }
-   
-   return filter;
+    // Handle middle point
+    output[midIndex] = 1.0 - wcByPi;
+
+    // First loop: 0 <= i <= (N-1)/2 - 1
+    for (int i = 0; i < midIndex; i++) {
+        double iMinusMid = i - midIndex;
+        double sinArg = wc * iMinusMid;
+        double sinValue = sin(sinArg);
+        output[i] = -1.0 * sinValue / (PI * iMinusMid);
+    }
+
+    // Second loop: (N-1)/2 + 1 <= i < N
+    for (int i = midIndex + 1; i < N; i++) {
+        double iMinusMid = i - midIndex;
+        double sinArg = wc * iMinusMid;
+        double sinValue = sin(sinArg);
+        output[i] = -1.0 * sinValue / (PI * iMinusMid);
+    }
+
+    return output;
 }
 
-double* hamming(int length){
-   if(length <= 0){
-      fprintf(stderr,"Invalid window length in hamming\n");
-      exit(EXIT_FAILURE); 
-   }
+double* hamming(int N) {
+    double* window = (double*)malloc(N * sizeof(double));
+    if (window == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(1);
+    }
 
-   double* window=malloc(length*sizeof(double));
-   
-   if(window==NULL){
-      fprintf(stderr,"Memory allocation failed for hamming window\n");
-      exit(EXIT_FAILURE); 
-   }
+    const double a0 = 0.54;
+    const double a1 = 0.46;
+    const double twoPi = 2.0 * PI;
 
-   for(int i=0;i<length;i++){
-      window[i]=0.54-0.46*cos(2*PI*i/(length-1));
-   }
-   
-   return window;
+    for (int k = 0; k < N; k++) {
+        double angle = twoPi * k / (N - 1);
+        window[k] = a0 - a1 * cos(angle);
+    }
+
+    return window;
 }
 
-double* elementWiseMultiply(double* array1,double* array2,int length){
-   if(length <= 0 || array1 == NULL || array2 == NULL){
-      fprintf(stderr,"Invalid parameters in elementWiseMultiply\n");
-      exit(EXIT_FAILURE); 
-   }
+double* multiply_arrays(const double* arr1, const double* arr2, int size) {
+    double* result = (double*)malloc(size * sizeof(double));
+    if (result == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(1);
+    }
 
-   double* result=malloc(length*sizeof(double));
-   
-   if(result==NULL){
-      fprintf(stderr,"Memory allocation failed for element wise multiplication result\n");
-      exit(EXIT_FAILURE); 
-   }
+    for (int i = 0; i < size; i++) {
+        result[i] = arr1[i] * arr2[i];
+    }
 
-   for(int i=0;i<length;i++){
-      result[i]=array1[i]*array2[i];
-   }
-   
-   return result;
+    return result;
 }
 
-double* subtract(double* array1,double* array2,int length){
-   if(length <= 0 || array1 == NULL || array2 == NULL){
-      fprintf(stderr,"Invalid parameters in subtract function\n");
-      exit(EXIT_FAILURE); 
-   }
+double* subtract_arrays(const double* arr1, const double* arr2, int size) {
+    double* result = (double*)malloc(size * sizeof(double));
+    if (result == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        exit(1);
+    }
 
-   double* result=malloc(length*sizeof(double));
-   
-   if(result==NULL){
-      fprintf(stderr,"Memory allocation failed for subtraction result\n");
-      exit(EXIT_FAILURE); 
-   }
+    for (int i = 0; i < size; i++) {
+        result[i] = arr1[i] - arr2[i];
+    }
 
-   for(int i=0;i<length;i++){
-      result[i]=array1[i]-array2[i];
-   }
-   
-   return result;
+    return result;
 }
 
-double* FIRFilterResponse(double* input,double* filter,int input_length,int filter_length){
-     if(input_length <= 0 || filter_length <= 0 || input == NULL || filter == NULL){
-         fprintf(stderr,"Invalid parameters in FIRFilterResponse function\n");
-         exit(EXIT_FAILURE); 
-     }
+double* FirFilterResponse(const double *input, int inputLen, const double *filter, int filterLen) {
+    int outputLen = inputLen + filterLen - 1;
+    double *output = (double*)malloc(outputLen * sizeof(double));
+    if (output == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        return NULL;
+    }
 
-     double* response=malloc(input_length*sizeof(double));
-     
-     if(response==NULL){
-         fprintf(stderr,"Memory allocation failed for FIR Filter Response\n");
-         exit(EXIT_FAILURE); 
-     }
+    // Initialize output array to zero
+    for (int i = 0; i < outputLen; i++) {
+        output[i] = 0.0;
+    }
 
-     for(int i=0;i<input_length;i++){
-         response[i]=0;
-         for(int j=0;j<filter_length && i-j>=0;j++){
-             response[i]+=input[i-j]*filter[j];
-         }
-     }
-     
-     return response;
-}
+    // Perform full convolution
+    for (int i = 0; i < outputLen; i++) {
+        for (int k = 0; k < filterLen; k++) {
+            if (i - k >= 0 && i - k < inputLen) {
+                output[i] += filter[k] * input[i - k];
+            }
+        }
+    }
 
-double getElemAtIndx(double* array,int index){
-     return array[index];
+    return output;
 }
