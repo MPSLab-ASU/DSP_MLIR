@@ -3,7 +3,7 @@
 #include <math.h>
 
 #define PI 3.14159265359
-#define INPUT_LENGTH 100000000
+#define INPUT_LENGTH 10000
 
 double* getRangeOfVector(double start, int noOfSamples, double increment) {
     double* output = malloc(noOfSamples * sizeof(double));

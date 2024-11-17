@@ -2,7 +2,7 @@
 #include <math.h>
 
 // Define INPUT_LENGTH globally
-#define INPUT_LENGTH 100000000
+#define INPUT_LENGTH 50000
 
 void getRangeOfVector(double* vector, double start, int length, double increment) {
     for (int i = 0; i < length; i++) {

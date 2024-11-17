@@ -15,8 +15,8 @@ import re
 # Run the respective commands on the file
 
 # Path to the input file
-# Apps = "noiseCancelling.m" , "echoCancelling.m", "periodogram.m", "lowPassFull.m", "hearingAid.m", "lowPassFIRFilterDesign", "energyOfSignal", "audioEqualizer", "audioCompression","vibrationAnalysis", "underWaterCommunication", "voiceActivityDetection", "signalSmoothing", "targetDetection", "biomedicalSignalProcessing"
-input_file = "biomedicalSignalProcessing"
+# Apps = "noiseCancelling.m" , "echoCancelling.m", "periodogram.m", "lowPassFull.m", "hearingAid.m", "lowPassFIRFilterDesign", "energyOfSignal", "audioEqualizer", "audioCompression","vibrationAnalysis", "underWaterCommunication", "voiceActivityDetection", "signalSmoothing", "targetDetection", "biomedicalSignalProcessing", "digitalModulation", "spaceCommunication", "radarSignalProcessing"
+input_file = "speakerIdentification"
 input_file_path = input_file + ".m"
 BasePathForLLVM = "/home/local/ASURITE/apkhedka/ForLLVM/"
 OutputScriptPath = "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/Matlab/"
@@ -39,7 +39,7 @@ print(f"OutputPath: {OutputPath}")
 # ************ Don't change unless u required
 # Define the values dictionary
 inputValues = {
-    "10": 10,
+    # "10": 10,
     "100": 100,
     "1K": 1000,
     "10K": 10000,
@@ -140,6 +140,6 @@ for key, value in inputValues.items():
 
     avg_exe_time = sum_exe_time / NoOfIterations
     print(f"{avg_exe_time}", end="\t")
-    delete_folder_contents("./Output")
+    # delete_folder_contents("./Output")
 
 
