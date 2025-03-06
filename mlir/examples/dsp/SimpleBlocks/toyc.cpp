@@ -88,6 +88,7 @@ enum Action {
   DumpMLIRLinalg,
   DumpMLIRLLVM,
   DumpLLVMIR,
+  DumpLLVMIRHexagonV68,
   RunJIT
 };
 } // namespace
@@ -102,6 +103,7 @@ static cl::opt<enum Action> emitAction(
     cl::values(clEnumValN(DumpMLIRLLVM, "mlir-llvm",
                           "output the MLIR dump after llvm lowering")),
     cl::values(clEnumValN(DumpLLVMIR, "llvm", "output the LLVM IR dump")),
+	cl::values(clEnumValN(DumpLLVMIRHexagonV68, "llvm-hexagonv68", "output the LLVM IR dump where target is hexagonv68")),
     cl::values(
         clEnumValN(RunJIT, "jit",
                    "JIT the code and run it by invoking the main function")));
@@ -361,6 +363,65 @@ int dumpLLVMIR(mlir::ModuleOp module) {
   return 0;
 }
 
+int dumpLLVMIRHexagonV68(mlir::ModuleOp module) {
+  // Register the translation to LLVM IR with the MLIR context.
+  mlir::registerBuiltinDialectTranslation(*module->getContext());
+  mlir::registerLLVMDialectTranslation(*module->getContext());
+
+  // Convert the module to LLVM IR in a new LLVM IR context.
+  llvm::LLVMContext llvmContext;
+  auto llvmModule = mlir::translateModuleToLLVMIR(module, llvmContext);
+  if (!llvmModule) {
+    llvm::errs() << "Failed to emit LLVM IR\n";
+    return -1;
+  }
+
+  // Initialize LLVM targets.
+  LLVMInitializeHexagonTarget();
+  LLVMInitializeHexagonTargetInfo();
+  LLVMInitializeHexagonTargetMC();
+  LLVMInitializeHexagonAsmPrinter();
+
+  // Configure the LLVM Module
+  /*
+  auto tmBuilderOrError = llvm::orc::JITTargetMachineBuilder::detectHost();
+  if (!tmBuilderOrError) {
+    llvm::errs() << "Could not create JITTargetMachineBuilder\n";
+    return -1;
+  }
+
+  auto tmOrError = tmBuilderOrError->createTargetMachine();
+  if (!tmOrError) {
+    llvm::errs() << "Could not create TargetMachine\n";
+    return -1;
+  }
+
+  
+  llvm::HexagonTargetMachine &TM = getHexagonTargetMachine();
+  
+  
+  mlir::ExecutionEngine::setupTargetTripleAndDataLayout(llvmModule.get(),
+														TM.get().get());
+                                                        //tmOrError.get().get());
+														
+  //Failed to make Hexagon Target Machine
+  */
+														
+  // enableOpt = false;
+
+  /// Optionally run an optimization pipeline over the llvm module.
+  auto optPipeline = mlir::makeOptimizingTransformer(
+      /*optLevel=*/enableOpt ? 3 : 0, /*sizeLevel=*/0,
+      /*targetMachine=*/nullptr);
+  if (auto err = optPipeline(llvmModule.get())) {
+    llvm::errs() << "Failed to optimize LLVM IR " << err << "\n";
+    return -1;
+  }
+  llvm::errs() << *llvmModule << "\n";
+  return 0;
+}
+
+
 int runJit(mlir::ModuleOp module) {
   // Initialize LLVM targets.
   llvm::InitializeNativeTarget();
@@ -436,6 +497,9 @@ int main(int argc, char **argv) {
   // Check to see if we are compiling to LLVM IR.
   if (emitAction == Action::DumpLLVMIR)
     return dumpLLVMIR(*module);
+
+  else if (emitAction == Action::DumpLLVMIRHexagonV68)
+    return dumpLLVMIRHexagonV68(*module);
 
   // Otherwise, we must be running the jit.
   if (emitAction == Action::RunJIT)

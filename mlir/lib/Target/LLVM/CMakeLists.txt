@@ -21,6 +21,16 @@ add_mlir_library(MLIRTargetLLVM
   MLIRTargetLLVMIRExport
 )
 
+if ("Hexagon" IN_LIST LLVM_TARGETS_TO_BUILD)
+  set(Hexagon_LIBS
+    HexagonAsmParser
+    HexagonCodeGen
+    HexagonDesc
+    HexagonDisassembler
+    HexagonInfo
+  )
+endif()
+
 if ("NVPTX" IN_LIST LLVM_TARGETS_TO_BUILD)
   set(NVPTX_LIBS
     NVPTXCodeGen
@@ -37,6 +47,7 @@ add_mlir_dialect_library(MLIRNVVMTarget
 
   LINK_COMPONENTS
   ${NVPTX_LIBS}
+  ${Hexagon_LIBS}
 
   LINK_LIBS PUBLIC
   MLIRIR
