@@ -756,6 +756,60 @@ struct SimplifyFFTImgAtInputRealSymm : public OpRewritePattern<FFT1DImgOp> {
 
 // Pseudo-Code
 // Find lmsFIlter with gain operation
+//  result1 = lmsFilter(noisy_sig, clean_sig, mu, filterSize, iter);
+//  result2 = gain(result1, G1)
+// result2 will be now lmsFilter(noisy_sig, clean_sig, mu*g1,
+// filterSize, iter); replaceOp
+struct SimplifyLMSFilterwithGain
+    : public mlir::OpRewritePattern<GainOp> {
+  SimplifyLMSFilterwithGain(mlir::MLIRContext *context)
+      : OpRewritePattern<GainOp>(context, 1) {}
+
+  mlir::LogicalResult
+  matchAndRewrite(GainOp op, mlir::PatternRewriter &rewriter) const override {
+
+    mlir::Value gainOp_operand0 = op.getOperand(0);
+
+    LMSFilterOp prev_LMSFilterOp =
+        gainOp_operand0.getDefiningOp<LMSFilterOp>();
+
+    if (!prev_LMSFilterOp)
+      return failure();
+
+    mlir::Value gainOp_operand1 = op.getOperand(1);
+    mlir::Value prev_LMSFilterOp_0 =
+        prev_LMSFilterOp.getOperand(0);
+    mlir::Value prev_LMSFilterOp_1 =
+        prev_LMSFilterOp.getOperand(1);
+    mlir::Value prev_LMSFilterOp_mu =
+        prev_LMSFilterOp.getOperand(2);
+    mlir::Value prev_LMSFilterOp_3 =
+        prev_LMSFilterOp.getOperand(3);
+    mlir::Value prev_LMSFilterOp_4 =
+        prev_LMSFilterOp.getOperand(4);
+
+    // create mul op
+    auto mulOp = rewriter.create<MulOp>(
+        op.getLoc(), prev_LMSFilterOp_mu, gainOp_operand1);
+    auto newLMSFilterOp = rewriter.create<LMSFilterOp>(
+        op.getLoc(), prev_LMSFilterOp_0, prev_LMSFilterOp_1,
+        mulOp.getResult(), prev_LMSFilterOp_3, prev_LMSFilterOp_4);
+
+    // Repalce the use of original gain operation with this newGainOp
+    rewriter.replaceOp(op, newLMSFilterOp.getResult());
+    return mlir::success();
+  }
+};
+
+
+
+
+
+
+
+
+// Pseudo-Code
+// Find lmsFIlterResponse with gain operation
 //  result1 = lmsFilterResponse(noisy_sig, clean_sig, mu, filterSize);
 //  result2 = gain(result1, G1)
 // result2 will be now lmsFilterResponse(noisy_sig, clean_sig, mu*g1,
@@ -781,23 +835,29 @@ struct SimplifyLMSFilterResponsewithGain
         prev_LMSFilterResponseOp.getOperand(0);
     mlir::Value prev_LMSFilterResponseOp_1 =
         prev_LMSFilterResponseOp.getOperand(1);
-    mlir::Value prev_LMSFilterResponseOp_mu =
+    mlir::Value prev_LMSFilterResponseOp_2 =
         prev_LMSFilterResponseOp.getOperand(2);
     mlir::Value prev_LMSFilterResponseOp_3 =
         prev_LMSFilterResponseOp.getOperand(3);
 
-    // create mul op
-    auto mulOp = rewriter.create<MulOp>(
-        op.getLoc(), prev_LMSFilterResponseOp_mu, gainOp_operand1);
-    auto newLMSFilterResponseOp = rewriter.create<LMSFilterResponseOp>(
+    auto OptimizedOp = rewriter.create<LMSFilterResponse2GainOp>(
         op.getLoc(), prev_LMSFilterResponseOp_0, prev_LMSFilterResponseOp_1,
-        mulOp.getResult(), prev_LMSFilterResponseOp_3);
+        prev_LMSFilterResponseOp_2, prev_LMSFilterResponseOp_3, gainOp_operand1);
 
     // Repalce the use of original gain operation with this newGainOp
-    rewriter.replaceOp(op, newLMSFilterResponseOp.getResult());
+    rewriter.replaceOp(op, OptimizedOp.getResult());
     return mlir::success();
   }
 };
+
+
+
+
+
+
+
+
+
 
 struct SimplifySpaceModDemodulate
     : public mlir::OpRewritePattern<SpaceDemodulateOp> {
@@ -1444,7 +1504,7 @@ void GainOp::getCanonicalizationPatterns(RewritePatternSet &results,
                                          MLIRContext *context) {
   // results.add<SimplifyBack2BackGain, SimplifyGainwZero>(context);
   if (getEnableCanonicalOpt()) {
-    results.add<SimplifyBack2BackGain, SimplifyLMSFilterResponsewithGain>(
+    results.add<SimplifyBack2BackGain, SimplifyLMSFilterwithGain, SimplifyLMSFilterResponsewithGain>(
         context);
   }
 }

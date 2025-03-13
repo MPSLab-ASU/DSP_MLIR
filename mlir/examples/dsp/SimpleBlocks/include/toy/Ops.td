@@ -2947,6 +2947,27 @@ def Correl2MaxOptimizedOp : Dsp_Op<"correl2max", [Pure , DeclareOpInterfaceMetho
  }
 
 
+
+
+//===----------------------------------------------------------------------===//
+// LMSFilterResponse2GainOp
+//===----------------------------------------------------------------------===//
+
+def LMSFilterResponse2GainOp : Dsp_Op<"lmsFilterResponse2gain",
+    [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
+  let summary = "Fusing loop for LMSFilterResponseOp and GainOp";
+
+  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs, F64Tensor:$mu, F64Tensor:$filterLen, F64Tensor:$gain);
+  let results = (outs F64Tensor);
+
+  let builders = [
+    OpBuilder<(ins "Value":$lhs, "Value":$rhs, "Value":$mu, "Value":$filterLen, "Value":$gain)>
+  ];
+}
+
+
+
+
 #endif // TOY_OPS
 
 

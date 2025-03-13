@@ -11895,6 +11895,176 @@ struct Correl2MaxOptimizedOpLowering : public ConversionPattern {
 
 
 
+//===----------------------------------------------------------------------===//
+// ToyToAffine RewritePatterns: lmsFilterResponse operations
+//===----------------------------------------------------------------------===//
+
+struct LMSFilterResponse2GainOpLowering : public ConversionPattern {
+  LMSFilterResponse2GainOpLowering(MLIRContext *ctx)
+      : ConversionPattern(dsp::LMSFilterResponse2GainOp::getOperationName(), 1,
+                          ctx) {}
+
+  LogicalResult
+  matchAndRewrite(Operation *op, ArrayRef<Value> operands,
+                  ConversionPatternRewriter &rewriter) const final {
+    auto loc = op->getLoc();
+
+    // Pseudo-code:
+    //  for (int n = 0; n < NUM_SAMPLES; n++) {
+    //		// we also need to initialize w
+    //		// w[n] = 0;
+    //      // Calculate the filter output y[n]
+    //      y[n] = 0;
+    //      for (int i = 0; i < FILTER_LENGTH; i++) {
+    //          if (n - i >= 0) { // affine if
+    //              y[n] = y[n] + (w[i] * x[n - i]);
+    //          }
+    //      }
+    //     // Calculate the error e[n]
+    //     e[n] = d[n] - y[n];
+	//     y[n] = y[n] * gain;
+    //     // Update the filter weights w[i]
+    //     for (int i = 0; i < FILTER_LENGTH; i++) {
+    //         if (n - i >= 0) {
+    //             w[i] +=  MU * e[n] * x[n - i];
+    //         }
+    //     }
+    // }
+
+    auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
+
+    // allocation & deallocation for the result of this operation
+    auto memRefType = convertTensorToMemRef(tensorType);
+    auto alloc = insertAllocAndDealloc(memRefType, loc, rewriter);
+
+    // construct affine loops for the input
+    SmallVector<int64_t, 4> lowerBounds(tensorType.getRank(), /*Value*/ 0);
+    SmallVector<int64_t, 4> steps(tensorType.getRank(), /*Value=*/1);
+
+    LMSFilterResponse2GainOpAdaptor lmsFilterResponse2GainAdaptor(operands);
+    // Value alpha = rewriter.create<arith::ConstantOp>(loc,
+    // rewriter.getF64Type(),
+    //                                                      rewriter.getF64FloatAttr(1));
+    Value zeroval = rewriter.create<arith::ConstantOp>(
+        loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(0));
+    Value mu = rewriter.create<AffineLoadOp>(loc, lmsFilterResponse2GainAdaptor.getMu());
+
+	// Before for loop, load the gain value
+    Value gain = rewriter.create<AffineLoadOp>(loc, lmsFilterResponse2GainAdaptor.getGain());
+
+    // For loop -- iterate from 0 to last
+    int64_t lb = 0;
+    int64_t numSamples = tensorType.getShape()[0];
+    int64_t step = 1;
+
+    Value GetFilterLOp = op->getOperand(3);
+    dsp::ConstantOp constantOp3rdArg =
+        GetFilterLOp.getDefiningOp<dsp::ConstantOp>();
+    DenseElementsAttr constant3rdValue = constantOp3rdArg.getValue();
+    ;
+    auto elements1 = constant3rdValue.getValues<FloatAttr>();
+    float filterlenval = elements1[0].getValueAsDouble();
+    auto FilterLength = (uint64_t)filterlenval;
+
+    auto yMemRefType = MemRefType::get({numSamples}, rewriter.getF64Type());
+    auto wAlloc = rewriter.create<memref::AllocOp>(loc, yMemRefType);
+
+    affine::AffineForOp forOp1 =
+        rewriter.create<AffineForOp>(loc, lb, numSamples, step);
+    auto iv = forOp1.getInductionVar();
+
+    rewriter.setInsertionPointToStart(forOp1.getBody());
+
+    // For affine expression: #map1 = affine_map<(%arg0)[] : (%arg0 - 1)
+    AffineExpr d0, d1, s0;
+    bindDims(rewriter.getContext(), d0, d1);
+    // AffineExpr ExprForXSlice = rewriter.getAffineDimExpr(0) -
+    // rewriter.getAffineDimExpr(1); //d0 - d1;
+    AffineExpr ExprForXSlice = d0 - d1;
+    AffineMap addMapForLMSFilter = AffineMap::get(2, 0, ExprForXSlice);
+    IntegerSet set1 = IntegerSet::get(2, 0, {ExprForXSlice}, {false});
+
+    // w[n] = 0;
+    // y[n] = 0;
+    // rewriter.create<AffineStoreOp>(loc, zeroval, alloc, ValueRange{iv});
+    // Allocate and initialize array for y
+    // Value constantIndx0 = rewriter.create<arith::ConstantIndexOp>(loc, 0);
+
+    rewriter.create<AffineStoreOp>(loc, zeroval, wAlloc, ValueRange{iv});
+    rewriter.create<AffineStoreOp>(loc, zeroval, alloc, ValueRange{iv});
+
+    affine::AffineForOp forOp2 =
+        rewriter.create<AffineForOp>(loc, lb, FilterLength, step);
+    auto iv2 = forOp2.getInductionVar();
+
+    rewriter.setInsertionPointToStart(forOp2.getBody());
+
+    auto ifOp = rewriter.create<affine::AffineIfOp>(
+        loc, set1, ValueRange{iv, iv2}, false /*no else*/);
+    rewriter.setInsertionPointToStart(ifOp.getThenBlock());
+
+    Value inputX =
+        rewriter.create<AffineLoadOp>(loc, lmsFilterResponse2GainAdaptor.getLhs(),
+                                      addMapForLMSFilter, ValueRange{iv, iv2});
+    Value w = rewriter.create<AffineLoadOp>(loc, wAlloc,
+                                            ValueRange{iv2}); // memRefType
+
+    Value wmulx = rewriter.create<arith::MulFOp>(loc, inputX, w);
+    Value ybefore = rewriter.create<AffineLoadOp>(loc, alloc, ValueRange{iv});
+    Value sumNext = rewriter.create<arith::AddFOp>(loc, wmulx, ybefore);
+    rewriter.create<AffineStoreOp>(loc, sumNext, alloc, ValueRange{iv});
+    rewriter.setInsertionPointAfter(ifOp);
+    rewriter.setInsertionPointAfter(forOp2);
+
+    //  get e[n] = d[n] - y[n]
+
+    Value desiredX = rewriter.create<AffineLoadOp>(
+        loc, lmsFilterResponse2GainAdaptor.getRhs(), ValueRange{iv});
+    Value ynew = rewriter.create<AffineLoadOp>(loc, alloc, ValueRange{iv});
+
+    Value err = rewriter.create<arith::SubFOp>(loc, desiredX, ynew);
+	
+	// y[n] = y[n] * gain for fusion
+    Value ynewGain = rewriter.create<arith::MulFOp>(loc, ynew, gain);
+    rewriter.create<AffineStoreOp>(loc, ynewGain, alloc, ValueRange{iv});
+
+
+    affine::AffineForOp forOp3 =
+        rewriter.create<AffineForOp>(loc, lb, FilterLength, step);
+    auto iv3 = forOp3.getInductionVar();
+
+    rewriter.setInsertionPointToStart(forOp3.getBody());
+
+    auto ifOp2 = rewriter.create<affine::AffineIfOp>(
+        loc, set1, ValueRange{iv, iv3}, false /*no else*/);
+    rewriter.setInsertionPointToStart(ifOp2.getThenBlock());
+
+    Value inputX2 =
+        rewriter.create<AffineLoadOp>(loc, lmsFilterResponse2GainAdaptor.getLhs(),
+                                      addMapForLMSFilter, ValueRange{iv, iv3});
+
+    Value Prevw2 = rewriter.create<AffineLoadOp>(loc, wAlloc, ValueRange{iv3});
+
+    // f(u(n),e(n),μ)=μe(n)u∗(n)
+    Value mul1 = rewriter.create<arith::MulFOp>(loc, err, inputX2);
+    Value mul2 = rewriter.create<arith::MulFOp>(loc, mu, mul1);
+
+    // FInal w[n]
+    Value answer = rewriter.create<arith::AddFOp>(loc, Prevw2, mul2);
+
+    rewriter.create<AffineStoreOp>(loc, answer, wAlloc, ValueRange{iv3});
+    rewriter.setInsertionPointAfter(ifOp2);
+    rewriter.setInsertionPointAfter(forOp3);
+
+    rewriter.setInsertionPointAfter(forOp1);
+    // debug
+    //  forOp1->dump();
+
+    rewriter.replaceOp(op, alloc);
+
+    return success();
+  }
+};
 
 
 // namespace
@@ -11983,7 +12153,7 @@ void ToyToAffineLoweringPass::runOnOperation() {
       FFTFreqOpLowering, FindDominantPeaksOpLowering,
       RecoverDTMFDigitOpLowering, FFTOpLowering, FFTAbsOpLowering,
       DFTAbsOpLowering, DFTAbsThresholdUpOpLowering, ArgMaxOpLowering, CorrelateOpLowering,
-	  SetSingleElemAtIdxOpLowering, Correl2MaxOptimizedOpLowering>(&getContext());
+	  SetSingleElemAtIdxOpLowering, Correl2MaxOptimizedOpLowering, LMSFilterResponse2GainOpLowering>(&getContext());
 
   // With the target and rewrite patterns defined, we can now attempt the
   // conversion. The conversion will signal failure if any of our `illegal`
