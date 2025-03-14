@@ -3,31 +3,29 @@
 #include <math.h>
 
 #define PI 3.14159265359
-#define INPUT_LENGTH 100000000
-#define MAX_PEAKS 1000
+#define FS 8000
+#define INPUT_LENGTH 2000
+#define FILTER_SIZE 101
+#define MAX_PEAKS 950
 
-// Function declarations
+// Function prototypes
 void getRangeOfVector(double* vector, double start, int length, double increment);
 void gain(double* output, double* input, double multiplier, int length);
 void sine(double* output, double* input, int length);
-void add_signals(double* output, double* input1, double* input2, int length);
-void sub_signals(double* output, double* input1, double* input2, int length);
-void multiply_signals(double* output, double* input1, double* input2, int length);
+void add(double* output, double* input1, double* input2, int length);
+void sub(double* output, double* input1, double* input2, int length);
 void lowPassFIRFilter(double* lpf, double wc, int N);
-void hamming(double* hamming, int N);
+void hamming(double* window, int length);
 void FIRFilterResponse(double* output, double* input, double* filter, int input_length, int filter_length);
 double max_signal(double* signal, int length);
-int find_peaks(double* signal, int length, double threshold, int minDistance, int* peaks);
-void diff(double* output, int* input, int length);
+void find_peaks(double* peaks, double* input, int length, double height, int distance);
+void diff(double* output, double* input, int length);
 double mean(double* input, int length);
 
 int main() {
-    double fc1 = 1000;
-    double fc2 = 7500;
-    double Fs = 8000;
-    int N = 101;
-    int distance = 950;
-    
+    double fc1 = 1000, fc2 = 7500;
+    int N = FILTER_SIZE, distance = 950;
+
     double* input = (double*)malloc(INPUT_LENGTH * sizeof(double));
     getRangeOfVector(input, 0, INPUT_LENGTH, 0.000125);
 
@@ -50,49 +48,62 @@ int main() {
     gain(noise1, noise, 0.5, INPUT_LENGTH);
 
     double* noisy_sig = (double*)malloc(INPUT_LENGTH * sizeof(double));
-    add_signals(noisy_sig, clean_sig, noise1, INPUT_LENGTH);
+    add(noisy_sig, clean_sig, noise1, INPUT_LENGTH);
 
-    // Step 1: FIR Bandpass Filter
-    double wc1 = 2 * PI * fc1 / Fs;
+    // FIR Bandpass Filter
+    double wc1 = 2 * PI * fc1 / FS;
+    double wc2 = 2 * PI * fc2 / FS;
+
     double* lpf1 = (double*)malloc(N * sizeof(double));
-    lowPassFIRFilter(lpf1, wc1, N);
-    
-    double* hamming_window = (double*)malloc(N * sizeof(double));
-    hamming(hamming_window, N);
-    
-    double* lpf1_w = (double*)malloc(N * sizeof(double));
-    multiply_signals(lpf1_w, lpf1, hamming_window, N);
-
-    double wc2 = 2 * PI * fc2 / Fs;
     double* lpf2 = (double*)malloc(N * sizeof(double));
+    lowPassFIRFilter(lpf1, wc1, N);
     lowPassFIRFilter(lpf2, wc2, N);
-    
+
+    double hamming_window[FILTER_SIZE];
+    hamming(hamming_window, FILTER_SIZE);
+
+    double* lpf1_w = (double*)malloc(N * sizeof(double));
     double* lpf2_w = (double*)malloc(N * sizeof(double));
-    multiply_signals(lpf2_w, lpf2, hamming_window, N);
+
+    for (int i = 0; i < N; i++) {
+        lpf1_w[i] = lpf1[i] * hamming_window[i];
+        lpf2_w[i] = lpf2[i] * hamming_window[i];
+    }
 
     double* bpf_w = (double*)malloc(N * sizeof(double));
-    sub_signals(bpf_w, lpf2_w, lpf1_w, N);
+    sub(bpf_w, lpf2_w, lpf1_w, N);
 
-    double* FIRfilterResponseForBpf = (double*)malloc(INPUT_LENGTH * sizeof(double));
+    int conv_length = INPUT_LENGTH + N - 1;
+    double* FIRfilterResponseForBpf = (double*)malloc(conv_length * sizeof(double));
     FIRFilterResponse(FIRfilterResponseForBpf, noisy_sig, bpf_w, INPUT_LENGTH, N);
 
-    // Step 2: Artifact Removal (R-peak detection)
-    double max_val = max_signal(FIRfilterResponseForBpf, INPUT_LENGTH);
+    double max_val = max_signal(FIRfilterResponseForBpf, conv_length);
     double height = 0.3 * max_val;
 
-    int* r_peaks = (int*)malloc(MAX_PEAKS * sizeof(int));
-    int peaks_count = find_peaks(FIRfilterResponseForBpf, INPUT_LENGTH, height, distance, r_peaks);
+    double* r_peaks = (double*)malloc(MAX_PEAKS * sizeof(double));
+    find_peaks(r_peaks, FIRfilterResponseForBpf, conv_length, height, distance);
+    // Get peak count from last index of r_peaks array (converted to double)
+    double len_r_peaks = (double)r_peaks[MAX_PEAKS - 1]; // Number of detected peaks as double
+    double last_peaks_index = len_r_peaks - 1.0;        // Last peak index as double
+    
+    double* diff_val = (double*)malloc((int)len_r_peaks * sizeof(double)); 
+    diff(diff_val, r_peaks, (int)len_r_peaks);
 
-    double* diff_val = (double*)malloc((peaks_count - 1) * sizeof(double));
-    diff(diff_val, r_peaks, peaks_count);
 
-    double diff_mean = mean(diff_val, peaks_count - 1);
+// Compute peaks_count - 1
+double peaks_count_minus_one = len_r_peaks - 1.0;
 
-    double avg_hr = (60 * Fs) / diff_mean;
+// Compute mean of peak differences
+double diff_mean = mean(diff_val, (int)peaks_count_minus_one);
 
-    printf("%f\n", avg_hr);
+// Compute heart rate
+double avg_hr = (60.0 * FS) / diff_mean;
 
-    // Free allocated memory
+printf("%f", avg_hr);
+
+
+    // Free memory
+    free(diff_val);
     free(input);
     free(getSinDuration);
     free(clean_sig);
@@ -101,18 +112,17 @@ int main() {
     free(noise1);
     free(noisy_sig);
     free(lpf1);
-    free(hamming_window);
-    free(lpf1_w);
     free(lpf2);
+    free(lpf1_w);
     free(lpf2_w);
     free(bpf_w);
     free(FIRfilterResponseForBpf);
     free(r_peaks);
-    free(diff_val);
 
     return 0;
 }
 
+// Function implementations
 void getRangeOfVector(double* vector, double start, int length, double increment) {
     for (int i = 0; i < length; i++) {
         vector[i] = start + i * increment;
@@ -131,58 +141,21 @@ void sine(double* output, double* input, int length) {
     }
 }
 
-void add_signals(double* output, double* input1, double* input2, int length) {
+void add(double* output, double* input1, double* input2, int length) {
     for (int i = 0; i < length; i++) {
         output[i] = input1[i] + input2[i];
     }
 }
 
-void sub_signals(double* output, double* input1, double* input2, int length) {
+void sub(double* output, double* input1, double* input2, int length) {
     for (int i = 0; i < length; i++) {
         output[i] = input1[i] - input2[i];
     }
 }
 
-void multiply_signals(double* output, double* input1, double* input2, int length) {
+void hamming(double* window, int length) {
     for (int i = 0; i < length; i++) {
-        output[i] = input1[i] * input2[i];
-    }
-}
-
-void hamming(double* hamming, int N) {
-    for (int n = 0; n < N; n++) {
-        hamming[n] = 0.54 - 0.46 * cos(2 * PI * n / (N - 1));
-    }
-}
-
-// void FIRFilterResponse(double* output, double* input, double* filter, int input_length, int filter_length) {
-//     int i, j;
-//     for (i = 0; i < input_length; i++) {
-//         output[i] = 0;
-//         for (j = 0; j < filter_length; j++) {
-//             if (i - j >= 0) {
-//                 output[i] += input[i - j] * filter[j];
-//             }
-//         }
-//     }
-// }
-
-
-void FIRFilterResponse(double* output, double* input, double* filter, int input_length, int filter_length) {
-    int outputLen = input_length + filter_length - 1;
-
-    // Initialize output array to zero
-    for (int i = 0; i < outputLen; i++) {
-        output[i] = 0.0;
-    }
-
-    // Perform full convolution
-    for (int i = 0; i < outputLen; i++) {
-        for (int k = 0; k < filter_length; k++) {
-            if (i - k >= 0 && i - k < input_length) {
-                output[i] += filter[k] * input[i - k];
-            }
-        }
+        window[i] = 0.54 - 0.46 * cos(2 * PI * i / (length - 1));
     }
 }
 
@@ -192,21 +165,31 @@ void lowPassFIRFilter(double* lpf, double wc, int N) {
         if (n == mid) {
             lpf[n] = wc / PI;
         } else {
-            lpf[n] = (wc / PI) * sin(wc * (n - mid)) / (wc * (n - mid));
+            double x = wc * (n - mid);
+            lpf[n] = (wc / PI) * (sin(x) / x);
         }
     }
 }
 
-int find_peaks(double* signal, int length, double threshold, int minDistance, int* peaks) {
-    int num_peaks = 0;  
-    for (int i = 1; i < length - 1 && num_peaks < MAX_PEAKS; i++) {
-        if (signal[i] > threshold && signal[i] > signal[i-1] && signal[i] > signal[i+1]) {
-            peaks[num_peaks++] = i;
-            i += minDistance;  
+// Perform full convolution for FIR filtering
+void FIRFilterResponse(double* output, double* input, double* filter, int input_length, int filter_length) {
+    int conv_length = input_length + filter_length - 1;
+    
+    // Initialize output to zero
+    for (int n = 0; n < conv_length; n++) {
+        output[n] = 0;
+    }
+
+    // Perform full convolution
+    for (int n = 0; n < conv_length; n++) {
+        for (int k = 0; k < filter_length; k++) {
+            if (n - k >= 0 && n - k < input_length) {
+                output[n] += input[n - k] * filter[k];
+            }
         }
     }
-    return num_peaks;
 }
+
 
 double max_signal(double* signal, int length) {
     double max = signal[0];
@@ -218,9 +201,43 @@ double max_signal(double* signal, int length) {
     return max;
 }
 
-void diff(double* output, int* input, int length) {
+// Find peaks in a signal based on a threshold and minimum distance
+void find_peaks(double* peaks, double* input, int length, double height, int distance) {
+    int peakCount = 0;
+
+    // Initialize peaks array with -1 (default no peaks)
+    for (int i = 0; i < MAX_PEAKS; i++) {
+        peaks[i] = -1;
+    }
+
+    for (int i = 1; i < length - 1; i++) {
+        if (input[i] > input[i - 1] && input[i] > input[i + 1] && input[i] >= height) {
+            // If it's the first peak, store it
+            if (peakCount == 0) {
+                peaks[peakCount++] = i;
+            } else {
+                // Ensure minimum distance between peaks
+                if (i - (int)peaks[peakCount - 1] >= distance) {
+                    peaks[peakCount++] = i;
+                }
+            }
+
+            // Stop if max peaks reached
+            if (peakCount >= MAX_PEAKS - 1) {
+                break;
+            }
+        }
+    }
+
+    // Store peak count at the last index
+    peaks[MAX_PEAKS - 1] = peakCount;
+}
+
+
+
+void diff(double* output, double* input, int length) {
     for (int i = 0; i < length - 1; i++) {
-        output[i] = (double)(input[i+1] - input[i]);
+        output[i] = (double)(input[i + 1] - input[i]);
     }
 }
 

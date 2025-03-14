@@ -14,7 +14,7 @@ def main() {
 
   #size 10
   # var a10 = [ 10,20,30,40,50,60,70,80,90,100];
-	var input = getRangeOfVector(0, 30000, 1);
+	var input = getRangeOfVector(0, 500, 1);
   # var input = [1,2,3,4];
   # print(a10);
 
@@ -23,10 +23,13 @@ def main() {
   # y[n] = sum(h(k) . x(n-k)) k=0 to N-1 & 0<= n < N
   var conv1d = FIRFilterResponse(input, reverse_input);
   # var fft_real = fft1DRealSymm(conv1d); #fft1DRealSymm
+  # print(conv1d);
   var fft_real = fft1dreal(conv1d);
+  # print(fft_real);
   var fft_img = fft1dimg(conv1d);
+  # print(fft_img);
   var sq = fft_real * fft_real + fft_img * fft_img;
-  print(sq);
+  # print(sq);
   var final1 = getElemAtIndx(sq , [2]); 
   print(final1);
 }

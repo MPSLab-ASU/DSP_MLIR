@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 #define PI 3.14159265359
-#define INPUT_LENGTH 1000
+#define INPUT_LENGTH 10
 
 // Function prototypes
 double *getRangeOfVector(double start, int length, double increment);
@@ -89,7 +89,7 @@ double sum(const double *input, int length) {
 void threshold(double *output, const double *input, double thresholdValue,
                int length) {
   for (int i = 0; i < length; i++) {
-    if (input[i] <= -thresholdValue || input[i] >= thresholdValue) {
+    if (input[i] >= thresholdValue) {
       output[i] = input[i];
     } else {
       output[i] = 0;
@@ -132,7 +132,7 @@ int main() {
   double *noisy_sig = malloc(INPUT_LENGTH * sizeof(double));
   add(noisy_sig, signal, noise, INPUT_LENGTH);
 
-  double threshold_value = 0.2;
+  double threshold_value = 2;
 
   double complex *dft_output = malloc(INPUT_LENGTH * sizeof(double complex));
   dft(dft_output, noisy_sig, INPUT_LENGTH);
@@ -155,7 +155,7 @@ int main() {
   double *GetThresholdReal = malloc(INPUT_LENGTH * sizeof(double));
   threshold(GetThresholdReal, magnitude, threshold_value, INPUT_LENGTH);
 
-  printf("%f ", GetThresholdReal[3]);
+  printf("%f ", GetThresholdReal[0]);
 
   // Free allocated memory
   free(input);

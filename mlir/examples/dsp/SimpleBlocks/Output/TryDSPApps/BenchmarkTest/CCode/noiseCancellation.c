@@ -1,9 +1,9 @@
+#include <float.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <float.h>
 
-#define INPUT_LENGTH 100000000
+#define INPUT_LENGTH 1000
 
 void getRangeOfVector(double *vector, double start, int length,
                       double increment) {
@@ -51,20 +51,22 @@ void lmsFilterResponse(double *output, double *noisy_sig, double *clean_sig,
 }
 
 void normalize(double *output, double *input, int length) {
-    double min_val = DBL_MAX;
-    double max_val = -DBL_MAX;
+  double min_val = DBL_MAX;
+  double max_val = -DBL_MAX;
 
-    // Find min and max values
-    for (int i = 0; i < length; i++) {
-        if (input[i] < min_val) min_val = input[i];
-        if (input[i] > max_val) max_val = input[i];
-    }
+  // Find min and max values
+  for (int i = 0; i < length; i++) {
+    if (input[i] < min_val)
+      min_val = input[i];
+    if (input[i] > max_val)
+      max_val = input[i];
+  }
 
-    // Normalize the array
-    double range = max_val - min_val;
-    for (int i = 0; i < length; i++) {
-        output[i] = (input[i] - min_val) / range;
-    }
+  // Normalize the array
+  double range = max_val - min_val;
+  for (int i = 0; i < length; i++) {
+    output[i] = (input[i] - min_val) / range;
+  }
 }
 
 int main() {
@@ -119,10 +121,10 @@ int main() {
   lmsFilterResponse(y, noisy_sig, clean_sig, 0.01, 32, INPUT_LENGTH);
 
   gain(sol, y, 10, INPUT_LENGTH);
- normalize(normalized_sol, sol, INPUT_LENGTH);
+  normalize(normalized_sol, sol, INPUT_LENGTH);
 
   printf("%f\n", normalized_sol[5]);
-  
+
   // Free allocated memory at the end
   free(t);
   free(getSinDuration);

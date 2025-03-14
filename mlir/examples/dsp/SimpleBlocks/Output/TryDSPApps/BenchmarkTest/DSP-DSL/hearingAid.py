@@ -2,7 +2,7 @@ def main() {
 var fs = 8000;
   # var step = 1/8000; 
   # print(step);
-	var input = getRangeOfVector(0, 100000000, 0.000125);
+	var input = getRangeOfVector(0, 100, 0.000125);
   var f_sig = 500;
   var pi = 3.14159265359;
   var getMultiplier = 2 * pi * f_sig;
@@ -23,10 +23,12 @@ var fs = 8000;
   var mu = 0.01;
   var filterSize = 32;
   var y = lmsFilterResponse(noisy_sig, clean_sig, mu, filterSize);
-  var G1 = 1002300;
+  var G1 = 123;
   var sol = gain(y,G1);
   # print(y);
-  print(sol);
+  var final = getElemAtIndx(sol, [3]); 
+  print(final);
+  # print(sol);
 
 }
 

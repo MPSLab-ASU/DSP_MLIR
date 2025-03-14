@@ -4,7 +4,7 @@ def main() {
     var Fs = 8000;
     var N = 101;
     var distance = 950;
-	var input = getRangeOfVector(0, 20000, 0.000125);
+	var input = getRangeOfVector(0, 1000, 0.000125);
     # print(c);
     var pi = 3.14159265359;
     var f_sig = 500;

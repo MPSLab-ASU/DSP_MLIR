@@ -4,7 +4,7 @@
 #include <stdbool.h>
 
 #define M_PI 3.14159265358979323846
-#define INPUT_LENGTH 50000
+#define INPUT_LENGTH 1000
 
 void dftReal(double* real, double* input, int length) {
     for (int k = 0; k < length; k++) {
@@ -96,7 +96,7 @@ int recoverDTMFDigit(double* peaks, const double freqPairs[10][2], int peak_coun
 
 
 int main() {
-    int digit = 6;
+    int digit = 8;
     int fs = 8192;
     double duration = (double)INPUT_LENGTH / fs;
     int N = fs * duration;
@@ -127,7 +127,7 @@ int main() {
 
     double peaks[2];
     findDominantPeaks(frequencies, magnitudes, N, peaks);
-    printf("Peaks: %.2f, %.2f\n", peaks[0], peaks[1]);
+    printf("%f %f\t", peaks[0], peaks[1]);
 
     double freqPairs[10][2] = {
         {941, 1336}, {697, 1209}, {697, 1336}, {697, 1477},
@@ -136,7 +136,7 @@ int main() {
     };
 
     double recovered_digit = recoverDTMFDigit(peaks, freqPairs, 10);
-    printf("Recovered digit: %.0f\n", recovered_digit);
+    printf("%f", recovered_digit);
 
     free(dtmf_tone);
     free(fft_real);
