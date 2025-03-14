@@ -4,7 +4,7 @@
 #include <float.h>
 
 #define PI 3.14159265359
-#define INPUT_LENGTH 100000000
+#define INPUT_LENGTH 1000
 
 // Function to generate a range of values
 void getRangeOfVector(double* vector, double start, int length, double increment) {
@@ -118,7 +118,7 @@ int main() {
     normalize(normalized_sol, y, INPUT_LENGTH);
 
 
-    printf("%f\n", normalized_sol[5]);
+    printf("%f", normalized_sol[5]);
     
 
     // Free allocated memory

@@ -1202,6 +1202,20 @@ private:
       return builder.create<Correl2MaxOptimizedOp>(location, operands[0], operands[1]);
     }
 
+
+    //LMSFilterResponse2GainOp
+    if (callee == "lmsFilterResponse2gain") {
+      if (call.getArgs().size() != 5) {
+        emitError(location, "MLIR codegen encountered an error: dsp.lmsFilterResponse2gain "
+                            "accepts only 5 argument.");
+        return nullptr;
+      }
+      return builder.create<LMSFilterResponse2GainOp>(location, operands[0], operands[1], operands[2], operands[3], operands[4]);
+    }
+	
+
+
+
 	
     // Builtin calls have their custom operation, meaning this is a
     // straightforward emission.

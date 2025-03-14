@@ -3721,6 +3721,26 @@ void SetSingleElemAtIdxOp::inferShapes() {
 
 
 //===----------------------------------------------------------------------===//
+// LMSFilterResponse2GainOp
+//===----------------------------------------------------------------------===//
+
+
+void LMSFilterResponse2GainOp::build(mlir::OpBuilder &builder,
+                                mlir::OperationState &state, mlir::Value lhs,
+                                mlir::Value rhs, mlir::Value mu,
+                                mlir::Value filterLen, mlir::Value gain) {
+
+  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  state.addOperands({lhs, rhs, mu, filterLen, gain});
+}
+
+void LMSFilterResponse2GainOp::inferShapes() {
+  getResult().setType(getLhs().getType());
+}
+
+
+
+//===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//
 

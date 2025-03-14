@@ -3,7 +3,7 @@
 #include <math.h>
 
 #define PI 3.14159265359
-#define INPUT_LENGTH 100000000
+#define INPUT_LENGTH 10
 #define SAMPLE_RATE 8000
 #define TIME_INCREMENT 0.000125
 #define WINDOW_SIZE 3
@@ -126,6 +126,7 @@ int main() {
     sliding_avg_filter(median, average, INPUT_LENGTH - WINDOW_SIZE + 1);
     
     printf("%f\n", average[3]); 
+    
     
     // Free allocated memory
     free(input);

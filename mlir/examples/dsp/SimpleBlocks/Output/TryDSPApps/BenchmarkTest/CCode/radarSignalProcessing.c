@@ -4,7 +4,7 @@
 #include <complex.h>
 
 #define PI 3.1415926
-#define INPUT_LENGTH 10000
+#define INPUT_LENGTH 10
 
 // Function prototypes
 double* getrangeofvector(double first, int64_t N, double step);
@@ -41,11 +41,11 @@ int main() {
     double* filter_hamming_2 = multiply_arrays(filter2, hamming(N), N);
     double* bpf = subtract_arrays(filter_hamming_2, filter_hamming_1, N);
     double* firFilterResponse = FirFilterResponse(power, input_length, bpf, N);
-    double final = firFilterResponse[10099];
-    printf("final: %f\n", final);
+    double final = firFilterResponse[10];
+    printf("%f", final);
 
     // for (int i = 0; i < (input_length + N - 1); ++i) {
-    //     printf("firFilterResponse: %f\n", firFilterResponse[i]);
+    //     printf("%f\t", firFilterResponse[i]);
     // }
     
     // Free allocated memory
