@@ -3,7 +3,7 @@ def main() {
         var antennas = 4;
         var input_fc = 5;
         var N = 101;
-	var input = getRangeOfVector(0, 10000, 0.000125);
+	var input = getRangeOfVector(0, 10, 0.000125);
         var weights = getRangeOfVector(-90, 180, 1);
 
         var signal = beam_form(antennas, input_fc, input, weights);
@@ -26,7 +26,7 @@ def main() {
         var bpf = sub(filter_hamming_2, filter_hamming_1);
         var firFilterResponse = FIRFilterResponse(power_profile, bpf);
         var length = len(firFilterResponse);
-        var final = getElemAtIndx(firFilterResponse , 10000);
+        var final = getElemAtIndx(firFilterResponse , 10);
         print(final);
 }
 

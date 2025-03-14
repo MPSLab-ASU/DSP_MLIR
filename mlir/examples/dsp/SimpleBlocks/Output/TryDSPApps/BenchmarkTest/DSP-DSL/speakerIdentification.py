@@ -1,6 +1,6 @@
 def main() {
   var sample_rate = 1000;
-	var duration = 1220.703125;
+	var duration = 12.20703125;
   var person1 = generateVoiceSignature(100, 200, duration, sample_rate); #Alice
   var person2 = generateVoiceSignature(150, 250, duration, sample_rate); #Bob
   var person3 = generateVoiceSignature(120, 180, duration, sample_rate); #Charlie

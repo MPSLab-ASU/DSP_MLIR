@@ -17,9 +17,7 @@ def main() {
         # print(modulate_symbol_imagine);
         var decode_data = qam_demodulate(modulate_symbol_real, modulate_symbol_imagine);
         # print(decode_data);
-        var final2 = getElemAtIndx(modulate_symbol_imagine , 2);
         var final1 = getElemAtIndx(decode_data , 2);
         print(final1);
-        print(final2);
 }
 

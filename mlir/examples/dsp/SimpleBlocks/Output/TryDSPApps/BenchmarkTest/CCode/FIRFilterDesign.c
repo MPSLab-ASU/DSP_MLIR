@@ -2,12 +2,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define INPUT_LENGTH 100000000
+#define INPUT_LENGTH 101
 #define PI M_PI
 #define FS 8000
 #define FC1 500
 #define FC2 600
 #define FC3 1000
+#define FC4 1200
 
 double *hamming(int length) {
     double *window = malloc(length * sizeof(double));
@@ -38,8 +39,7 @@ double *highPassFIRFilter(double wc, int length) {
     return filter;
 }
 
-void elementWiseMultiplication(double *output, const double *array1,
-                               const double *array2, int length) {
+void elementWiseMultiplication(double *output, const double *array1, const double *array2, int length) {
     for (int i = 0; i < length; i++) {
         output[i] = array1[i] * array2[i];
     }
@@ -53,32 +53,25 @@ int main() {
     double wc1 = 2 * PI * FC1 / FS;
     double wc2 = 2 * PI * FC2 / FS;
     double wc3 = 2 * PI * FC3 / FS;
+    double wc4 = 2 * PI * FC4 / FS;
 
     double *hamming_window = hamming(INPUT_LENGTH);
 
     double *hpf1 = highPassFIRFilter(wc1, INPUT_LENGTH);
     double *hpf_w1 = malloc(INPUT_LENGTH * sizeof(double));
-    if (!hpf_w1) {
-        perror("Memory allocation failed for hpf_w1");
-        exit(EXIT_FAILURE);
-    }
     elementWiseMultiplication(hpf_w1, hpf1, hamming_window, INPUT_LENGTH);
 
     double *hpf2 = highPassFIRFilter(wc2, INPUT_LENGTH);
     double *hpf_w2 = malloc(INPUT_LENGTH * sizeof(double));
-    if (!hpf_w2) {
-        perror("Memory allocation failed for hpf_w2");
-        exit(EXIT_FAILURE);
-    }
     elementWiseMultiplication(hpf_w2, hpf2, hamming_window, INPUT_LENGTH);
 
     double *hpf3 = highPassFIRFilter(wc3, INPUT_LENGTH);
     double *hpf_w3 = malloc(INPUT_LENGTH * sizeof(double));
-    if (!hpf_w3) {
-        perror("Memory allocation failed for hpf_w3");
-        exit(EXIT_FAILURE);
-    }
     elementWiseMultiplication(hpf_w3, hpf3, hamming_window, INPUT_LENGTH);
+
+    double *hpf4 = highPassFIRFilter(wc4, INPUT_LENGTH);
+    double *hpf_w4 = malloc(INPUT_LENGTH * sizeof(double));
+    elementWiseMultiplication(hpf_w4, hpf4, hamming_window, INPUT_LENGTH);
 
     double final1 = getElemAtIndx(hpf_w1, 6);
     double final2 = getElemAtIndx(hpf_w2, 7);
@@ -92,9 +85,11 @@ int main() {
     free(hpf1);
     free(hpf2);
     free(hpf3);
+    free(hpf4);
     free(hpf_w1);
     free(hpf_w2);
     free(hpf_w3);
+    free(hpf_w4);
 
     return 0;
 }

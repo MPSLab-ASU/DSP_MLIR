@@ -8,7 +8,7 @@ def main() {
   # var a10 = getRangeOfVector(0, 400, 0.000125);
   # var orig = sin(a10);
 
-  var N = 101;
+	var N_input = 101;
 
   # for cut-off freq
   var pi = 3.14159265359;
@@ -17,6 +17,7 @@ def main() {
   var fc3 = 1000;
   var fc4 = 1200;
   var Fs = 8000;
+  
   var wc1 = 2 * pi * fc1 / Fs; #wc should vary from 0 to pi
   var wc2 = 2 * pi * fc2 / Fs;
   var wc3 = 2 * pi * fc3 / Fs;
@@ -26,17 +27,17 @@ def main() {
   # var lpf = lowPassFIRFilter(wc, N); #ideal low -pass filter
   # var lpf_w = lpf * hamming(N);
   # var lpf_w2 = FIRFilterHammingOptimized(wc, N);
-  var hpf = highPassFIRFilter(wc1, N); #ideal high-pass filter
-  var hpf_w = hpf * hamming(N);
+  var hpf = highPassFIRFilter(wc1, N_input); #ideal high-pass filter
+  var hpf_w = hpf * hamming(N_input);
 
-  var hpf2 = highPassFIRFilter(wc2, N); #ideal high-pass filter
-  var hpf_w2 = hpf2 * hamming(N);
+  var hpf2 = highPassFIRFilter(wc2, N_input); #ideal high-pass filter
+  var hpf_w2 = hpf2 * hamming(N_input);
 
-  var hpf3 = highPassFIRFilter(wc3, N); #ideal high-pass filter
-  var hpf_w3 = hpf3 * hamming(N);
+  var hpf3 = highPassFIRFilter(wc3, N_input); #ideal high-pass filter
+  var hpf_w3 = hpf3 * hamming(N_input);
 
-  var hpf4 = highPassFIRFilter(wc4, N); #ideal high-pass filter
-  var hpf_w4 = hpf4 * hamming(N);
+  var hpf4 = highPassFIRFilter(wc4, N_input); #ideal high-pass filter
+  var hpf_w4 = hpf4 * hamming(N_input);
   # var hpf_w2 = highPassFIRHammingOptimized(wc, N); 
   # print(lpf_w2);
   var final1 = getElemAtIndx(hpf_w , [6]);

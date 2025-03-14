@@ -1,147 +1,71 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <math.h>
+#include <stdlib.h>
 
 #define PI 3.14159265359
-#define INPUT_LENGTH 10000
+#define FS 8000
+#define N 101
+#define INPUT_LENGTH 100
+#define FILTER_LENGTH 200
 
-double* getRangeOfVector(double start, int noOfSamples, double increment) {
-    double* output = malloc(noOfSamples * sizeof(double));
-    if (!output) {
-        perror("Memory allocation failed in getRangeOfVector");
-        exit(EXIT_FAILURE);
-    }
-
-    for (int i = 0; i < noOfSamples; i++) {
-        output[i] = start + i * increment;
-    }
-
-    return output;
-}
-
-void gain(double* output, double* input, double multiplier, int length) {
+void generate_signal(double *signal, double freq, int length) {
     for (int i = 0; i < length; i++) {
-        output[i] = input[i] * multiplier;
+        signal[i] = sin(2 * PI * freq * i / FS);
     }
 }
 
-void elementWiseAdd(double* output, double* input1, double* input2, int length) {
-    for (int i = 0; i < length; i++) {
-        output[i] = input1[i] + input2[i];
-    }
-}
-
-void elementWiseMultiply(double* output, double* input1, double* input2, int length) {
-    for (int i = 0; i < length; i++) {
-        output[i] = input1[i] * input2[i];
-    }
-}
-
-void lowPassFIRFilter(double* lpf, double wc, int N) {
-    int mid = (N - 1) / 2;
-    for (int n = 0; n < N; n++) {
-        if (n == mid) {
-            lpf[n] = wc / PI;
+void generate_lowpass_filter(double *filter, double cutoff_freq) {
+    double wc = 2 * PI * cutoff_freq / FS;
+    for (int i = 0; i < N; i++) {
+        int n = i - (N / 2);
+        if (n == 0) {
+            filter[i] = wc / PI;
         } else {
-            lpf[n] = (wc / PI) * sin(wc * (n - mid)) / (wc * (n - mid));
+            filter[i] = sin(wc * n) / (PI * n);
         }
+        // Apply Hamming window
+        filter[i] *= (0.54 - 0.46 * cos(2 * PI * i / (N - 1)));
     }
 }
 
-void hammingWindow(double* hamming, int N) {
-    for (int n = 0; n < N; n++) {
-        hamming[n] = 0.54 - 0.46 * cos(2 * PI * n / (N - 1));
-    }
-}
-
-void FIRFilterResponse(double* output, double* input, double* filter, int input_length, int filter_length) {
-    int i, j;
-    for (i = 0; i < input_length; i++) {
-        output[i] = 0;
-        for (j = 0; j < filter_length; j++) {
-            if (i - j >= 0) {
-                output[i] += input[i - j] * filter[j];
+void apply_fir_filter(double *input, double *output, double *filter) {
+    for (int i = 0; i < FILTER_LENGTH; i++) {
+        double sum = 0.0;
+        for (int j = 0; j < N; j++) {
+            if (i - j >= 0 && i - j < INPUT_LENGTH) {
+                sum += input[i - j] * filter[j];
             }
         }
+        output[i] = sum;
     }
 }
 
 int main() {
-    int fs = 8000;
+    double clean_signal[INPUT_LENGTH];
+    double noise_signal[INPUT_LENGTH];
+    double noisy_signal[INPUT_LENGTH];
+    double fir_filter[N];
+    double filtered_signal[FILTER_LENGTH] = {0};
 
-    // Allocate memory dynamically
-    double* input = getRangeOfVector(0, INPUT_LENGTH, 0.000125);
+    // Generate clean signal with frequency 500Hz
+    generate_signal(clean_signal, 500, INPUT_LENGTH);
     
-    // Allocate other large arrays dynamically
-    double* getSinDuration = malloc(INPUT_LENGTH * sizeof(double));
-    double* clean_sig = malloc(INPUT_LENGTH * sizeof(double));
-    double* getNoiseSinDuration = malloc(INPUT_LENGTH * sizeof(double));
-    double* noise = malloc(INPUT_LENGTH * sizeof(double));
-    double* noisy_sig = malloc(INPUT_LENGTH * sizeof(double));
-    double* scaled_noise = malloc(INPUT_LENGTH * sizeof(double));
-    double* FIRfilterResponse = malloc(INPUT_LENGTH * sizeof(double));
-
-    // Check if memory allocation was successful
-    if (!getSinDuration || !clean_sig || !getNoiseSinDuration || !noise || !noisy_sig || !scaled_noise || !FIRfilterResponse) {
-        perror("Memory allocation failed");
-        free(input);
-        free(getSinDuration);
-        free(clean_sig);
-        free(getNoiseSinDuration);
-        free(noise);
-        free(noisy_sig);
-        free(scaled_noise);
-        free(FIRfilterResponse);
-        exit(EXIT_FAILURE);
-    }
-
-    // Signal processing steps
-    double f_sig = 500;
-    gain(getSinDuration, input, 2 * PI * f_sig, INPUT_LENGTH);
-
+    // Generate noise signal with frequency 3000Hz and scale it
+    generate_signal(noise_signal, 3000, INPUT_LENGTH);
     for (int i = 0; i < INPUT_LENGTH; i++) {
-        clean_sig[i] = sin(getSinDuration[i]);
+        noise_signal[i] *= 0.5;
+        noisy_signal[i] = clean_signal[i] + noise_signal[i];
     }
 
-    double f_noise = 3000;
-    gain(getNoiseSinDuration, input, 2 * PI * f_noise, INPUT_LENGTH);
+    // Design low-pass filter with cutoff frequency 1000Hz
+    generate_lowpass_filter(fir_filter, 1000);
 
-    for (int i = 0; i < INPUT_LENGTH; i++) {
-        noise[i] = sin(getNoiseSinDuration[i]);
-    }
+    // Apply FIR filter
+    apply_fir_filter(noisy_signal, filtered_signal, fir_filter);
 
-    gain(scaled_noise, noise, 0.5, INPUT_LENGTH);
-    elementWiseAdd(noisy_sig, clean_sig, scaled_noise, INPUT_LENGTH);
+ 
+    printf("%f\n", filtered_signal[6]);
 
-    // Filter design
-    double fc = 1000;
-    double wc = 2 * PI * fc / fs;
-    int N = 101;
 
-    double lpf[N];
-    lowPassFIRFilter(lpf, wc, N);
-
-    double hamming[N];
-    hammingWindow(hamming, N);
-
-    double lpf_w[N];
-    elementWiseMultiply(lpf_w, lpf, hamming, N);
-
-    FIRFilterResponse(FIRfilterResponse, noisy_sig, lpf_w, INPUT_LENGTH, N);
-    
-    for (int i = 0; i < INPUT_LENGTH; i++) {
-        printf("%f\n", FIRfilterResponse[i]);
-    }
-
-   // Free allocated memory at the end
-   free(input);
-   free(getSinDuration);
-   free(clean_sig);
-   free(getNoiseSinDuration);
-   free(noise);
-   free(noisy_sig);
-   free(scaled_noise);
-   free(FIRfilterResponse);
-
-   return 0;
+    return 0;
 }

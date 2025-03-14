@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <complex.h>
 
-#define INPUT_LENGTH 40000
+#define INPUT_LENGTH 400
 #define M_PI 3.14159265358979323846
 
 double* getRange(double start, int noOfSamples, double increment) {

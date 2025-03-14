@@ -1,6 +1,6 @@
 def main() {
         # var input = "HELLO FROM SPACE";
-	var input = getRangeOfVector(0, 40000, 0.000125);
+	var input = getRangeOfVector(0, 10, 0.000125);
         # print(c);
         var pi = 3.14159265359;
         var f_sig = 500;
