@@ -379,9 +379,9 @@ commands_base = [
     # "clang-17 -O0 file.ll -o fileexe -lm",
 ]
 
-clang = f"{BasePathForLLVM}/build/bin/clang LL_FILE_PATH -O3 -o OUT_FILE_PATH --target=hexagon -mcpu=hexagonv68 -fuse-ld=/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.2.0.1/tools/HEXAGON_Tools/8.8.06/Tools/bin/hexagon-link"
+# clang = f"{BasePathForLLVM}/build/bin/clang LL_FILE_PATH -O3 -o OUT_FILE_PATH --target=hexagon -mcpu=hexagonv68 -fuse-ld=/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.2.0.1/tools/HEXAGON_Tools/8.8.06/Tools/bin/hexagon-link"
 
-# clang = f"/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.2.0.1/tools/HEXAGON_Tools/8.8.06/Tools/bin/hexagon-clang LL_FILE_PATH -O3 -o OUT_FILE_PATH --target=hexagon -mcpu=hexagonv68 -fuse-ld=/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.2.0.1/tools/HEXAGON_Tools/8.8.06/Tools/bin/hexagon-link"
+clang = f"/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.2.0.1/tools/HEXAGON_Tools/8.8.06/Tools/bin/hexagon-clang LL_FILE_PATH -O3 -o OUT_FILE_PATH --target=hexagon -mcpu=hexagonv68 -fuse-ld=/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.2.0.1/tools/HEXAGON_Tools/8.8.06/Tools/bin/hexagon-link"
 
 # Define the cases
 cases = [
@@ -422,7 +422,7 @@ cases = [
 
 
 
-print(input_file_path)
+print(input_file_path + " with hexagon clang")
 
 # Read the input file
 with open(input_file_path, "r") as file:

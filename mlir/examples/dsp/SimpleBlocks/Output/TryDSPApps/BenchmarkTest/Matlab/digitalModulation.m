@@ -1,6 +1,3 @@
-clc;
-clear;
-
 % Define constants
 INPUT_LENGTH = 100000000;
 

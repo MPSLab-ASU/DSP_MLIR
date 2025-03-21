@@ -16,14 +16,32 @@ import pandas as pd
 
 # Path to the input file
 # Apps = "hearingAid.py" , "lowPassFull.py" , " audioCompression.py", "lowPassFIRFilterDesign.py" , "EnergyOfSignal.py", "periodogram2Conv1.py", "audioEqualizer.py", "vibrationAnalysis.py", "signalSmoothing.py", "targetDetection.py", "biomedicalSignalProcessing.py", "spaceCommunication.py", "echocancelling", "noisecancelling.py", "digitalModulation", "underWaterCommunication", "voiceActivityDetection", "radarSignalProcessing", "speakerIdentification"
-input_files = ["audioCompression.py", "biomedicalSignalProcessing.py", "dtmfDetection.py", "lowPassFIRFilterDesign.py", "noisecancelling.py", \
-"radarSignalProcessing.py", "signalSmoothing.py", "speakerIdentification.py", "targetDetection.py", "vibrationAnalysis.py", "audioEqualizer.py", \
-"digitalModulation.py", "echocancelling.py", "hearingAid.py", "lowPassFull.py", "periodogram2Conv1.py", "spaceCommunication.py", "spectralAnalysis.py", \
-"underWaterCommunication.py", "voiceActivityDetection.py"]
+input_files = [
+    "spectralAnalysis",
+    "audioCompression",
+    "audioEqualization",
+    "biomedicalSignalProcessing",
+    "digitalModulation",
+    "dtmfDetection",
+    "echoCancellation",
+    "FIRFilterDesign",
+    "hearingAid",
+    "lowPassFiltering",
+    "noiseCancellation",
+    "periodogram",
+    "vibrationAnalysis",
+    "radarSignalProcessing",
+    "signalSmoothing",
+    "spaceCommunication",
+    "speakerIdentification",
+    "targetDetection",
+    "underWaterCommunication",
+    "voiceActivityDetection"
+]
 data = []
 
 for input_file_path in input_files:
-    BasePathForLLVM = "/home/local/ASURITE/megan/ForLLVM/"
+    BasePathForLLVM = "/home/local/ASURITE/apkhedka/ForLLVM/"
     OutputScriptPath = (
         "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/DSP-DSL/"
         )
@@ -68,7 +86,7 @@ for input_file_path in input_files:
     commands_base = [
             # "./dsp1 lowPassFull.py -emit=mlir-affine",
             # f"./dsp1 {input_file_path} -emit=llvm",
-            f"{BasePathForLLVM}/build/bin/dsp1 {input_file_path} -emit=llvm",
+            f"{BasePathForLLVM}/build/bin/dsp1 {input_file_path}.py -emit=llvm",
             # "clang-17 -O0 file.ll -o fileexe -lm",
             ]
 
@@ -95,7 +113,7 @@ for input_file_path in input_files:
             ]
 
     # Read the input file
-    with open(input_file_path, "r") as file:
+    with open(input_file_path+".py", "r") as file:
         lines = file.readlines()
 
     print("", end="\t")
@@ -108,10 +126,10 @@ for input_file_path in input_files:
         dur = value / 8192
         print(f"\n{key}", end="\t")
 
-        with open(input_file_path, "r") as file:
+        with open(input_file_path+".py", "r") as file:
             lines = file.readlines()
 
-        with open(input_file_path, "w") as file:
+        with open(input_file_path+".py", "w") as file:
             for line in lines:
                 if line.strip().startswith("var input = getRangeOfVector("):
                     updated_line = (
@@ -140,7 +158,7 @@ for input_file_path in input_files:
             commands = [
                     command_llvm,
                     # f"clang-17 -O0 {case['suffix']} -o fileexe -lm",
-                    f"clang-17 -O3 {OutputPath}/{case['suffix']} -o {OutputPath}/{case['exe']} -lm",
+                    f"{BasePathForLLVM}/build/bin/clang-19 -O3 {OutputPath}/{case['suffix']} -o {OutputPath}/{case['exe']} -lm",
                     ]
             # print(case,end="\n")
             # print("\n")

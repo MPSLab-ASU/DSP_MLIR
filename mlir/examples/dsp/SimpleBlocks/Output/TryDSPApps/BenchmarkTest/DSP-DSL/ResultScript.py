@@ -1,6 +1,8 @@
 import os
 import subprocess
 import time
+import sys
+
 
 # The script does the following
 # Input : filename.py
@@ -16,31 +18,45 @@ import time
 
 # Path to the input file
 # Apps = "hearingAid.py" , "lowPassFull.py" , " audioCompression.py", "lowPassFIRFilterDesign.py" , "EnergyOfSignal.py", "periodogram2Conv1.py", "audioEqualizer.py", "vibrationAnalysis.py", "signalSmoothing.py", "targetDetection.py", "biomedicalSignalProcessing.py", "spaceCommunication.py", "echocancelling", "noisecancelling.py", "digitalModulation", "underWaterCommunication", "voiceActivityDetection", "radarSignalProcessing", "speakerIdentification"
-input_file_path = "speakerIdentification.py"
+# input_file_name = "speakerIdentification.py"
+input_file_name = sys.argv[1]
+
+
 BasePathForLLVM = "/home/local/ASURITE/apkhedka/ForLLVM/"
 OutputScriptPath = (
     "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/DSP-DSL/"
 )
-# OutputPath = BasePathForLLVM + "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/Results/TryResultScript/Output/"
+input_file_path = BasePathForLLVM + OutputScriptPath + input_file_name
+
 print(f"Running Application {input_file_path}")
 # Construct full output path
-OutputPath = os.path.join(BasePathForLLVM, OutputScriptPath, "Output")
+
+if sys.argv[2]:
+    OutputPath = os.path.join(BasePathForLLVM, OutputScriptPath, "Output", sys.argv[2])
+
+else:
+    OutputPath = os.path.join(BasePathForLLVM, OutputScriptPath, "Output")
+
 
 # Check if the Output folder exists, create it if it doesn't
 if not os.path.exists(OutputPath):
     os.makedirs(OutputPath)
 
+
 # Now OutputPath is ready for use
 print("InputPath:{}".format(BasePathForLLVM))
 print(f"OutputPath: {OutputPath}")
-# exit()
 
 # ************ Don't change unless u required
 # Define the values dictionary
+
 inputValues = {
     "10": 10,
     "100": 100,
+    "500": 500,
     "1K": 1000,
+    "2K": 2000,
+    "5K": 5000,
     "10K": 10000,
     "20K": 20000,
     "30K": 30000,
@@ -48,14 +64,356 @@ inputValues = {
     "50K": 50000,
     "100K": 100000,
     "1M": 1000000,
-    "10M": 10000000,
-    "20M": 20000000,
-    "30M": 30000000,
-    "40M": 40000000,
-    "50M": 50000000,
-    "100M": 100000000,
+    # "10M": 10000000,
+    # "20M": 20000000,
+    # "30M": 30000000,
+    # "40M": 40000000,
+    # "50M": 50000000,
+    # "100M": 100000000,
     # "1B": 1000000000
 }
+
+if sys.argv[1] == "noiseCancellation.py":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "echoCancellation.py":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "periodogram.py":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+    }
+
+elif sys.argv[1] == "lowPassFiltering.py":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "hearingAid.py":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "FIRFilterDesign.py":
+    inputValues = {
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "spectralAnalysis.py":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+    }
+
+elif sys.argv[1] == "audioEqualization.py":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "audioCompression.py":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+    }
+
+elif sys.argv[1] == "vibrationAnalysis.py":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+    }
+
+elif sys.argv[1] == "underWaterCommunication.py":
+    inputValues = {
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "voiceActivityDetection.py":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "signalSmoothing.py":
+    inputValues = {
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "targetDetection.py":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "biomedicalSignalProcessing.py":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "digitalModulation.py":
+    inputValues = {
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "spaceCommunication.py":
+    inputValues = {
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "radarSignalProcessing.py":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "dtmfDetection.py":
+    inputValues = {
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+    }
+
+elif sys.argv[1] == "speakerIdentification.py":
+    inputValues = {
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+    }
+
 NoOfIterations = 3
 
 # --------------------------------------------------
@@ -107,12 +465,28 @@ for key, value in inputValues.items():
     with open(input_file_path, "w") as file:
         for line in lines:
             if line.strip().startswith("var input = getRangeOfVector("):
-                updated_line = (
-                    f"\tvar input = getRangeOfVector(0, {value}, 0.000125);\n"
-                )
+                if input_file_name in [
+                    "audioCompression.py",
+                    "audioEqualization.py",
+                    "periodogram.py",
+                    "spectralAnalysis.py",
+                ]:
+                    updated_line = f"\tvar input = getRangeOfVector(0, {value}, 1);\n"
+                if input_file_name in ["voiceActivityDetection.py"]:
+                    updated_line = (
+                        f"\tvar input = getRangeOfVector(0, {value}, 0.125);\n"
+                    )
+                else:
+                    updated_line = (
+                        f"\tvar input = getRangeOfVector(0, {value}, 0.000125);\n"
+                    )
+
                 file.write(updated_line)
             elif line.strip().startswith("var duration ="):
                 updated_line = f"\tvar duration = {dur};\n"
+                file.write(updated_line)
+            elif line.strip().startswith("var N_input ="):
+                updated_line = f"\tvar N_input = {value+1};\n"
                 file.write(updated_line)
             elif line.strip().startswith("var frequencies = fftfreq"):
                 updated_line = f"\tvar frequencies = fftfreq({value}, 0.000122);\n"
@@ -133,7 +507,7 @@ for key, value in inputValues.items():
         commands = [
             command_llvm,
             # f"clang-17 -O0 {case['suffix']} -o fileexe -lm",
-            f"clang-17 -O3 {OutputPath}/{case['suffix']} -o {OutputPath}/{case['exe']} -lm",
+            f"{BasePathForLLVM}/build/bin/clang-19 -O3 {OutputPath}/{case['suffix']} -o {OutputPath}/{case['exe']} -lm",
         ]
         # print(case,end="\n")
         # print("\n")
@@ -166,8 +540,8 @@ for key, value in inputValues.items():
             # command2 = "./fileexe"
             # Limit execution to a single core
             # command2 = "taskset -c 0 ./fileexe"
-            # command2 = f"taskset -c 0 ./{case['exe']}" #{OutputPath}
-            command2 = f"taskset -c 0 ./Output/{case['exe']}"
+            command2 = f"taskset -c 0 ./Output/{sys.argv[2]}/{case['exe']}" #{OutputPath}
+            # command2 = f"taskset -c 0 {OutputPath}/{case['exe']}"
 
             # Record the start time
             start_time = time.time()
