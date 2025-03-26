@@ -14,7 +14,6 @@
 #define MLIR_DIALECT_DSP_IR_DSPDIALECT_H_
 
 #include "mlir/Bytecode/BytecodeOpInterface.h"
-#include "mlir/Interfaces/ShapeInferenceOpInterfaces.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
@@ -22,6 +21,7 @@
 #include "mlir/Interfaces/CallInterfaces.h"
 #include "mlir/Interfaces/CastInterfaces.h"
 #include "mlir/Interfaces/FunctionInterfaces.h"
+#include "mlir/Interfaces/ShapeInferenceOpInterfaces.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Dialect/DSP/IR/DSPDialect.h.inc"
 

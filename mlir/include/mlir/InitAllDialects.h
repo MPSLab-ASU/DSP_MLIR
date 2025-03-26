@@ -97,7 +97,7 @@
 #include "mlir/Target/LLVM/NVVM/Target.h"
 #include "mlir/Target/LLVM/ROCDL/Target.h"
 #include "mlir/Target/SPIRV/Target.h"
-// #include "mlir/Dialect/DSP/IR/DSPDialect.h"
+#include "mlir/Dialect/DSP/IR/DSPDialect.h"
 namespace mlir {
 
 /// Add all the MLIR dialects to the provided registry.
@@ -116,6 +116,7 @@ inline void registerAllDialects(DialectRegistry &registry) {
                   cf::ControlFlowDialect,
                   complex::ComplexDialect,
                   DLTIDialect,
+                  // dsp::DSPDialect,
                   emitc::EmitCDialect,
                   func::FuncDialect,
                   gpu::GPUDialect,

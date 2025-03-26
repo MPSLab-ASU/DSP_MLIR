@@ -11,20 +11,20 @@
 
 include "mlir/Pass/PassBase.td"
 
-def DSPInferShapes : Pass<"dsp-infer-shapes", "func::FuncOp"> {
-  let summary = "Propagate shapes across DSP operations";
-  let description = [{
-    Pass that uses operand types and propagates shapes to DSP operations.
-    This includes legalizing rankless and dynamic shapes towards static.
-  }];
+// def DSPInferShapes : Pass<"dsp-infer-shapes", "func::FuncOp"> {
+//   let summary = "Propagate shapes across DSP operations";
+//   let description = [{
+//     Pass that uses operand types and propagates shapes to DSP operations.
+//     This includes legalizing rankless and dynamic shapes towards static.
+//   }];
 
-  // let constructor = "createDSPInferShapesPass()";
-  let dependentDialects = [
-    "func::FuncDialect",
-    "tensor::TensorDialect",
-    "dsp::DSPDialect",
-  ];
-}
+//   // let constructor = "createDSPInferShapesPass()";
+//   let dependentDialects = [
+//     "func::FuncDialect",
+//     "tensor::TensorDialect",
+//     "dsp::DSPDialect",
+//   ];
+// }
 
 #endif // MLIR_DIALECT_DSP_TRANSFORMS_PASSES_TD
 
