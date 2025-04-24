@@ -116,7 +116,7 @@ inline void registerAllDialects(DialectRegistry &registry) {
                   cf::ControlFlowDialect,
                   complex::ComplexDialect,
                   DLTIDialect,
-                  // dsp::DSPDialect,
+                  dsp::DSPDialect,
                   emitc::EmitCDialect,
                   func::FuncDialect,
                   gpu::GPUDialect,

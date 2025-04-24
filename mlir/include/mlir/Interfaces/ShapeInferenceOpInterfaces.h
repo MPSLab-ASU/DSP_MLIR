@@ -15,14 +15,14 @@
 
 #include "mlir/IR/OpDefinition.h"
 
-namespace mlir {
-namespace dsp {
+//namespace mlir {
+//namespace dsp {
 
 /// Verify invariants of ops that implement the ShapedDimOpInterface.
 // LogicalResult verifyShapedDimOpInterface(Operation *op);
 #include "mlir/Interfaces/ShapeInferenceOpInterfaces.h.inc"
-} // namespace detail
-} // namespace mlir
+//} // namespace detail
+//} // namespace mlir
 
 /// Include the generated interface declarations.
 // #include "mlir/Interfaces/ShapeInferenceOpInterfaces.h.inc"

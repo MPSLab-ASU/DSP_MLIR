@@ -47,6 +47,7 @@
 #include "mlir/Dialect/Vector/Transforms/Passes.h"
 #include "mlir/Dialect/XeGPU/Transforms/Passes.h"
 #include "mlir/Dialect/DSP/Transforms/Passes.h"
+#include "mlir/Dialect/DSP/Pipelines/Passes.h"
 #include "mlir/Transforms/Passes.h"
 
 #include <cstdlib>
@@ -104,6 +105,7 @@ inline void registerAllPasses() {
 #if MLIR_ENABLE_CUDA_CONVERSIONS
   gpu::registerGPUToNVVMPipeline();
 #endif
+  dsp::registerDSPPipelines();
 }
 
 } // namespace mlir

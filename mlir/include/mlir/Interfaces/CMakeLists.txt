@@ -17,13 +17,17 @@ add_mlir_interface(TilingInterface)
 add_mlir_interface(ValueBoundsOpInterface)
 add_mlir_interface(VectorInterfaces)
 add_mlir_interface(ViewLikeInterface)
-# add_mlir_interface(ShapeInferenceOpInterfaces)
-
+#add_mlir_interface(ShapeInferenceOpInterfaces)
 
 set(LLVM_TARGET_DEFINITIONS ShapeInferenceOpInterfaces.td)
 mlir_tablegen(ShapeInferenceOpInterfaces.h.inc -gen-op-interface-decls)
 mlir_tablegen(ShapeInferenceOpInterfaces.cpp.inc -gen-op-interface-defs)
-add_public_tablegen_target(DSPShapeInferenceInterfaceIncGen)
+add_public_tablegen_target(MLIRShapeInferenceOpInterfacesIncGen)
+
+#set(LLVM_TARGET_DEFINITIONS ShapeInferenceOpInterfaces.td)
+#mlir_tablegen(ShapeInferenceOpInterfaces.h.inc -gen-op-interface-decls)
+#mlir_tablegen(ShapeInferenceOpInterfaces.cpp.inc -gen-op-interface-defs)
+#add_public_tablegen_target(MLIRShapeInferenceOpInterfacesIncGen)
 
 set(LLVM_TARGET_DEFINITIONS MemorySlotInterfaces.td)
 mlir_tablegen(MemorySlotOpInterfaces.h.inc -gen-op-interface-decls)

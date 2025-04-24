@@ -1355,20 +1355,23 @@ def ConvertVectorToSPIRV : Pass<"convert-vector-to-spirv"> {
 // DSPToAffine
 //===----------------------------------------------------------------------===//
 
-// def ConvertDSPToAffine : Pass<"dsp-to-affine", "ModuleOp"> {
-//   let summary = "Convert DSP to the Affine dialect";
-//   let dependentDialects = [
-//     "affine::AffineDialect",
-//     "memref::MemRefDialect",
-//     "scf::SCFDialect",
-//     "func::FuncDialect"
-//   ];
-//   let description = [{
-//     Pass that converts DSP operations to the equivalent operations using the
-//     operations in the Affine dialect.
-//   }];
 
-//   // let constructor = "mlir::createConvertVectorToSPIRVPass()";
-// }
+def ConvertDSPToAffine : Pass<"dsp-to-affine", "ModuleOp"> {
+   let summary = "Convert DSP to the Affine dialect";
+   let dependentDialects = [
+     "affine::AffineDialect",
+     "memref::MemRefDialect",
+     "scf::SCFDialect",
+     "func::FuncDialect",
+	 "math::MathDialect"
+   ];
+   let description = [{
+     Pass that converts DSP operations to the equivalent operations using the
+     operations in the Affine dialect.
+   }];
+   let constructor = "mlir::createConvertDSPToAffinePass()";
+   // let constructor = "mlir::createConvertVectorToSPIRVPass()";
+}
+
 
 #endif // MLIR_CONVERSION_PASSES

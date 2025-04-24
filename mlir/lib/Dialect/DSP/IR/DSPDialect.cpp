@@ -40,6 +40,49 @@ using namespace std;
 
 #include "mlir/Dialect/DSP/IR/DSPDialect.cpp.inc"
 
+#include "llvm/Support/CommandLine.h"
+
+
+//===----------------------------------------------------------------------===//
+// DSP Dialect-specific flags    
+//===----------------------------------------------------------------------===//
+
+//namespace { 
+struct DSPOptions {
+	llvm::cl::opt<bool> enableCanonicalOpt{"canonOpt",
+											llvm::cl::desc("Enable optimizations"),
+											llvm::cl::init(false)};
+											
+};
+//} // namespace
+
+static llvm::ManagedStatic<DSPOptions> dspOptions;
+
+
+namespace mlir {
+void registerDSPOptions() {
+  // Make sure that the options struct has been initialized.
+  *dspOptions;                     
+}
+
+
+bool getEnableCanonicalOpt() {
+    return dspOptions->enableCanonicalOpt;
+}
+
+
+} // namespace mlir
+
+
+
+//bool getEnableCanonicalOpt() {
+    //return enableCanonicalOpt;
+//      return false;
+//}
+
+
+
+
 //===----------------------------------------------------------------------===//
 // DSPInlinerInterface
 //===----------------------------------------------------------------------===//
@@ -2180,6 +2223,8 @@ void GetRangeOfVectorOp::inferShapes() {
 
   // auto shapeOfInput = inputType.getShape();
 
+  cout<<"HELLO IN INFERSHAPE\n";
+
   std::vector<int64_t> shapeForOutput;
 
   int64_t GetLen = 1;
@@ -3691,3 +3736,9 @@ void SetSingleElemAtIdxOp::inferShapes() {
 
 
 
+//===----------------------------------------------------------------------===//
+// TableGen'd op method definitions
+//===----------------------------------------------------------------------===//
+                  
+#define GET_OP_CLASSES
+#include "mlir/Dialect/DSP/IR/DSP.cpp.inc"

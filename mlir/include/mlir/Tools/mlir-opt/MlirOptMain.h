@@ -246,6 +246,8 @@ protected:
   /// Verify that the input IR round-trips perfectly.
   bool verifyRoundtripFlag = false;
 
+  
+
   /// The reproducer output filename (no crash required).
   std::string generateReproducerFileFlag = "";
 };

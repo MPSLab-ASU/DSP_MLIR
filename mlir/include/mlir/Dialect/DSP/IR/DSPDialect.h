@@ -23,14 +23,37 @@
 #include "mlir/Interfaces/FunctionInterfaces.h"
 #include "mlir/Interfaces/ShapeInferenceOpInterfaces.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
+
+
+
+
 #include "mlir/Dialect/DSP/IR/DSPDialect.h.inc"
 
 // #include "mlir/Dialect/DSP/IR/DSPEnums.h.inc"
 
 /// Include the auto-generated header file containing the declarations of the
 /// DSP operations.
+//#define GET_OP_CLASSES
+//#include "mlir/Dialect/DSP/IR/DSP.h.inc"
+
+/// Include the auto-generated header file containing the declaration of the toy
+/// dialect.
+//#include "mlir/Dialect/DSP/IR/DSP_Dialect.h.inc"
+
+/// Include the auto-generated header file containing the declarations of the
+/// toy operations.
 #define GET_OP_CLASSES
 #include "mlir/Dialect/DSP/IR/DSP.h.inc"
+//#include "mlir/Dialect/DSP/IR/DSP_Ops.h.inc"
+
+
+namespace mlir{
+	
+void registerDSPOptions();
+bool getEnableCanonicalOpt();
+
+} //namespace
+
 
 
 #endif // MLIR_DIALECT_DSP_IR_DSPDIALECT_H_

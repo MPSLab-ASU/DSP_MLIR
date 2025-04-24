@@ -15,6 +15,8 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wall"
 
+#include "mlir/Conversion/DSPToAffine/DSPToAffine.h"
+
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -22,6 +24,7 @@
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/Tensor/IR/Tensor.h"
+#include "mlir/Dialect/DSP/IR/DSPDialect.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinDialect.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -35,9 +38,9 @@
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Support/TypeID.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "toy/DebugConfig.h"
-#include "toy/Dialect.h"
-#include "toy/Passes.h"
+//#include "toy/DebugConfig.h"
+//#include "toy/Dialect.h"
+//#include "toy/Passes.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Sequence.h"
@@ -52,7 +55,8 @@
 #include "mlir/Dialect/SCF/IR/SCF.h"
 #include "mlir/IR/IntegerSet.h"
 #include <iostream>
-#include "DSPToAffine.h"
+//#include "DSPToAffine.h"
+
 using namespace mlir;
 using namespace std;
 using namespace affine;
@@ -1061,7 +1065,7 @@ struct FFT1DImgConjSymmOpLowering : public ConversionPattern {
     //
     // replace this upsampling op with the output_mem_allocation op
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // output for result type
     auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
@@ -1093,7 +1097,7 @@ struct FFT1DImgConjSymmOpLowering : public ConversionPattern {
     // rewriter.setInsertionPointToStart(forOp1.getBody());
     // rewriter.create<AffineStoreOp>(loc, constant0, alloc_img,
     // ValueRange{iv}); rewriter.setInsertionPointAfter(forOp1);
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     // for k=0
     Value Indx0 = rewriter.create<arith::ConstantIndexOp>(loc, 0);
     rewriter.create<AffineStoreOp>(loc, constant0, alloc_img,
@@ -1303,7 +1307,7 @@ struct FFT1DRealSymmOpLowering : public ConversionPattern {
     // rewriter.setInsertionPointToStart(forOp1.getBody());
     // rewriter.create<AffineStoreOp>(loc, constant0, alloc_real,
     // ValueRange{iv}); rewriter.setInsertionPointAfter(forOp1);
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     // for k=0
     Value Indx0 = rewriter.create<arith::ConstantIndexOp>(loc, 0);
     rewriter.create<AffineStoreOp>(loc, constant0, alloc_real,
@@ -1430,7 +1434,7 @@ struct FIRFilterYSymmOptimizedOpLowering : public ConversionPattern {
     int64_t ub = tensorType.getShape()[0];
     int ubBy2 = (ub + 1) / 2;
     int64_t step = 1;
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     affine::AffineForOp forOp1 =
         rewriter.create<affine::AffineForOp>(loc, lb, ubBy2, step);
     rewriter.setInsertionPointToStart(forOp1.getBody());
@@ -1444,8 +1448,8 @@ struct FIRFilterYSymmOptimizedOpLowering : public ConversionPattern {
     auto operandIt = op->operand_type_begin();
     auto tensorTypeInput = llvm::cast<RankedTensorType>(*operandIt);
     int64_t ubForInput = tensorTypeInput.getShape()[0];
-    DEBUG_PRINT_NO_ARGS();
-    DEBUG_PRINT_WITH_ARGS("ubForInput=", ubForInput);
+    // DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_WITH_ARGS("ubForInput=", ubForInput);
 
     // create a constant for sum
     Value constant0 = rewriter.create<arith::ConstantOp>(
@@ -1456,7 +1460,7 @@ struct FIRFilterYSymmOptimizedOpLowering : public ConversionPattern {
     auto iv2 = forOp2.getInductionVar();
     // get sum
     auto getIterArg = forOp2.getBody()->getArgument(1);
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     FIRFilterYSymmOptimizedOpAdaptor firFilterYSymmOpAdaptor(operands);
 
     // if( 0<= M+k-n-1 <M)
@@ -1474,7 +1478,7 @@ struct FIRFilterYSymmOptimizedOpLowering : public ConversionPattern {
         rewriter.getAffineDimExpr(0) - rewriter.getAffineDimExpr(1);
     IntegerSet setForIf =
         IntegerSet::get(2, 0, {ExprLowerBound, ExprUpperBound}, {false, false});
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // if( 0<= M+k-n-1 <M)
     Type floatType = rewriter.getF64Type();
@@ -1482,7 +1486,7 @@ struct FIRFilterYSymmOptimizedOpLowering : public ConversionPattern {
         rewriter.create<affine::AffineIfOp>(loc, TypeRange{floatType}, setForIf,
                                             ValueRange{iv, iv2}, true /*else*/);
     rewriter.setInsertionPointToStart(ifOp.getThenBlock());
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // sum = sum + x[k] * x[M+k-n-1]
     // load x[M+k-n-1]
@@ -1503,7 +1507,7 @@ struct FIRFilterYSymmOptimizedOpLowering : public ConversionPattern {
     // Now, sum = sum + val2 * x[k]
     Value loadX = rewriter.create<AffineLoadOp>(
         loc, firFilterYSymmOpAdaptor.getLhs(), ValueRange{iv2});
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // x[k] * x[M+k-n-1]   here, val2 = x[M+k-n-1]
     Value XMulReverseXIndx =
@@ -1513,10 +1517,10 @@ struct FIRFilterYSymmOptimizedOpLowering : public ConversionPattern {
         rewriter.create<arith::AddFOp>(loc, XMulReverseXIndx, getIterArg);
     rewriter.create<AffineYieldOp>(loc, ValueRange{sumNext});
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     rewriter.setInsertionPointAfter(forOp2);
     // forOp2->dump();
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // y[n] = sum ie, y[n] = sumNext
     rewriter.create<AffineStoreOp>(loc, forOp2.getResult(0), alloc, iv);
@@ -1528,7 +1532,7 @@ struct FIRFilterYSymmOptimizedOpLowering : public ConversionPattern {
     rewriter.create<AffineStoreOp>(loc, forOp2.getResult(0), alloc,
                                    mapNminus1minYn, ValueRange{iv});
     rewriter.setInsertionPointAfter(forOp1);
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     rewriter.replaceOp(op, alloc);
     return success();
@@ -1564,7 +1568,7 @@ struct PaddingOpLowering : public ConversionPattern {
     auto memRefType = convertTensorToMemRef(tensorType);
     auto alloc = insertAllocAndDealloc(memRefType, loc, rewriter);
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     // construct affine loops for the input
     PaddingOpAdaptor paddingOpAdaptor(operands);
     Value GetPadLenOperand = op->getOperand(2);
@@ -1579,7 +1583,7 @@ struct PaddingOpLowering : public ConversionPattern {
     ;
     auto elements1 = constant3rdValue.getValues<FloatAttr>();
     float Padlen = elements1[0].getValueAsDouble();
-    DEBUG_PRINT_WITH_ARGS("Padlen is", Padlen);
+    // DEBUG_PRINT_WITH_ARGS("Padlen is", Padlen);
     // first from 0 <= i < N
     auto inputType =
         llvm::dyn_cast<RankedTensorType>(op->getOperand(0).getType());
@@ -1587,7 +1591,7 @@ struct PaddingOpLowering : public ConversionPattern {
     int64_t ub = inputType.getShape()[0];
     int64_t step = 1;
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // loop from 0 <= i < N
     affine::AffineForOp forOpY =
@@ -1660,7 +1664,7 @@ struct ReverseInputOpLowering : public ConversionPattern {
     // iterate for len = 0 to N
     //   output[i] = a[N-1-i]
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // output for result type
     auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
@@ -1695,7 +1699,7 @@ struct ReverseInputOpLowering : public ConversionPattern {
 
     AffineMap addMap2 = AffineMap::get(1, 0, reverseIndxExpr);
     // load x[N-1-i]
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     Value loadInputFrmReverseIndx = rewriter.create<AffineLoadOp>(
         loc, reverseInputOpAdaptor.getInput(), addMap2, ValueRange{iv});
 
@@ -1731,7 +1735,7 @@ struct LengthOpLowering : public ConversionPattern {
     // Pseudo-code:
     //   output = len(input)
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // output for result type
     auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
@@ -1749,7 +1753,7 @@ struct LengthOpLowering : public ConversionPattern {
     Value constantUb = rewriter.create<arith::ConstantOp>(
         loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(ub));
 
-    DEBUG_PRINT_WITH_ARGS("\nCheck for index --here");
+    // DEBUG_PRINT_WITH_ARGS("\nCheck for index --here");
     // load from X, using 2nd operand as index
     //  DEBUG_PRINT_WITH_ARGS("Indx is" , SecondValueInt);
     Value constantIndx0 = rewriter.create<arith::ConstantIndexOp>(loc, 0);
@@ -2202,7 +2206,7 @@ struct FIRFilterResSymmOptimizedOpLowering : public ConversionPattern {
     int64_t lb = 0;
     int64_t ub = tensorType.getShape()[0];
     int64_t step = 1;
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     affine::AffineForOp forOp1 =
         rewriter.create<affine::AffineForOp>(loc, lb, ub, step);
     rewriter.setInsertionPointToStart(forOp1.getBody());
@@ -2225,7 +2229,7 @@ struct FIRFilterResSymmOptimizedOpLowering : public ConversionPattern {
     // llvm::cast<RankedTensorType>((*op->operand_type_begin())); //operandIt
     auto tensorTypeFilter = llvm::cast<RankedTensorType>(*operandIt);
     int64_t ubForFilter = tensorTypeFilter.getShape()[0];
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     // llvm::errs() << "ubForFilter= " << ubForFilter << "\n";
     // create a constant for sum
     Value constant0 = rewriter.create<arith::ConstantOp>(
@@ -2237,7 +2241,7 @@ struct FIRFilterResSymmOptimizedOpLowering : public ConversionPattern {
 
     auto getIterArg =
         forOp2.getBody()->getArgument(1); // forOp1.getIterOperands();
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     FIRFilterResSymmOptimizedOpAdaptor firFilterResSymmOpAdaptor(operands);
 
     // if 0 <= n-k < M
@@ -2256,7 +2260,7 @@ struct FIRFilterResSymmOptimizedOpLowering : public ConversionPattern {
     AffineExpr ExprNMinusKMinusMPlus1 = s0 - d0 + d1;
     IntegerSet setForIf = IntegerSet::get(
         2, 1, {ExprNMinusK, ExprNMinusKMinusMPlus1}, {false, false});
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // if 0 <= n-k <= M -1
     // use typeRange too:
@@ -2269,7 +2273,7 @@ struct FIRFilterResSymmOptimizedOpLowering : public ConversionPattern {
 
     // val1 = x[n-k] else, val1 = 0
     // load x[n-k]
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     Value loadInput =
         rewriter.create<AffineLoadOp>(loc, firFilterResSymmOpAdaptor.getLhs(),
                                       mapNMinusK, ValueRange{iv, iv2});
@@ -2315,7 +2319,7 @@ struct FIRFilterResSymmOptimizedOpLowering : public ConversionPattern {
     // val2 = x[n+k-(L-1)] else, val2 = 0
     AffineMap addMap2 = AffineMap::get(2, 0, ExprLowerBoundVal2);
     // load x[n+k-(L-1)]
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     Value loadInputForVal2 = rewriter.create<AffineLoadOp>(
         loc, firFilterResSymmOpAdaptor.getLhs(), addMap2, ValueRange{iv, iv2});
     rewriter.create<AffineYieldOp>(loc, ValueRange{loadInputForVal2});
@@ -2343,7 +2347,7 @@ struct FIRFilterResSymmOptimizedOpLowering : public ConversionPattern {
     rewriter.create<AffineYieldOp>(loc, ValueRange{sumNext});
     // rewriter.setInsertionPointToEnd(forOp2->getBlock());
     rewriter.setInsertionPointAfter(forOp2);
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     // Middle - point
     // if 0 <= n - (L-1)/2 < M
     // sum2 = sum + h[L-1/2] . x[n-(L-1)/2)]
@@ -2372,7 +2376,7 @@ struct FIRFilterResSymmOptimizedOpLowering : public ConversionPattern {
 
     // val3 = x[n-(L-1)/2)] else, val3 = 0
     // load x[n-(L-1)/2)]
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     Value loadInputForVal3 = rewriter.create<AffineLoadOp>(
         loc, firFilterResSymmOpAdaptor.getLhs(), addMap3, ValueRange{iv});
     rewriter.create<AffineYieldOp>(loc, ValueRange{loadInputForVal3});
@@ -2398,7 +2402,7 @@ struct FIRFilterResSymmOptimizedOpLowering : public ConversionPattern {
     // rewriter.create<AffineStoreOp>(loc, forOp2.getResult(0) , alloc, iv);
     rewriter.create<AffineStoreOp>(loc, sum2, alloc, iv);
     rewriter.setInsertionPointAfter(forOp1);
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     // ifOp->dump();
     rewriter.replaceOp(op, alloc);
     return success();
@@ -2442,7 +2446,7 @@ struct RunLenEncodingOpLowering : public ConversionPattern {
     // if count > 1 ie, for last element
     //  store the count value at k + N/2
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // output for result type
     auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
@@ -2458,7 +2462,7 @@ struct RunLenEncodingOpLowering : public ConversionPattern {
     // count = 1 , y[0] = x[0] ,
     // loop from 0 to len
     RunLenEncodingOpAdaptor runLenEncodingAdaptor(operands);
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     //  len/2,k = n ie, len/2
     int64_t lb = 1;
@@ -2474,13 +2478,13 @@ struct RunLenEncodingOpLowering : public ConversionPattern {
     // init all output memory with zero
     affine::AffineForOp forOp1 =
         rewriter.create<AffineForOp>(loc, lb1, N, step);
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     auto iv1 = forOp1.getInductionVar();
     rewriter.setInsertionPointToStart(forOp1.getBody());
     rewriter.create<AffineStoreOp>(loc, const0, alloc, iv1);
     rewriter.setInsertionPointAfter(forOp1);
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     // load from X,
     Value constantIndx0 = rewriter.create<arith::ConstantIndexOp>(loc, 0);
     Value inputX0 = rewriter.create<AffineLoadOp>(
@@ -2520,7 +2524,7 @@ struct RunLenEncodingOpLowering : public ConversionPattern {
         rewriter.create<AffineForOp>(loc, lb, ub, step, ValueRange{countVal});
     auto ivY = forOpY.getInductionVar();
     rewriter.setInsertionPointToStart(forOpY.getBody());
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     auto countArg = forOpY.getRegionIterArgs()[0];
 
@@ -2533,7 +2537,7 @@ struct RunLenEncodingOpLowering : public ConversionPattern {
     AffineMap mapExprIMinus1 = AffineMap::get(1, 0, ExprIMinus1);
     Value prev = rewriter.create<AffineLoadOp>(
         loc, runLenEncodingAdaptor.getInput(), mapExprIMinus1, ValueRange{ivY});
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     // for i=1 to len/2
     // load prev = a[i-1] , current = a[i]
     // if prev == current
@@ -2567,10 +2571,10 @@ struct RunLenEncodingOpLowering : public ConversionPattern {
                                            CmpPrevCurrent, true /* else=1 */);
 
     rewriter.setInsertionPointToStart(ifOp.thenBlock());
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     auto CountPlusOne = rewriter.create<arith::AddFOp>(loc, countArg, countVal);
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     rewriter.create<scf::YieldOp>(loc, ValueRange{CountPlusOne});
     // else
     // store count at index k + N/2
@@ -2595,7 +2599,7 @@ struct RunLenEncodingOpLowering : public ConversionPattern {
     // y[k + 1] = current
     rewriter.create<memref::StoreOp>(loc, current, alloc, kPlusOne);
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     rewriter.create<scf::YieldOp>(loc, ValueRange{countVal});
     rewriter.setInsertionPointAfter(ifOp);
     // ifOp.dump();
@@ -2614,12 +2618,12 @@ struct RunLenEncodingOpLowering : public ConversionPattern {
     // auto ifOp1 = rewriter.create<scf::IfOp>(loc, CmpCountGt1 , false /*
     // else=0 */);
     // rewriter.setInsertionPointToStart(ifOp1.thenBlock());
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     Value finalkPlusNBy2 = rewriter.create<arith::AddIOp>(
         loc, rewriter.getIndexType(), finalkArg, IndxNBy2);
 
     rewriter.create<memref::StoreOp>(loc, finalCountArg, alloc, finalkPlusNBy2);
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     // rewriter.setInsertionPointAfter(ifOp1);
 #endif
 
@@ -2663,7 +2667,7 @@ struct RunLenEncodingOpLowering : public ConversionPattern {
     // else=1 */);
 
     rewriter.setInsertionPointToStart(ifOp.thenBlock());
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // store count at N+i
     //  Value countPlus1 = rewriter.create<arith::AddFOp>(loc, countArg,
@@ -2771,7 +2775,7 @@ struct RunLenEncodingOpLowering : public ConversionPattern {
         rewriter.create<scf::IfOp>(loc, CmpPrevCurrent, true /* else=1 */);
 
     rewriter.setInsertionPointToStart(ifOp.thenBlock());
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // store count at N+i
     //  Value countPlus1 = rewriter.create<arith::AddFOp>(loc, countArg,
@@ -2999,7 +3003,7 @@ struct QuantizationOpLowering : public ConversionPattern {
     // 			RoundedVal = arith.FPToSI(GetLevelForVal)
     // 			QuantVal = RoundedVal * step + min_val
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // output for result type
     auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
@@ -3018,7 +3022,7 @@ struct QuantizationOpLowering : public ConversionPattern {
     // 1) Then calculate stepSize = (Max-Min)/NoOfLevels
 
     QuantizationOpAdaptor quantizationAdaptor(operands);
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     Value getMaxMemref = quantizationAdaptor.getMax();
     auto getMax =
         rewriter.create<AffineLoadOp>(loc, getMaxMemref, ValueRange{});
@@ -3044,7 +3048,7 @@ struct QuantizationOpLowering : public ConversionPattern {
     int64_t ub = tensorType.getShape()[0];
     int64_t step = 1;
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // for loop from 0 to len
     //  use iter_arg as passing value for the loop
@@ -3280,7 +3284,7 @@ struct ThresholdOpLowering : public ConversionPattern {
     //   y[n] = a[n] , if a[i] >= threshld or, a[i] <= -threshld
     //     = 0 , else
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // output for result type
     auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
@@ -3298,13 +3302,13 @@ struct ThresholdOpLowering : public ConversionPattern {
 
     // load from X,
     ThresholdOpAdaptor thresholdAdaptor(operands);
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     int64_t lb = 0;
     int64_t ub = tensorType.getShape()[0];
     int64_t step = 1;
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // for loop from 0 to len(Output)
     affine::AffineForOp forOpY =
@@ -3392,7 +3396,7 @@ struct HighPassFIRHammingOptimizedOpLowering : public ConversionPattern {
     int64_t ub = (N - 1) / 2;
     int64_t step = 1;
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     HighPassFIRHammingOptimizedOpAdaptor highPassFIRHammingOptimizedOpAdaptor(
         operands);
     // Handle middle y[mid] = wc / pi
@@ -3565,7 +3569,7 @@ struct FIRFilterHammingOptimizedOpLowering : public ConversionPattern {
     int64_t ub = (N - 1) / 2;
     int64_t step = 1;
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     FIRFilterHammingOptimizedOpAdaptor firFilterHammingOptimizedOpAdaptor(
         operands);
     // Handle middle y[mid] = wc / pi
@@ -3703,6 +3707,7 @@ struct GetRangeOfVectorOpLowering : public ConversionPattern {
   LogicalResult
   matchAndRewrite(Operation *op, ArrayRef<Value> operands,
                   ConversionPatternRewriter &rewriter) const final {
+	cout << "Hello0\n";
     auto loc = op->getLoc();
 
     // Pseudo-code:
@@ -3715,26 +3720,29 @@ struct GetRangeOfVectorOpLowering : public ConversionPattern {
     //    prev_val = prev_val + step
 
     // output for result type
+	cout << "Hello0.5\n";
+	(*op->result_type_begin());
+	cout << "Hello0.75\n";
     auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
-
+	cout << "Hello1\n";
     // allocation & deallocation for the result of this operation
     auto memRefType = convertTensorToMemRef(tensorType);
     auto alloc = insertAllocAndDealloc(memRefType, loc, rewriter);
-
+	cout << "Hello2\n";
     // construct affine loops for the input
     SmallVector<int64_t, 4> lowerBounds(tensorType.getRank(), /*Value*/ 0);
     SmallVector<int64_t, 4> steps(tensorType.getRank(), /*Value=*/1);
     GetRangeOfVectorOpAdaptor getRangeOfVectorOpOpAdaptor(operands);
-
+	cout << "Hello3\n";
     Value GetValueAtIndx2ndArg = op->getOperand(0);
     dsp::ConstantOp constantOp2ndArg =
         GetValueAtIndx2ndArg.getDefiningOp<dsp::ConstantOp>();
     DenseElementsAttr constantRhsValue = constantOp2ndArg.getValue();
-    ;
+    cout << "Hello4\n";
     auto elements = constantRhsValue.getValues<FloatAttr>();
     float FirstValue = elements[0].getValueAsDouble();
 
-    DEBUG_PRINT_WITH_ARGS("FirstValue is", FirstValue);
+    // DEBUG_PRINT_WITH_ARGS("FirstValue is", FirstValue);
     Value GetStepOp = op->getOperand(2);
     dsp::ConstantOp constantOp3rdArg =
         GetStepOp.getDefiningOp<dsp::ConstantOp>();
@@ -3749,7 +3757,7 @@ struct GetRangeOfVectorOpLowering : public ConversionPattern {
     // int64_t ub = (N-1) / 2 ;
     int64_t step = 1;
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     float valAtIndxI = FirstValue;
 
@@ -3851,7 +3859,7 @@ struct HighPassFIRFilterOpLowering : public ConversionPattern {
     int64_t ub = (N - 1) / 2;
     int64_t step = 1;
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     HighPassFIRFilterOpAdaptor highPassfirFilterOpAdaptor(operands);
     // Handle middle y[mid] = wc / pi
     int64_t midIndx = ub;
@@ -4010,7 +4018,7 @@ struct LowPassFIRFilterOpLowering : public ConversionPattern {
     int64_t ub = (N - 1) / 2;
     int64_t step = 1;
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     LowPassFIRFilterOpAdaptor lowPassfirFilterOpAdaptor(operands);
     // Handle middle y[mid] = wc / pi
     int64_t midIndx = ub;
@@ -4137,7 +4145,7 @@ struct SetElemAtIndxOpLowering : public ConversionPattern {
 
     // replace this upsampling op with the output_mem_allocation op
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // output for result type
     SetElemAtIndxOpAdaptor setElemAtIndxAdaptor(operands);
@@ -4163,12 +4171,12 @@ struct SetElemAtIndxOpLowering : public ConversionPattern {
     // rewriter.create<AffineStoreOp>(loc, inputX, alloc, ValueRange{ivY});
 
     // rewriter.setInsertionPointAfter(forOpY);
-    DEBUG_PRINT_WITH_ARGS("\nCheck for index --here");
+    // DEBUG_PRINT_WITH_ARGS("\nCheck for index --here");
     // load from X, using 2nd operand as index
 
     // Value GetValueAtIndx2ndArg = setElemAtIndxAdaptor.getIndx(); //
     // getOperand(1);
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     Value GetValueAtIndx2ndArg = op->getOperand(1);
     dsp::ConstantOp constantOp2ndArg =
         GetValueAtIndx2ndArg.getDefiningOp<dsp::ConstantOp>();
@@ -4177,7 +4185,7 @@ struct SetElemAtIndxOpLowering : public ConversionPattern {
     auto elements = constantRhsValue.getValues<FloatAttr>();
     float SecondValue = elements[0].getValueAsDouble();
     int SecondValueInt = (int64_t)SecondValue;
-    DEBUG_PRINT_WITH_ARGS("Indx is", SecondValueInt);
+    // DEBUG_PRINT_WITH_ARGS("Indx is", SecondValueInt);
 
     Value constantIndx2Indx =
         rewriter.create<arith::ConstantIndexOp>(loc, SecondValueInt);
@@ -4229,7 +4237,7 @@ struct GetElemAtIndxOpLowering : public ConversionPattern {
 
     // replace this upsampling op with the output_mem_allocation op
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // output for result type
     auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
@@ -4244,12 +4252,12 @@ struct GetElemAtIndxOpLowering : public ConversionPattern {
     // rewriter.getF64Type(),
     //                                                      rewriter.getF64FloatAttr(0));
 
-    DEBUG_PRINT_WITH_ARGS("\nCheck for index --here");
+    // DEBUG_PRINT_WITH_ARGS("\nCheck for index --here");
     // load from X, using 2nd operand as index
     GetElemAtIndxOpAdaptor getElemAtIndxAdaptor(operands);
     // Value GetValueAtIndx2ndArg = getElemAtIndxAdaptor.getIndx(); //
     // getOperand(1);
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     Value GetValueAtIndx2ndArg = op->getOperand(1);
     dsp::ConstantOp constantOp2ndArg =
         GetValueAtIndx2ndArg.getDefiningOp<dsp::ConstantOp>();
@@ -4258,7 +4266,7 @@ struct GetElemAtIndxOpLowering : public ConversionPattern {
     auto elements = constantRhsValue.getValues<FloatAttr>();
     float SecondValue = elements[0].getValueAsDouble();
     int SecondValueInt = (int64_t)SecondValue;
-    DEBUG_PRINT_WITH_ARGS("Indx is", SecondValueInt);
+    // DEBUG_PRINT_WITH_ARGS("Indx is", SecondValueInt);
 
     Value constantIndx2Indx =
         rewriter.create<arith::ConstantIndexOp>(loc, SecondValueInt);
@@ -4315,7 +4323,7 @@ struct SincOpLowering : public ConversionPattern {
     int64_t ub = tensorType.getShape()[0];
     int64_t step = 1;
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     // get constants -- 0.54 & 0.46
     Value constantIndx0 = rewriter.create<arith::ConstantIndexOp>(loc, 0);
     // rewriter.create<AffineStoreOp>(loc, constant0, alloc,
@@ -5375,12 +5383,12 @@ struct HammingWindowOpLowering : public ConversionPattern {
     SmallVector<int64_t, 4> steps(tensorType.getRank(), /*Value=*/1);
 
     // For loop -- iterate from 1 to last
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     int64_t lb = 0;
     int64_t ub = tensorType.getShape()[0];
     int64_t step = 1;
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     // get constants -- 0.54 & 0.46
     Value constant0_54 = rewriter.create<arith::ConstantOp>(
         loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(0.54));
@@ -5421,7 +5429,7 @@ struct HammingWindowOpLowering : public ConversionPattern {
     Value Sub0_54_Cos =
         rewriter.create<arith::SubFOp>(loc, constant0_54, MulCos0_46);
     rewriter.create<AffineStoreOp>(loc, Sub0_54_Cos, alloc, ValueRange{ivY});
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     rewriter.setInsertionPointAfter(forOpY);
     // debug
     //  forOpX->dump();
@@ -5482,7 +5490,7 @@ struct IFFT1DOpLowering : public ConversionPattern {
     // x_complex[k]sin(2*pi * k *n/N) and sum and store them at y[k]
     //
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // output for result type
     auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
@@ -5504,7 +5512,7 @@ struct IFFT1DOpLowering : public ConversionPattern {
     Value constant0 = rewriter.create<arith::ConstantOp>(
         loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(0));
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     // For loop -- iterate from 0 to last
     int64_t lb = 0;
     int64_t ub = tensorType.getShape()[0];
@@ -5581,7 +5589,7 @@ struct IFFT1DOpLowering : public ConversionPattern {
     rewriter.create<AffineStoreOp>(loc, realSum, alloc_real, ValueRange{ivY});
 
     // x[n-1]
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     // Value xMinusPrevX = rewriter.create<arith::SubFOp>(loc, inputX ,PrevX );
 
     rewriter.setInsertionPointAfter(forOpX);
@@ -5866,7 +5874,7 @@ struct HighPassFilterOpLowering : public ConversionPattern {
     // y[i] = x[i] - x[i -1 ]
     //  replace this upsampling op with the output_mem_allocation op
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // output for result type
     auto tensorType = llvm::cast<RankedTensorType>((*op->result_type_begin()));
@@ -5907,7 +5915,7 @@ struct HighPassFilterOpLowering : public ConversionPattern {
     AffineMap addMapForHighPassFilter = AffineMap::get(1, 0, ExprForPrevX);
 
     // x[n-1]
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     Value PrevX = rewriter.create<AffineLoadOp>(
         loc, highPassFilterAdaptor.getInput(), addMapForHighPassFilter,
         ValueRange{iv}); // memRefType
@@ -6578,7 +6586,7 @@ struct DelayOpLowering : public ConversionPattern {
 
     Value constant0 = rewriter.create<arith::ConstantOp>(
         loc, rewriter.getF64Type(), rewriter.getF64FloatAttr(0));
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     // Creating SSA values for the lower bound and upper bound
     Value lowerBound = rewriter.create<arith::ConstantOp>(
         loc, rewriter.getIndexType(),
@@ -6594,9 +6602,9 @@ struct DelayOpLowering : public ConversionPattern {
     // Value inputLen = rewriter.create<arith::ConstantOp>(loc,
     // rewriter.getIndexType(), rewriter.getIntegerAttr(rewriter.getIndexType(),
     // ub));
-    DEBUG_PRINT_WITH_ARGS("print delay2ndArg.dump() for debugging");
+    // DEBUG_PRINT_WITH_ARGS("print delay2ndArg.dump() for debugging");
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     // Create an empty affine map list
     // SmallVector<AffineMap, 4> lbMaps, ubMaps;
     // Create identity affine maps for bounds
@@ -6612,7 +6620,7 @@ struct DelayOpLowering : public ConversionPattern {
     // Affine loop with non-int loop indices
     //  affine::AffineForOp forOp1 = rewriter.create<affine::AffineForOp>(loc,
     //  lowerBound, lbMap, inputLen, ubMap, 1);
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     auto iv = forOp1.getInductionVar();
 
@@ -6647,7 +6655,7 @@ struct DelayOpLowering : public ConversionPattern {
     // Store the loaded value at alloc[newIndex]
     rewriter.create<memref::StoreOp>(loc, loadedVal, alloc, newIndex);
     rewriter.setInsertionPointAfter(forOp2);
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     // For 2nd loop --
     // loop from 0 to lenOfInput - 2ndArg
     //  load from index
@@ -6673,7 +6681,7 @@ struct DelayOpLowering : public ConversionPattern {
     // }
 
     rewriter.replaceOp(op, alloc);
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     return success();
   }
 };
@@ -6718,14 +6726,14 @@ struct GainOpLowering : public ConversionPattern {
 
     // Value gain = gainOpOpAdaptor.getRhs();
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // first from 1 <= i < N
     int64_t lb = 0;
     int64_t ub = tensorType.getShape()[0];
     int64_t step = 1;
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // loop from 0 <= i < N
 
@@ -6740,7 +6748,7 @@ struct GainOpLowering : public ConversionPattern {
                                                  ValueRange{});
     Value mulProd = rewriter.create<arith::MulFOp>(loc, getLhs, getRhs);
     rewriter.create<AffineStoreOp>(loc, mulProd, alloc, ValueRange{ivY});
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     rewriter.setInsertionPointAfter(forOpY);
 
     // debug
@@ -6806,14 +6814,14 @@ struct BitwiseAndOpLowering : public ConversionPattern {
     SmallVector<int64_t, 4> steps(tensorType.getRank(), /*Value=*/1);
     BitwiseAndOpAdaptor bitwiseandOpAdaptor(operands);
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // first from 0 <= i < N
     int64_t lb = 0;
     int64_t ub = tensorType.getShape()[0];
     int64_t step = 1;
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // loop from 0 <= i < N
     affine::AffineForOp forOpY =
@@ -6878,7 +6886,7 @@ struct zeroCrossCountOpLowering : public ConversionPattern {
         MemRefType::get(ArrayRef<int64_t>(1), tensorType.getElementType()), loc,
         rewriter);
     zeroCrossCountOpAdaptor zeroCrossCountOpAdaptor(operands);
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // Define constants
     Value constant0 = rewriter.create<arith::ConstantOp>(
@@ -7073,7 +7081,7 @@ struct ShiftRightOpLowering : public ConversionPattern {
 
     rewriter.setInsertionPointAfter(forOpY);
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // rewriter.replaceOp(op, FloatOp);
     rewriter.replaceOp(op, alloc);
@@ -7181,7 +7189,7 @@ LoweredOp);
 
     rewriter.setInsertionPointAfter(forOpY);
 
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // rewriter.replaceOp(op, FloatOp);
     rewriter.replaceOp(op, alloc_output);
@@ -10594,7 +10602,7 @@ struct FIRFilterResSymmThresholdUpOptimizedOpLowering
     int64_t lb = 0;
     int64_t ub = tensorType.getShape()[0];
     int64_t step = 1;
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     affine::AffineForOp forOp1 =
         rewriter.create<affine::AffineForOp>(loc, lb, ub, step);
     rewriter.setInsertionPointToStart(forOp1.getBody());
@@ -10617,7 +10625,7 @@ struct FIRFilterResSymmThresholdUpOptimizedOpLowering
     // llvm::cast<RankedTensorType>((*op->operand_type_begin())); //operandIt
     auto tensorTypeFilter = llvm::cast<RankedTensorType>(*operandIt);
     int64_t ubForFilter = tensorTypeFilter.getShape()[0];
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     // llvm::errs() << "ubForFilter= " << ubForFilter << "\n";
     // create a constant for sum
     Value constant0 = rewriter.create<arith::ConstantOp>(
@@ -10629,7 +10637,7 @@ struct FIRFilterResSymmThresholdUpOptimizedOpLowering
 
     auto getIterArg =
         forOp2.getBody()->getArgument(1); // forOp1.getIterOperands();
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     FIRFilterResSymmThresholdUpOptimizedOpAdaptor
         firFilterResSymmThresholdUpOpAdaptor(operands);
 
@@ -10649,7 +10657,7 @@ struct FIRFilterResSymmThresholdUpOptimizedOpLowering
     AffineExpr ExprNMinusKMinusMPlus1 = s0 - d0 + d1;
     IntegerSet setForIf = IntegerSet::get(
         2, 1, {ExprNMinusK, ExprNMinusKMinusMPlus1}, {false, false});
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
 
     // if 0 <= n-k <= M -1
     // use typeRange too:
@@ -10662,7 +10670,7 @@ struct FIRFilterResSymmThresholdUpOptimizedOpLowering
 
     // val1 = x[n-k] else, val1 = 0
     // load x[n-k]
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     Value loadInput = rewriter.create<AffineLoadOp>(
         loc, firFilterResSymmThresholdUpOpAdaptor.getLhs(), mapNMinusK,
         ValueRange{iv, iv2});
@@ -10708,7 +10716,7 @@ struct FIRFilterResSymmThresholdUpOptimizedOpLowering
     // val2 = x[n+k-(L-1)] else, val2 = 0
     AffineMap addMap2 = AffineMap::get(2, 0, ExprLowerBoundVal2);
     // load x[n+k-(L-1)]
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     Value loadInputForVal2 = rewriter.create<AffineLoadOp>(
         loc, firFilterResSymmThresholdUpOpAdaptor.getLhs(), addMap2,
         ValueRange{iv, iv2});
@@ -10737,7 +10745,7 @@ struct FIRFilterResSymmThresholdUpOptimizedOpLowering
     rewriter.create<AffineYieldOp>(loc, ValueRange{sumNext});
     // rewriter.setInsertionPointToEnd(forOp2->getBlock());
     rewriter.setInsertionPointAfter(forOp2);
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     // Middle - point
     // if 0 <= n - (L-1)/2 < M
     // sum2 = sum + h[L-1/2] . x[n-(L-1)/2)]
@@ -10766,7 +10774,7 @@ struct FIRFilterResSymmThresholdUpOptimizedOpLowering
 
     // val3 = x[n-(L-1)/2)] else, val3 = 0
     // load x[n-(L-1)/2)]
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     Value loadInputForVal3 = rewriter.create<AffineLoadOp>(
         loc, firFilterResSymmThresholdUpOpAdaptor.getLhs(), addMap3,
         ValueRange{iv});
@@ -10829,7 +10837,7 @@ struct FIRFilterResSymmThresholdUpOptimizedOpLowering
 
     // rewriter.create<AffineStoreOp>(loc, sum2, alloc, iv);
     rewriter.setInsertionPointAfter(forOp1);
-    DEBUG_PRINT_NO_ARGS();
+    // DEBUG_PRINT_NO_ARGS();
     // ifOp->dump();
     rewriter.replaceOp(op, alloc);
     return success();

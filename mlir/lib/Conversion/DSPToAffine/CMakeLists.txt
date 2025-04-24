@@ -3,6 +3,7 @@ add_mlir_conversion_library(MLIRDSPToAffine
   DSPToAffinePass.cpp
 
   ADDITIONAL_HEADER_DIRS
+  ${MLIR_MAIN_INCLUDE_DIR}/mlir/Conversion/DSPToAffine
   ${MLIR_MAIN_INCLUDE_DIR}/mlir/Dialect/DSP
   ${MLIR_MAIN_INCLUDE_DIR}/mlir/IR
 
@@ -15,7 +16,7 @@ add_mlir_conversion_library(MLIRDSPToAffine
   MLIRIR
   MLIRPass
   MLIRDSPDialect
-  MLIRDSPTransforms
+  #MLIRDSPTransforms
   MLIRSupport
   MLIRLinalgDialect
   MLIRLinalgTransforms
