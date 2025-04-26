@@ -2223,8 +2223,6 @@ void GetRangeOfVectorOp::inferShapes() {
 
   // auto shapeOfInput = inputType.getShape();
 
-  cout<<"HELLO IN INFERSHAPE\n";
-
   std::vector<int64_t> shapeForOutput;
 
   int64_t GetLen = 1;
@@ -3734,6 +3732,24 @@ void SetSingleElemAtIdxOp::inferShapes() {
   getResult().setType(manipulatedType);      
 }
 
+
+//===----------------------------------------------------------------------===//
+// LMSFilterResponse2GainOp
+//===----------------------------------------------------------------------===//
+                   
+
+void LMSFilterResponse2GainOp::build(mlir::OpBuilder &builder,
+                                mlir::OperationState &state, mlir::Value lhs,
+                                mlir::Value rhs, mlir::Value mu,
+                                mlir::Value filterLen, mlir::Value gain) {
+                                     
+  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  state.addOperands({lhs, rhs, mu, filterLen, gain});
+}                                          
+                                                   
+void LMSFilterResponse2GainOp::inferShapes() {
+  getResult().setType(getLhs().getType());
+}                 
 
 
 //===----------------------------------------------------------------------===//

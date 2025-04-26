@@ -851,15 +851,13 @@ struct SimplifyLMSFilterResponsewithGain
     mlir::Value prev_LMSFilterResponseOp_3 =
         prev_LMSFilterResponseOp.getOperand(3);
 
-    /* TODO: LMSFilterResponse2GainOp does not exist. It seems this is a problem of outdated dsp file.
     auto OptimizedOp = rewriter.create<LMSFilterResponse2GainOp>(
         op.getLoc(), prev_LMSFilterResponseOp_0, prev_LMSFilterResponseOp_1,
         prev_LMSFilterResponseOp_2, prev_LMSFilterResponseOp_3, gainOp_operand1);
 
     // Repalce the use of original gain operation with this newGainOp
     rewriter.replaceOp(op, OptimizedOp.getResult());
-	
-	*/ 
+ 
 		
 		
     return mlir::success();

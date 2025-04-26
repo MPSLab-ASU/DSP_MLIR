@@ -1363,7 +1363,8 @@ def ConvertDSPToAffine : Pass<"dsp-to-affine", "ModuleOp"> {
      "memref::MemRefDialect",
      "scf::SCFDialect",
      "func::FuncDialect",
-	 "math::MathDialect"
+	 "math::MathDialect",
+	 "LLVM::LLVMDialect",
    ];
    let description = [{
      Pass that converts DSP operations to the equivalent operations using the

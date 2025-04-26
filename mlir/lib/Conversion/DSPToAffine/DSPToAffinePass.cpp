@@ -21,9 +21,12 @@
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/Math/IR/Math.h"
 #include "mlir/Dialect/DSP/IR/DSPDialect.h"
+#include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 
 #include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
+
+
 
 namespace mlir {
 #define GEN_PASS_DEF_CONVERTDSPTOAFFINE
@@ -43,7 +46,7 @@ class ConvertDSPToAffinePass
     target.addLegalDialect<mlir::affine::AffineDialect, mlir::BuiltinDialect,
                            mlir::arith::ArithDialect,  mlir::func::FuncDialect,
                            mlir::memref::MemRefDialect,  mlir::math::MathDialect,
-                           mlir::scf::SCFDialect>();
+                           mlir::scf::SCFDialect, mlir::LLVM::LLVMDialect>();
 
     target.addIllegalDialect<dsp::DSPDialect>();
     target.addDynamicallyLegalOp<dsp::PrintOp>([](dsp::PrintOp op) {
