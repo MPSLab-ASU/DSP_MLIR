@@ -18,7 +18,11 @@ import math
 # Path to the input file
 # Apps = "lowPassFIRFilterDesign.c", "noisecancelling.c" , "echocancelling.c",  "hearingAid.c", "audioEqualizer.c", "vibrationAnalysis.c", "underWaterCommunication.c", "voiceActivityDetection.c", "signalSmoothing",  "targetDetection", "biomedicalSignalProcessing", "periodogram2Conv", "spaceCommunication", "dtmfDetection", "speakerIdentification"
 input_file_name = sys.argv[1]
-BasePathForLLVM = "/home/local/ASURITE/apkhedka/ForLLVM/"
+full_path = os.path.abspath(__file__)
+
+# Find the path up to 'DSP_MLIR'
+if 'DSP_MLIR' in full_path:
+    BasePathForLLVM = full_path.split('DSP_MLIR')[0] + 'DSP_MLIR/'
 OutputScriptPath = "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/CCode/"
 # OutputPath = BasePathForLLVM + "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/Results/TryResultScript/Output/"
 input_file_path = BasePathForLLVM + OutputScriptPath + input_file_name
@@ -461,7 +465,7 @@ for key, value in inputValues.items():
         for i in range(0, NoOfIterations):
             try:
                 process = subprocess.run(
-                    "sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'",
+                    "sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'",
                     shell=True,
                     check=True,
                 )

@@ -20,10 +20,11 @@ import sys
 # Apps = "hearingAid.py" , "lowPassFull.py" , " audioCompression.py", "lowPassFIRFilterDesign.py" , "EnergyOfSignal.py", "periodogram2Conv1.py", "audioEqualizer.py", "vibrationAnalysis.py", "signalSmoothing.py", "targetDetection.py", "biomedicalSignalProcessing.py", "spaceCommunication.py", "echocancelling", "noisecancelling.py", "digitalModulation", "underWaterCommunication", "voiceActivityDetection", "radarSignalProcessing", "speakerIdentification"
 # input_file_name = "speakerIdentification.py"
 input_file_name = sys.argv[1]
+full_path = os.path.abspath(__file__)
 
-
-
-BasePathForLLVM = "/home/local/ASURITE/apkhedka/ForLLVM/"
+# Find the path up to 'DSP_MLIR'
+if 'DSP_MLIR' in full_path:
+    BasePathForLLVM = full_path.split('DSP_MLIR')[0] + 'DSP_MLIR/'
 OutputScriptPath = (
     "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/DSP-DSL/"
 )
@@ -379,9 +380,8 @@ commands_base = [
     # "clang-17 -O0 file.ll -o fileexe -lm",
 ]
 
-# clang = f"{BasePathForLLVM}/build/bin/clang LL_FILE_PATH -O3 -o OUT_FILE_PATH --target=hexagon -mcpu=hexagonv68 -fuse-ld=/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.2.0.1/tools/HEXAGON_Tools/8.8.06/Tools/bin/hexagon-link"
 
-clang = f"/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.2.0.1/tools/HEXAGON_Tools/8.8.06/Tools/bin/hexagon-clang LL_FILE_PATH -O3 -o OUT_FILE_PATH --target=hexagon -mcpu=hexagonv68 -fuse-ld=/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.2.0.1/tools/HEXAGON_Tools/8.8.06/Tools/bin/hexagon-link"
+clang = f"{BasePathForLLVM}/Hexagon_Tools/bin/hexagon-clang LL_FILE_PATH -O3 -o OUT_FILE_PATH --target=hexagon -mcpu=hexagonv68 -fuse-ld={BasePathForLLVM}/Hexagon_Tools/bin/hexagon-link"
 
 # Define the cases
 cases = [
@@ -404,7 +404,7 @@ cases = [
         "affineOpt": True,
         "canonOpt": False,
         "suffix": "fileAffineOpt.ll",
-        "exe": "fileAffineOptExe",
+        "exe": "AffineExe",
     },
     # {
     #     "affineOpt": False,
@@ -416,7 +416,7 @@ cases = [
         "affineOpt": True,
         "canonOpt": True,
         "suffix": "fileAffineCanonOpt.ll",
-        "exe": "fileAffineCanonOptExe",
+        "exe": "DSP_MLIRExe",
     },
 ]
 
@@ -517,7 +517,7 @@ for key, value in inputValues.items():
             # command2 = f"taskset -c 0 ./{case['exe']}" #{OutputPath}
             # command2 = f"taskset -c 0 ./Output/{case['exe']}"
             
-            command2 = "/local/mnt/workspace/Qualcomm/Hexagon_SDK/6.2.0.1/tools/HEXAGON_Tools/8.8.06/Tools/bin/hexagon-sim --mv68 OUT_FILE_PATH".replace("OUT_FILE_PATH", out_file_path)
+            command2 = f"{BasePathForLLVM}/Hexagon_Tools/bin/hexagon-sim --mv68 OUT_FILE_PATH".replace("OUT_FILE_PATH", out_file_path)
             
             
 

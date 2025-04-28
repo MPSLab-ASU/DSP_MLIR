@@ -84,3 +84,5 @@ mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/Output/*
 /mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/DSP-DSL/HClanglogs
 /mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/DSP-DSL/ServerExeLogs
 /mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/CCode/ServerExeLogs
+hexagon_target/*
+Hexagon_Tools/*
