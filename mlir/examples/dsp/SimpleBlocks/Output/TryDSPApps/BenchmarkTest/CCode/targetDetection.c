@@ -4,7 +4,7 @@
 
 #define PI 3.14159265359
 #define FS 1000
-#define INPUT_LENGTH 1000  
+#define INPUT_LENGTH 1000
 #define FILTER_SIZE 20
 #define MAX_PEAKS 50
 

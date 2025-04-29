@@ -3,11 +3,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define INPUT_LENGTH 10
+#define INPUT_LENGTH 500
 #define NLEVELS 16
 #define MIN 0.0
 #define MAX 8.0
 #define THRESHOLD_VAL 4.0
+#define M_PI 3.14159265358979323846
+
 
 double *getRangeOfVector(double start, int noOfSamples, double increment) {
   double *output = malloc(noOfSamples * sizeof(double));

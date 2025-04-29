@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #define INPUT_LENGTH 101
+#define M_PI 3.14159265358979323846
 #define PI M_PI
 #define FS 8000
 #define FC1 500

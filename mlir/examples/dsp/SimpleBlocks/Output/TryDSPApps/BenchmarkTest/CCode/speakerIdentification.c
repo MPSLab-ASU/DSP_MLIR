@@ -3,9 +3,11 @@
 #include <math.h>
 
 #define SAMPLE_RATE 1000
-#define INPUT_LENGTH 12207
+#define INPUT_LENGTH 61
 #define DURATION ((double)INPUT_LENGTH / SAMPLE_RATE)
 #define CORRELATION_LENGTH (2 * INPUT_LENGTH - 1)
+#define M_PI 3.14159265358979323846
+
 
 void generateVoiceSignature(double *signal, double freq1, double freq2) {
     for (int i = 0; i < INPUT_LENGTH; i++) {
