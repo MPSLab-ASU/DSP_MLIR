@@ -19,6 +19,7 @@ RUN apt-get update && \
     lld \
     wget \
     curl \
+    vim \
     desktop-file-utils \
     gawk \
     sudo \
