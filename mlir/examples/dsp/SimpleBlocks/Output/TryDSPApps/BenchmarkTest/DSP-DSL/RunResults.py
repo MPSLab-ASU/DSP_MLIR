@@ -6,28 +6,36 @@ log_dir = "ServerExeLogs"
 os.makedirs(log_dir, exist_ok=True)
 
 # Corrected list of application names (without non-application entries)
+# app_names = [
+#     "speakerIdentification",
+#     "targetDetection",
+#     "underWaterCommunication",
+#     "voiceActivityDetection",
+#     "spectralAnalysis",
+#     "audioCompression",
+#     "audioEqualization",
+#     "biomedicalSignalProcessing",
+#     "digitalModulation",
+#     "dtmfDetection",
+#     "echoCancellation",
+#     "FIRFilterDesign",
+#     "hearingAid",
+#     "lowPassFiltering",
+#     "noiseCancellation",
+#     "periodogram",
+#     "vibrationAnalysis",
+#     "radarSignalProcessing",
+#     "signalSmoothing",
+#     "spaceCommunication"
+# ]
+
 app_names = [
-    "spectralAnalysis",
-    "audioCompression",
-    "audioEqualization",
-    "biomedicalSignalProcessing",
-    "digitalModulation",
-    "dtmfDetection",
-    "echoCancellation",
-    "FIRFilterDesign",
+    "underWaterCommunication",
     "hearingAid",
     "lowPassFiltering",
-    "noiseCancellation",
-    "periodogram",
-    "vibrationAnalysis",
-    "radarSignalProcessing",
-    "signalSmoothing",
-    "spaceCommunication",
-    "speakerIdentification",
-    "targetDetection",
-    "underWaterCommunication",
-    "voiceActivityDetection"
+    "targetDetection"
 ]
+
 
 # Loop through each application and execute the  script
 for app_name in app_names:

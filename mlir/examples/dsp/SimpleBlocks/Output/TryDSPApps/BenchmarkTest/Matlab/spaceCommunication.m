@@ -1,95 +1,64 @@
+INPUT_LENGTH = 40000;
+fs = 8000;
+dt = 1 / fs;
 
+input = getRangeOfVector(0, INPUT_LENGTH, dt);
+p = 2 * pi;
+f_sig = 500;
+getMultiplier = p * f_sig;
+thresh = 0.4;
 
-function main()
-    % Define constants
-    INPUT_LENGTH = 100000000;
-    
-    % Generate input vector
-    input = getRangeOfVector(0, INPUT_LENGTH, 1);
-    
-    % Threshold
-    binary_sig = thresholdUp(input, INPUT_LENGTH, 50);
-    
-    % Modulate
-    modulated_signal = space_modulate(binary_sig, INPUT_LENGTH);
-    
-    % Transmit and receive (add noise)
-    received_signal = transmit_and_receive(modulated_signal, INPUT_LENGTH, 1.0);
-    
-    % Demodulate
-    demodulated_data = demodulate(received_signal, INPUT_LENGTH);
-    
-    % Error correction
-    corrected_data = error_correction(demodulated_data);
-    
-    % Decode data
-    decoded_data = decode_data(corrected_data);
-    
-    % Display first corrected byte (equivalent to printing corrected_data[8] in C)
-    fprintf('%c\n', corrected_data(9));
+getSinDuration = gain(input, getMultiplier);
+clean_sig = sin(getSinDuration);
+binary_sig = thresholdUp(clean_sig, thresh, 0);
+a = spaceModulate(binary_sig);
+noisy_signal = addNoise(a);
+b = spaceDemodulate(noisy_signal);
+e = errorCorrection(b);
+
+fprintf('%.6f\n', e(9));
+
+function vec = getRangeOfVector(start, len, step)
+    vec = start + (0:len-1) * step;
 end
 
-% Function to generate a vector with a given range and increment
-function vector = getRangeOfVector(start, length, increment)
-    vector = start:increment:(start + (length - 1) * increment);
+function out = gain(input, factor)
+    out = input * factor;
 end
 
-% Thresholding function (creates a binary string from a vector)
-function output = thresholdUp(input, length, threshold)
-    output = char(zeros(1, length));  % Preallocate output
-    output(input > threshold) = '1';
-    output(input <= threshold) = '0';
-end
-
-% Space modulation: convert binary string to modulated signal
-function output = space_modulate(input, length)
-    output = zeros(1, length);
-    output(input == '1') = 1;
-    output(input == '0') = -1;
-end
-
-% Transmit and receive (add noise based on sine of the signal)
-function received_signal = transmit_and_receive(signal, length, noise_level)
-    received_signal = signal + sin(signal);  % Add noise (sine-based in this case)
-end
-
-% Demodulate: convert received signal back into binary data
-function demodulated_data = demodulate(signal, length)
-    demodulated_data = char(zeros(1, length));
-    demodulated_data(signal > 0) = '1';
-    demodulated_data(signal <= 0) = '0';
-end
-
-% Error correction function
-function corrected = error_correction(data)
-    length = numel(data);
-    corrected = char(zeros(1, length));  % Preallocate corrected array
-    corrected_index = 1;
-    
-    for i = 1:8:length
-        segment = data(i:i+7);
-        count = sum(segment == '1');
-        
-        if mod(count, 2) == 0
-            corrected(corrected_index:corrected_index+7) = segment;
-        else
-            corrected(corrected_index) = '0';
-            corrected(corrected_index+1:corrected_index+7) = segment(2:8);
-        end
-        
-        corrected_index = corrected_index + 8;
+function out = thresholdUp(input, threshold, returnOriginal)
+    if returnOriginal == 0
+        out = double(input >= threshold);
+    else
+        out = input;
+        out(input < threshold) = 0;
     end
 end
 
-% Decode binary data to ASCII characters
-function decoded = decode_data(binary)
-    length = numel(binary);
-    decoded = char(zeros(1, length / 8));  % Preallocate decoded data array
-    decoded_index = 1;
-    
-    for i = 1:8:length
-        byte = binary(i:i+7);
-        decoded(decoded_index) = char(bin2dec(byte));
-        decoded_index = decoded_index + 1;
+function out = spaceModulate(input)
+    out = ones(1, length(input));
+    out(input ~= 1) = -1;
+end
+
+function out = addNoise(input)
+    out = input + sin(input);
+end
+
+function out = spaceDemodulate(input)
+    out = double(input > 0);
+end
+
+function corrected = errorCorrection(data)
+    corrected = zeros(1, length(data));
+    idx = 1;
+    for i = 1:8:length(data)
+        chunk = data(i:min(i+7, end));
+        if mod(sum(chunk), 2) == 0
+            corrected(idx:idx+length(chunk)-1) = chunk;
+        else
+            chunk(1) = 0;
+            corrected(idx:idx+length(chunk)-1) = chunk;
+        end
+        idx = idx + 8;
     end
 end

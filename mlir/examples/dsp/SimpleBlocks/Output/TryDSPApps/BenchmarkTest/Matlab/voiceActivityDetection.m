@@ -1,57 +1,36 @@
-% Constants
-INPUT_LENGTH = 100000000;
+function main
+    PI = 3.14159265359;
+    SAMPLE_RATE = 1000;
+    INPUT_LENGTH = 100;
+    THRESHOLD = 0.01;
 
-% Main script
-fs = 1000;
-input = getRangeOfVector(0, INPUT_LENGTH, 1);
+    input = (0:INPUT_LENGTH-1)' * 0.0125;
 
-getMultiplier = 2 * pi * 5;
-getSinDuration = gain(input, getMultiplier);
+    getMultiplier = 2 * PI * 5;
+    getSinDuration = input * getMultiplier;
+    signal = sin(getSinDuration);
 
-signal = sine(getSinDuration);
+    delay_steps = 5;
+    noise = [zeros(delay_steps,1); signal(1:end-delay_steps)];
+    noisy_sig = signal + noise;
 
-noise = delay(signal, 5);
+    GetThresholdReal = applyThreshold(noisy_sig, THRESHOLD);
+    zcr = zeroCrossCount(GetThresholdReal);
 
-noisy_sig = add(signal, noise);
-
-threshold_value = 0.8;
-GetThresholdReal = threshold(noisy_sig, threshold_value);
-
-zcr = zeroCrossCount(GetThresholdReal);
-
-% Display results
-disp(GetThresholdReal(4));
-
-% Print zero-crossing count
-fprintf('Zero-crossing count: %d\n', zcr);
-
-% Function implementations
-function vector = getRangeOfVector(start, length, increment)
-    vector = (start : increment : start + (length-1)*increment)';
+    fprintf('%.6f\n', zcr);
 end
 
-function output = gain(input, multiplier)
-    output = input * multiplier;
-end
-
-function output = sine(input)
-    output = sin(input);
-end
-
-function output = delay(input, delaySamples)
-    output = [zeros(delaySamples, 1); input(1:end-delaySamples)];
-end
-
-function output = add(input1, input2)
-    output = input1 + input2;
-end
-
-function output = threshold(input, thresholdValue)
+function output = applyThreshold(input, threshold)
     output = input;
-    output(abs(input) < thresholdValue) = 0;
+    output(abs(input) <= threshold) = 0;
 end
 
-function count = zeroCrossCount(input)
-    signs = sign(input);
-    count = sum(abs(diff(signs)) == 2);
+function count = zeroCrossCount(signal)
+    count = 0;
+    for i = 2:length(signal)
+        if (signal(i-1) > 0 && signal(i) < 0) || ...
+           (signal(i-1) < 0 && signal(i) > 0)
+            count = count + 1;
+        end
+    end
 end

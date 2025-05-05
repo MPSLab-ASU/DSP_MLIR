@@ -1,36 +1,55 @@
-% Constants
-INPUT_LENGTH = 100000000;
-PI = pi; % MATLAB has pi built-in
+INPUT_LENGTH = 1000;
 fs = 8000;
 step = 1 / fs;
+t = (0:INPUT_LENGTH-1) * step;
 
-% Generate input range
-input = (0:step:(INPUT_LENGTH-1)*step)';
-
-% Generate clean signal
 f_sig = 500;
-clean_sig = sin(2 * PI * f_sig * input);
+getSinDuration = gain(t, 2 * pi * f_sig);
+clean_sig = sin(getSinDuration);
 
-% Generate noise signal with a delay of 2 samples
-noise = [zeros(2, 1); clean_sig(1:end-2)];
-
-% Create noisy signal by adding noise to clean signal
+noise = delaySignal(clean_sig, 2);
 noisy_sig = clean_sig + noise;
 
-% LMS filter parameters
 mu = 0.01;
 filterSize = 32;
+y = lmsFilterResponse(noisy_sig, clean_sig, mu, filterSize);
 
-% LMS filter implementation
-w = zeros(filterSize, 1);
-y = zeros(INPUT_LENGTH, 1);
+normalized_sol = normalizeSignal(y);
 
-for n = filterSize:INPUT_LENGTH
-    x = noisy_sig(n:-1:n-filterSize+1);
-    y(n) = w' * x;
-    e = clean_sig(n) - y(n);
-    w = w + mu * e * x;
+fprintf('%.6f\n', normalized_sol(6));
+
+function output = gain(input, multiplier)
+    output = input * multiplier;
 end
 
-% Print result
-fprintf('%f\n', y);
+function output = delaySignal(input, delaySamples)
+    output = zeros(size(input));
+    output((delaySamples+1):end) = input(1:end-delaySamples);
+end
+
+function y = lmsFilterResponse(noisy_sig, clean_sig, mu, filterSize)
+    N = length(noisy_sig);
+    y = zeros(1, N);
+    w = zeros(1, filterSize);
+    for n = 1:N
+        y_n = 0;
+        for i = 1:filterSize
+            if n - i + 1 > 0
+                y_n = y_n + w(i) * noisy_sig(n - i + 1);
+            end
+        end
+        e = clean_sig(n) - y_n;
+        for i = 1:filterSize
+            if n - i + 1 > 0
+                w(i) = w(i) + mu * e * noisy_sig(n - i + 1);
+            end
+        end
+        y(n) = y_n;
+    end
+end
+
+function output = normalizeSignal(input)
+    min_val = min(input);
+    max_val = max(input);
+    output = (input - min_val) / (max_val - min_val);
+end

@@ -186,6 +186,7 @@ elif sys.argv[1] == "spectralAnalysis.c":
         "10K": 10000,
         "20K": 20000,
         "30K": 30000,
+        "40K": 40000
     }
 
 elif sys.argv[1] == "audioEqualization.c":
@@ -411,7 +412,7 @@ elif sys.argv[1] == "speakerIdentification.c":
         "1M": 1000000,
     }
 
-NoOfIterations = 3
+NoOfIterations = 30
 
 
 # Define the cases
@@ -446,6 +447,8 @@ for key, value in inputValues.items():
             if line.strip().startswith("#define INPUT_LENGTH"):
                 if sys.argv[1] == "speakerIdentification.c":
                     updated_line = f"#define INPUT_LENGTH {math.floor(value/8.192)}\n"
+                if sys.argv[1] == "FIRFilterDesign.c":
+                    updated_line = f"#define INPUT_LENGTH {value +1}\n"
                 else:     
                     updated_line = f"#define INPUT_LENGTH {value}\n"
                 file.write(updated_line)
@@ -465,7 +468,7 @@ for key, value in inputValues.items():
         for i in range(0, NoOfIterations):
             try:
                 process = subprocess.run(
-                    "sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'",
+                    "sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'",
                     shell=True,
                     check=True,
                 )
@@ -475,7 +478,7 @@ for key, value in inputValues.items():
                 process.terminate()
             # The command to be executed
 
-            command2 = f"taskset -c 0 ./Output/{sys.argv[2]}/{case['exe']}"
+            command2 = f"taskset -c 17 ./Output/{sys.argv[2]}/{case['exe']}"
 
             # Record the start time
             start_time = time.time()

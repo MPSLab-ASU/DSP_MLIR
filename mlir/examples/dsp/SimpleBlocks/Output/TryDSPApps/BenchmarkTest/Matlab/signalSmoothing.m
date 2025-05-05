@@ -1,30 +1,44 @@
-% Define constants
-INPUT_LENGTH = 1000;
-SAMPLE_RATE = 8000;
-step = 0.000125;
+INPUT_LENGTH = 10;
+fs = 8000;
+dt = 1 / fs;
 WINDOW_SIZE = 3;
 
-% Generate input range
-input = (0:step:(INPUT_LENGTH-1)*step)';
+input = getRangeOfVector(0, INPUT_LENGTH, dt);
+getMultiplier = 2 * pi * 500;
+getSinDuration = gain(input, getMultiplier);
+clean_sig = sin(getSinDuration);
 
-% Signal parameters
-f_sig = 500;
-f_noise = 3000;
+getNoiseSinDuration = gain(input, 2 * pi * 3000);
+noise = sin(getNoiseSinDuration);
+noise1 = gain(noise, 0.5);
 
-% Generate clean signal
-clean_sig = sin(2*pi*f_sig*input);
+noisy_sig = clean_sig + noise1;
+median = slidingMedianFilter(noisy_sig);
+average = slidingAvgFilter(median);
 
-% Generate noise
-noise = 0.5 * sin(2*pi*f_noise*input);
+fprintf('%.6f\n', average(4));
 
-% Create noisy signal
-noisy_sig = clean_sig + noise;
+function vector = getRangeOfVector(start, len, increment)
+    vector = start + (0:len-1) * increment;
+end
 
-% Apply median filter
-median_filtered = medfilt1(noisy_sig, WINDOW_SIZE);
+function output = gain(input, multiplier)
+    output = input * multiplier;
+end
 
-% Apply moving average filter
-avg_filtered = movmean(median_filtered, WINDOW_SIZE);
+function avg_out = slidingAvgFilter(input)
+    len = length(input) - 2;
+    avg_out = zeros(1, len);
+    for i = 1:len
+        avg_out(i) = mean(input(i:i+2));
+    end
+end
 
-% Print the 4th element of the final result
-disp(avg_filtered(4));
+function med_out = slidingMedianFilter(input)
+    len = length(input) - 2;
+    med_out = zeros(1, len);
+    for i = 1:len
+        window = input(i:i+2);
+        med_out(i) = median(window);
+    end
+end

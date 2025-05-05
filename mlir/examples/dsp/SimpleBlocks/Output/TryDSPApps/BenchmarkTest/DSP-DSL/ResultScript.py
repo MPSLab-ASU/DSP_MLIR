@@ -416,7 +416,7 @@ elif sys.argv[1] == "speakerIdentification.py":
         "1M": 1000000,
     }
 
-NoOfIterations = 3
+NoOfIterations = 30
 
 # --------------------------------------------------
 commands_base = [
@@ -530,7 +530,7 @@ for key, value in inputValues.items():
             # subprocess.run("sync; echo 3 > /proc/sys/vm/drop_caches", shell=True)
             try:
                 process = subprocess.run(
-                    "sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'",
+                    "sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'",
                     shell=True,
                     check=True,
                 )
@@ -542,7 +542,7 @@ for key, value in inputValues.items():
             # command2 = "./fileexe"
             # Limit execution to a single core
             # command2 = "taskset -c 0 ./fileexe"
-            command2 = f"taskset -c 0 ./Output/{sys.argv[2]}/{case['exe']}" #{OutputPath}
+            command2 = f"taskset -c 21 ./Output/{sys.argv[2]}/{case['exe']}" #{OutputPath}
             # command2 = f"taskset -c 0 {OutputPath}/{case['exe']}"
 
             # Record the start time

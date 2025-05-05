@@ -1,39 +1,51 @@
-% Constants
-INPUT_LENGTH = 10000000;
-fs = 1000;
+function main
+    PI = 3.14159265359;
+    INPUT_LENGTH = 100;
 
-% Generate input signal
-input = 0:(INPUT_LENGTH-1);
+    fs = 1000;
+    input = getRangeOfVector(0, INPUT_LENGTH, 0.000125);
 
-% Generate first sinusoidal signal
-getMultiplier = 2 * pi * 50;
-getSinDuration = input * getMultiplier;
-sig1 = sin(getSinDuration);
+    getMultiplier = 2 * PI * 50;
+    getSinDuration = input * getMultiplier;
 
-% Generate second sinusoidal signal
-getMultiplier2 = 2 * pi * 120;
-getSinDuration2 = input * getMultiplier2;
-sig2 = 0.5 * sin(getSinDuration2);
+    sig1 = sin(getSinDuration);
 
-% Combine signals
-signal = sig1 + sig2;
+    getMultiplier2 = 2 * PI * 120;
+    getSinDuration2 = input * getMultiplier2;
 
-% Add delayed noise
-noise = [zeros(1, 5), signal(1:end-5)];
-noisy_sig = signal + noise;
+    sinsig2 = sin(getSinDuration2);
+    sig2 = sinsig2 * 0.5;
 
-% Perform DFT
-dft_output = fft(noisy_sig);
+    signal = sig1 + sig2;
 
-% Calculate squared magnitude
-sq_abs = abs(dft_output).^2;
+    noise = delay(signal, 5);
 
-% Calculate mean
-res = mean(sq_abs);
+    noisy_sig = signal + noise;
 
-% Apply threshold
-threshold_value = 0.2;
-GetThresholdReal = sq_abs .* (sq_abs >= threshold_value);
+    threshold_value = 2;
 
-% Display results
-disp(GetThresholdReal);
+    dft_output = fft(noisy_sig);
+
+    fft_real = real(dft_output);
+    fft_img = imag(dft_output);
+
+    sq_abs = fft_real.^2 + fft_img.^2;
+    magnitude = sqrt(sq_abs);
+    GetThresholdReal = threshold(magnitude, threshold_value);
+
+    disp(GetThresholdReal(1));
+end
+
+function vector = getRangeOfVector(start, len, increment)
+    vector = start + (0:len-1) * increment;
+end
+
+function output = delay(input, delaySamples)
+    output = zeros(size(input));
+    output(delaySamples+1:end) = input(1:end-delaySamples);
+end
+
+function output = threshold(input, thresholdValue)
+    output = input;
+    output(input < thresholdValue) = 0;
+end
