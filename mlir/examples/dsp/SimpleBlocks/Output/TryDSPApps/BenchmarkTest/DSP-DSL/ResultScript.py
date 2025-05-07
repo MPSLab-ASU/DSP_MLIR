@@ -531,7 +531,7 @@ for key, value in inputValues.items():
             # subprocess.run("sync; echo 3 > /proc/sys/vm/drop_caches", shell=True)
             try:
                 process = subprocess.run(
-                    "sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'",
+                    "sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'",
                     shell=True,
                     check=True,
                 )
@@ -543,7 +543,7 @@ for key, value in inputValues.items():
             # command2 = "./fileexe"
             # Limit execution to a single core
             # command2 = "taskset -c 0 ./fileexe"
-            command2 = f"taskset -c 1 ./Output/{sys.argv[2]}/{case['exe']}" #{OutputPath}
+            command2 = f"taskset -c 0 ./Output/{sys.argv[2]}/{case['exe']}" #{OutputPath}
             # command2 = f"taskset -c 0 {OutputPath}/{case['exe']}"
 
             # Record the start time

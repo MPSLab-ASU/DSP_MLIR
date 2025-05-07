@@ -468,7 +468,7 @@ for key, value in inputValues.items():
         for i in range(0, NoOfIterations):
             try:
                 process = subprocess.run(
-                    "sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'",
+                    "sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'",
                     shell=True,
                     check=True,
                 )
@@ -478,7 +478,7 @@ for key, value in inputValues.items():
                 process.terminate()
             # The command to be executed
 
-            command2 = f"taskset -c 17 ./Output/{sys.argv[2]}/{case['exe']}"
+            command2 = f"taskset -c 0 ./Output/{sys.argv[2]}/{case['exe']}"
 
             # Record the start time
             start_time = time.time()
