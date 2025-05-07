@@ -415,7 +415,7 @@ elif sys.argv[1] == "speakerIdentification.m":
         "1M": 1000000,
     }
 
-NoOfIterations = 30
+NoOfIterations = 5
 
 def delete_folder_contents(folder_path):
     for filename in os.listdir(folder_path):
@@ -480,7 +480,7 @@ for key, value in inputValues.items():
         except subprocess.CalledProcessError as exc:
             print(exc)
 
-        command2 = f"taskset -c 21 ./Output/run_{sys.argv[2]}{key}.sh {mrt_path}"
+        command2 = f"taskset -c 0 ./Output/run_{sys.argv[2]}{key}.sh {mrt_path}"
 
         try:
             result = subprocess.run(command2, shell=True, capture_output=True, text=True, check=True)

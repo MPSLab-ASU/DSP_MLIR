@@ -191,6 +191,7 @@ elif sys.argv[1] == "spectralAnalysis.py":
         "10K": 10000,
         "20K": 20000,
         "30K": 30000,
+        "40K": 40000,
     }
 
 elif sys.argv[1] == "audioEqualization.py":
@@ -467,14 +468,14 @@ for key, value in inputValues.items():
     with open(input_file_path, "w") as file:
         for line in lines:
             if line.strip().startswith("var input = getRangeOfVector("):
-                if input_file_name in [
+                if sys.argv[1] in [
                     "audioCompression.py",
                     "audioEqualization.py",
                     "periodogram.py",
                     "spectralAnalysis.py",
                 ]:
                     updated_line = f"\tvar input = getRangeOfVector(0, {value}, 1);\n"
-                if input_file_name in ["voiceActivityDetection.py"]:
+                elif sys.argv[1] in ["voiceActivityDetection.py"]:
                     updated_line = (
                         f"\tvar input = getRangeOfVector(0, {value}, 0.125);\n"
                     )
@@ -542,7 +543,7 @@ for key, value in inputValues.items():
             # command2 = "./fileexe"
             # Limit execution to a single core
             # command2 = "taskset -c 0 ./fileexe"
-            command2 = f"taskset -c 21 ./Output/{sys.argv[2]}/{case['exe']}" #{OutputPath}
+            command2 = f"taskset -c 1 ./Output/{sys.argv[2]}/{case['exe']}" #{OutputPath}
             # command2 = f"taskset -c 0 {OutputPath}/{case['exe']}"
 
             # Record the start time
