@@ -447,7 +447,7 @@ for key, value in inputValues.items():
             if line.strip().startswith("#define INPUT_LENGTH"):
                 if sys.argv[1] == "speakerIdentification.c":
                     updated_line = f"#define INPUT_LENGTH {math.floor(value/8.192)}\n"
-                if sys.argv[1] == "FIRFilterDesign.c":
+                elif sys.argv[1] == "FIRFilterDesign.c":
                     updated_line = f"#define INPUT_LENGTH {value +1}\n"
                 else:     
                     updated_line = f"#define INPUT_LENGTH {value}\n"
