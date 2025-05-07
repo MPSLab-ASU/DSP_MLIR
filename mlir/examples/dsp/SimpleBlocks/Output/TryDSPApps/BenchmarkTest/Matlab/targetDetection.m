@@ -1,51 +1,65 @@
 % Constants
-INPUT_LENGTH = 100000000;
-MAX_PEAKS = 100;
+PI = pi;
+INPUT_LENGTH = 500;
+FILTER_SIZE = 20;
+MAX_PEAKS = 50;
 
-% Generate input range
-input = (0:0.000125:(INPUT_LENGTH-1)*0.000125)';
+% Generate input time vector
+input = 0:0.000125:(INPUT_LENGTH - 1) * 0.000125;
 
-% Generate signals
-getMultiplier = 2 * pi * 10;
-getSinDuration = input * getMultiplier;
+% Signal 1: 10 Hz sine
+getMultiplier = 2 * PI * 10;
+getSinDuration = getMultiplier * input;
 sig1 = sin(getSinDuration);
 
-getMultiplier2 = 2 * pi * 20;
-getSinDuration2 = input * getMultiplier2;
+% Signal 2: 20 Hz sine with 0.5 amplitude
+getMultiplier2 = 2 * PI * 20;
+getSinDuration2 = getMultiplier2 * input;
 sinsig2 = sin(getSinDuration2);
 sig2 = 0.5 * sinsig2;
 
 % Combine signals
 signal = sig1 + sig2;
 
-% Add delayed noise
-noise = [zeros(5, 1); signal(1:end-5)];
+% Create delayed noise (5-sample delay)
+delaySamples = 5;
+noise = [zeros(1, delaySamples), signal(1:end - delaySamples)];
+
+% Add noise to signal
 noisy_sig = signal + noise;
 
-% LMS Filter
+% LMS filtering using function
 mu = 0.01;
-filterSize = 20;
-y = lmsFilterResponse(noisy_sig, signal, mu, filterSize);
+y = lmsFilterResponse(noisy_sig, signal, mu, FILTER_SIZE);
 
-% Find peaks
-[peaks, ~] = findpeaks(signal, 'MinPeakHeight', 1, 'MinPeakDistance', 50);
+% Peak detection
+[~, peakLocs] = findpeaks(y, 'MinPeakHeight', 1.0, 'MinPeakDistance', 50);
+numPeaks = min(length(peakLocs), MAX_PEAKS - 1);
+peaks = -1 * ones(1, MAX_PEAKS);
+peaks(1:numPeaks) = peakLocs(1:numPeaks);
+peaks(end) = numPeaks;
 
-% Display results
-fprintf('%d %d\n', peaks(2), peaks(3));
+% Extract two peak indices
+final1 = peaks(2);
+final2 = peaks(1);
 
+fprintf('%f\t%f\n', final1, final2);
+function y = lmsFilterResponse(noisy_sig, clean_sig, mu, filterSize)
+    len = length(noisy_sig);
+    y = zeros(1, len);
+    w = zeros(1, filterSize);  % Initialize weights to zero
 
-% LMS Filter Response Function
-function output = lmsFilterResponse(noisy_sig, clean_sig, mu, filterSize)
-    length = numel(noisy_sig);
-    w = zeros(filterSize, 1);
-    output = zeros(length, 1);
-    
-    for n = 1:length
-        x = noisy_sig(max(1, n-filterSize+1):n);
-        x = [zeros(filterSize - numel(x), 1); x];
-        y = w' * x;
-        e = clean_sig(n) - y;
-        w = w + mu * e * x;
-        output(n) = e;
+    for n = 1:len
+        for i = 1:filterSize
+            if (n - i + 1) > 0
+                y(n) = y(n) + w(i) * noisy_sig(n - i + 1);
+            end
+        end
+        e = clean_sig(n) - y(n);
+        for i = 1:filterSize
+            if (n - i + 1) > 0
+                w(i) = w(i) + mu * e * noisy_sig(n - i + 1);
+            end
+        end
     end
 end

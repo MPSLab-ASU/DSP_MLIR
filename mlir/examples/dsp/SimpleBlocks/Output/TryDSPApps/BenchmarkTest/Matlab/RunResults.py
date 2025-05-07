@@ -29,9 +29,11 @@ app_names = [
     "spaceCommunication"
 ]
 
+
+
 # Loop through each application and execute the  script
 for app_name in app_names:
-    app_script = f"{app_name}.py"
+    app_script = f"{app_name}.m"
     log_file = os.path.join(log_dir, f"{app_name}.log")
     with open(log_file, "w") as log:
         command = ["python", "ResultScript.py", app_script, app_name]

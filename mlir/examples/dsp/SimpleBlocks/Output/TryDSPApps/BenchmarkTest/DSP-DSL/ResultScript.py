@@ -191,6 +191,7 @@ elif sys.argv[1] == "spectralAnalysis.py":
         "10K": 10000,
         "20K": 20000,
         "30K": 30000,
+        "40K": 40000,
     }
 
 elif sys.argv[1] == "audioEqualization.py":
@@ -416,7 +417,7 @@ elif sys.argv[1] == "speakerIdentification.py":
         "1M": 1000000,
     }
 
-NoOfIterations = 3
+NoOfIterations = 30
 
 # --------------------------------------------------
 commands_base = [
@@ -467,14 +468,14 @@ for key, value in inputValues.items():
     with open(input_file_path, "w") as file:
         for line in lines:
             if line.strip().startswith("var input = getRangeOfVector("):
-                if input_file_name in [
+                if sys.argv[1] in [
                     "audioCompression.py",
                     "audioEqualization.py",
                     "periodogram.py",
                     "spectralAnalysis.py",
                 ]:
                     updated_line = f"\tvar input = getRangeOfVector(0, {value}, 1);\n"
-                if input_file_name in ["voiceActivityDetection.py"]:
+                elif sys.argv[1] in ["voiceActivityDetection.py"]:
                     updated_line = (
                         f"\tvar input = getRangeOfVector(0, {value}, 0.125);\n"
                     )

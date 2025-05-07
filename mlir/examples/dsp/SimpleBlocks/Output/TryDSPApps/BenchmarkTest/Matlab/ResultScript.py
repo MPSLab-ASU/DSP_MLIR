@@ -2,6 +2,7 @@ import os
 import subprocess
 import time
 import re
+import sys
 # The script does the following
 # Input : filename.py
 # Output : TimeOfExecution for different IP sizes :
@@ -16,16 +17,26 @@ import re
 
 # Path to the input file
 # Apps = "noiseCancelling.m" , "echoCancelling.m", "periodogram.m", "lowPassFull.m", "hearingAid.m", "lowPassFIRFilterDesign", "energyOfSignal", "audioEqualizer", "audioCompression","vibrationAnalysis", "underWaterCommunication", "voiceActivityDetection", "signalSmoothing", "targetDetection", "biomedicalSignalProcessing", "digitalModulation", "spaceCommunication", "radarSignalProcessing"
-input_file = "speakerIdentification"
-input_file_path = input_file + ".m"
-BasePathForLLVM = "/home/local/ASURITE/apkhedka/ForLLVM/"
-OutputScriptPath = "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/Matlab/"
 mcc_path ="/home/local/ASURITE/apkhedka/Matlab_Installation/bin/mcc"
 mrt_path ="/home/local/ASURITE/apkhedka/Matlab_Runtime/R2024b/"
 # OutputPath = BasePathForLLVM + "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/Results/TryResultScript/Output/"
+input_file_name = sys.argv[1]
+full_path = os.path.abspath(__file__)
+
+# Find the path up to 'DSP_MLIR'
+if 'DSP_MLIR' in full_path:
+    BasePathForLLVM = full_path.split('DSP_MLIR')[0] + 'DSP_MLIR/'
+OutputScriptPath = "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/Matlab/"
+# OutputPath = BasePathForLLVM + "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/Results/TryResultScript/Output/"
+input_file_path = BasePathForLLVM + OutputScriptPath + input_file_name
+
 print(f"Running Application {input_file_path}")
 # Construct full output path
-OutputPath = os.path.join(BasePathForLLVM, OutputScriptPath, "Output")
+if sys.argv[2]:
+    OutputPath = os.path.join(BasePathForLLVM, OutputScriptPath, "Output", sys.argv[2])
+
+else:
+    OutputPath = os.path.join(BasePathForLLVM, OutputScriptPath, "Output")
 
 # Check if the Output folder exists, create it if it doesn't
 if not os.path.exists(OutputPath):
@@ -38,26 +49,373 @@ print(f"OutputPath: {OutputPath}")
 
 # ************ Don't change unless u required
 # Define the values dictionary
+
 inputValues = {
-    # "10": 10,
+    "10": 10,
     "100": 100,
+    "500": 500,
     "1K": 1000,
+    "2K": 2000,
+    "5K": 5000,
     "10K": 10000,
     "20K": 20000,
     "30K": 30000,
     "40K": 40000,
     "50K": 50000,
     "100K": 100000,
-     "1M": 1000000,
-    "10M": 10000000,
-    "20M": 20000000,
-    "30M": 30000000,
-    "40M": 40000000,
-    "50M": 50000000,
-    "100M": 100000000,
+    "1M": 1000000,
+    # "10M": 10000000,
+    # "20M": 20000000,
+    # "30M": 30000000,
+    # "40M": 40000000,
+    # "50M": 50000000,
+    # "100M": 100000000,
     # "1B": 1000000000
 }
-NoOfIterations = 3
+
+if sys.argv[1] == "noiseCancellation.m":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "echoCancellation.m":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "periodogram.m":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+    }
+
+elif sys.argv[1] == "lowPassFiltering.m":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "hearingAid.m":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "FIRFilterDesign.m":
+    inputValues = {
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "spectralAnalysis.m":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000
+    }
+
+elif sys.argv[1] == "audioEqualization.m":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "audioCompression.m":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+    }
+
+elif sys.argv[1] == "vibrationAnalysis.m":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+    }
+
+elif sys.argv[1] == "underWaterCommunication.m":
+    inputValues = {
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "voiceActivityDetection.m":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "signalSmoothing.m":
+    inputValues = {
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "targetDetection.m":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "biomedicalSignalProcessing.m":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "digitalModulation.m":
+    inputValues = {
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "spaceCommunication.m":
+    inputValues = {
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "radarSignalProcessing.m":
+    inputValues = {
+        "10": 10,
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+        "10M": 10000000,
+        "20M": 20000000,
+        "30M": 30000000,
+        "40M": 40000000,
+        "50M": 50000000,
+        "100M": 100000000,
+    }
+
+elif sys.argv[1] == "dtmfDetection.m":
+    inputValues = {
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+    }
+
+elif sys.argv[1] == "speakerIdentification.m":
+    inputValues = {
+        "100": 100,
+        "1K": 1000,
+        "10K": 10000,
+        "20K": 20000,
+        "30K": 30000,
+        "40K": 40000,
+        "50K": 50000,
+        "100K": 100000,
+        "1M": 1000000,
+    }
+
+NoOfIterations = 5
 
 def delete_folder_contents(folder_path):
     for filename in os.listdir(folder_path):
@@ -89,13 +447,13 @@ for key, value in inputValues.items():
             else:
                 file.write(line)
 
-    command = f"{mcc_path} -m {input_file_path} -d 'Output/' -o {input_file}{key}"
+    command = f"{mcc_path} -m {input_file_path} -d 'Output/' -o {sys.argv[2]}{key}"
     result = subprocess.run(command, shell=True, capture_output=True, text=True)
 
     # Modify the generated shell script
-    script_path = f"./Output/run_{input_file}{key}.sh"
+    script_path = f"./Output/run_{sys.argv[2]}{key}.sh"
     # Modify the generated shell script
-    script_path = f"./Output/run_{input_file}{key}.sh"
+    script_path = f"./Output/run_{sys.argv[2]}{key}.sh"
     with open(script_path, 'r') as file:
         script_content = file.readlines()
 
@@ -122,7 +480,7 @@ for key, value in inputValues.items():
         except subprocess.CalledProcessError as exc:
             print(exc)
 
-        command2 = f"taskset -c 0 ./Output/run_{input_file}{key}.sh {mrt_path}"
+        command2 = f"taskset -c 0 ./Output/run_{sys.argv[2]}{key}.sh {mrt_path}"
 
         try:
             result = subprocess.run(command2, shell=True, capture_output=True, text=True, check=True)

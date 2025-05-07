@@ -1,45 +1,49 @@
-% Define constants
-INPUT_LENGTH = 100000000;
+INPUT_LENGTH = 100;
 fs = 8000;
 step = 1 / fs;
+t = (0:INPUT_LENGTH-1) * step;
 
-% Generate input range
-input = (0:step:(INPUT_LENGTH-1)*step)';
-
-% Generate clean signal
 f_sig = 500;
-clean_sig = sin(2 * pi * f_sig * input);
+getSinDuration = gain(t, 2 * pi * f_sig);
+clean_sig = sin(getSinDuration);
 
-% Generate noise signal with frequency of 3000 Hz
 f_noise = 3000;
-noise = 0.5 * sin(2 * pi * f_noise * input);
+getNoiseSinDuration = gain(t, 2 * pi * f_noise);
+noise = sin(getNoiseSinDuration);
+noise1 = gain(noise, 0.5);
 
-% Create noisy signal by adding noise to clean signal
-noisy_sig = clean_sig + noise;
+noisy_sig = clean_sig + noise1;
 
-% LMS filter response function
-function y = lmsFilterResponse(noisy_sig, clean_sig, mu, filterSize)
-    w = zeros(filterSize, 1);
-    y = zeros(size(noisy_sig));
-    
-    for n = 1:length(noisy_sig)
-        x = noisy_sig(max(1, n-filterSize+1):n);
-        x = [zeros(filterSize - length(x), 1); x];
-        y(n) = w' * x;
-        e = clean_sig(n) - y(n);
-        w = w + mu * e * x;
-        y(n) = e;
-    end
-end
-
-% Apply LMS filter
 mu = 0.01;
 filterSize = 32;
 y = lmsFilterResponse(noisy_sig, clean_sig, mu, filterSize);
 
-% Apply final gain factor G1 to the LMS filter output
-G1 = 1002300;
-sol = G1 * y;
+G1 = 123;
+sol = gain(y, G1);
 
-% Display 
-disp(sol);
+fprintf('%.6f\n', sol(4));
+
+function output = gain(input, multiplier)
+    output = input * multiplier;
+end
+
+function y = lmsFilterResponse(noisy_sig, clean_sig, mu, filterSize)
+    N = length(noisy_sig);
+    y = zeros(1, N);
+    w = zeros(1, filterSize);
+    for n = 1:N
+        y_n = 0;
+        for i = 1:filterSize
+            if n - i + 1 > 0
+                y_n = y_n + w(i) * noisy_sig(n - i + 1);
+            end
+        end
+        e = clean_sig(n) - y_n;
+        for i = 1:filterSize
+            if n - i + 1 > 0
+                w(i) = w(i) + mu * e * noisy_sig(n - i + 1);
+            end
+        end
+        y(n) = y_n;
+    end
+end

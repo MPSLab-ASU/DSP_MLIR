@@ -1,58 +1,72 @@
-% Define constants
-INPUT_LENGTH = 100000000;
+INPUT_LENGTH = 100;
 
-% Generate random input data
-data = randi([0 1], 1, INPUT_LENGTH);
+input = getRangeOfVector(0, INPUT_LENGTH, 0.000125);
 
-% QAM Modulation
-function symbols = qam_modulate(data)
-    symbols = zeros(1, length(data)/2);
-    for i = 1:2:length(data)
-        bit1 = data(i);
-        bit2 = data(i+1);
-        
-        if bit1 == 0 && bit2 == 0
-            symbols((i+1)/2) = -1 - 1i;
-        elseif bit1 == 0 && bit2 == 1
-            symbols((i+1)/2) = -1 + 1i;
-        elseif bit1 == 1 && bit2 == 0
-            symbols((i+1)/2) = 1 - 1i;
-        elseif bit1 == 1 && bit2 == 1
-            symbols((i+1)/2) = 1 + 1i;
+f_sig = 500;
+getMultiplier = 2 * pi * f_sig;
+getSinDuration = gain(input, getMultiplier);
+
+clean_sig = sin(getSinDuration);
+
+binary_sig = thresholdUp(clean_sig, 0.4, 0);
+
+modulate_symbol_real = qamModulateReal(binary_sig);
+modulate_symbol_imag = qamModulateImag(binary_sig);
+
+decode_data = qamDemodulate(modulate_symbol_real, modulate_symbol_imag);
+
+fprintf('%.6f\n', decode_data(3));
+
+function vector = getRangeOfVector(start, length, increment)
+    vector = start + (0:length-1) * increment;
+end
+
+function output = gain(input, multiplier)
+    output = input * multiplier;
+end
+
+function output = thresholdUp(input, threshold, low_value)
+    output = double(input >= threshold);
+    output(output < 1) = low_value;
+end
+
+function real = qamModulateReal(binary_sig)
+    real = zeros(1, length(binary_sig)/2);
+    for i = 1:2:length(binary_sig)
+        bit1 = binary_sig(i);
+        bit2 = binary_sig(i+1);
+        if (bit1 == 0 && bit2 == 0) || (bit1 == 0 && bit2 == 1)
+            real((i+1)/2) = -1;
+        else
+            real((i+1)/2) = 1;
         end
     end
 end
 
-% QAM Demodulation
-function bits = qam_demodulate(symbols)
-    bits = zeros(1, length(symbols)*2);
-    for i = 1:length(symbols)
-        symbol = symbols(i);
-        
-        if symbol == -1 - 1i
-            bits(2*i-1) = 0;
-            bits(2*i) = 0;
-        elseif symbol == -1 + 1i
-            bits(2*i-1) = 0;
-            bits(2*i) = 1;
-        elseif symbol == 1 - 1i
-            bits(2*i-1) = 1;
-            bits(2*i) = 0;
-        elseif symbol == 1 + 1i
-            bits(2*i-1) = 1;
-            bits(2*i) = 1;
+function imag = qamModulateImag(binary_sig)
+    imag = zeros(1, length(binary_sig)/2);
+    for i = 1:2:length(binary_sig)
+        bit1 = binary_sig(i);
+        bit2 = binary_sig(i+1);
+        if (bit1 == 0 && bit2 == 0) || (bit1 == 1 && bit2 == 0)
+            imag((i+1)/2) = -1;
+        else
+            imag((i+1)/2) = 1;
         end
     end
 end
 
-% Main script
-rng('shuffle'); % Seed random number generator
-
-% Perform QAM modulation
-symbols = qam_modulate(data);
-
-% Perform QAM demodulation
-bits = qam_demodulate(symbols);
-
-% Print the 6th bit (equivalent to bits[5] in C, as MATLAB uses 1-based indexing)
-disp(bits(6));
+function decoded = qamDemodulate(real, imag)
+    decoded = zeros(1, length(real)*2);
+    for i = 1:length(real)
+        if real(i) == -1 && imag(i) == -1
+            decoded(2*i-1:2*i) = [0 0];
+        elseif real(i) == -1 && imag(i) == 1
+            decoded(2*i-1:2*i) = [0 1];
+        elseif real(i) == 1 && imag(i) == -1
+            decoded(2*i-1:2*i) = [1 0];
+        elseif real(i) == 1 && imag(i) == 1
+            decoded(2*i-1:2*i) = [1 1];
+        end
+    end
+end

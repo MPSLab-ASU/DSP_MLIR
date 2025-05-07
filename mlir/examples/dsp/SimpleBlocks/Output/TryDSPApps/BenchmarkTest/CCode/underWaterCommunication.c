@@ -85,44 +85,51 @@ double getElemAtIndx(double* input, int index) {
 
 int main() {
     double pi = PI;
-    double input[INPUT_LENGTH];
+
+    double *input = malloc(INPUT_LENGTH * sizeof(double));
+    double *getSinDuration = malloc(INPUT_LENGTH * sizeof(double));
+    double *signal = malloc(INPUT_LENGTH * sizeof(double));
+    double *noise = malloc(INPUT_LENGTH * sizeof(double));
+    double *noisy_sig = malloc(INPUT_LENGTH * sizeof(double));
+    double *FIRfilterResponseArray = malloc(INPUT_LENGTH * sizeof(double));
+    double *GetThresholdReal = malloc(INPUT_LENGTH * sizeof(double));
+
+    // Always check for successful allocation
+    if (!input || !getSinDuration || !signal || !noise || !noisy_sig || 
+        !FIRfilterResponseArray || !GetThresholdReal) {
+        printf("Memory allocation failed\n");
+        return -1;
+    }
+
     getRangeOfVector(input, 0, INPUT_LENGTH, 0.000125);
 
     double getMultiplier = 2 * pi * 5;
-    double getSinDuration[INPUT_LENGTH];
     gain(getSinDuration, input, getMultiplier, INPUT_LENGTH);
-
-    double signal[INPUT_LENGTH];
     sine(signal, getSinDuration, INPUT_LENGTH);
-
-    double noise[INPUT_LENGTH];
     delay(noise, signal, 5, INPUT_LENGTH);
-
-    double noisy_sig[INPUT_LENGTH];
     add(noisy_sig, signal, noise, INPUT_LENGTH);
 
-    // Low-pass filter design
     double wc = 2 * pi * 1000 / 500;
     int N = 5;
-
     double lpf = lowPassFIRFilter(wc, 1);  
-
     double hamming_window[N];
     hamming(hamming_window, N);
-
- 
     double lpf_w = lpf * hamming_window[0];  
-
-    double FIRfilterResponseArray[INPUT_LENGTH];
     FIRFilterResponse(FIRfilterResponseArray, noisy_sig, lpf_w, INPUT_LENGTH);
-
     double threshold = 0.05;
-    double GetThresholdReal[INPUT_LENGTH];
     thresholdUp(GetThresholdReal, FIRfilterResponseArray, threshold, 0, INPUT_LENGTH);
 
     double final1 = getElemAtIndx(GetThresholdReal, 3);
+    printf("%f\n", final1);
 
-    printf("%f", final1);
+    free(input);
+    free(getSinDuration);
+    free(signal);
+    free(noise);
+    free(noisy_sig);
+    free(FIRfilterResponseArray);
+    free(GetThresholdReal);
 
     return 0;
 }
+

@@ -8,7 +8,7 @@ def main() {
   # var a10 = getRangeOfVector(0, 400, 0.000125);
   # var orig = sin(a10);
 
-	var N_input = 101;
+	var N_input = 10000001;
 
   # for cut-off freq
   var pi = 3.14159265359;
@@ -44,11 +44,11 @@ def main() {
   var final2 = getElemAtIndx(hpf_w2 , [7]);
   var final3 = getElemAtIndx(hpf_w3 , [8]);
   # var final4 = getElemAtIndx(hpf_w4 , [500]); 
-  # var final4 = getElemAtIndx(hpf_w4 , [5]);
+  var final4 = getElemAtIndx(hpf_w4 , [5]);
   print(final1);
   print(final2);
   print(final3);
-  # print(final4);
+  print(final4);
   # print(hpf_w);
 
 
