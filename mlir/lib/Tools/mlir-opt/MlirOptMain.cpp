@@ -49,6 +49,8 @@
 #include "llvm/Support/ThreadPool.h"
 #include "llvm/Support/ToolOutputFile.h"
 
+#include "mlir/Dialect/DSP/IR/DSPDialect.h"
+
 using namespace mlir;
 using namespace llvm;
 
@@ -68,6 +70,8 @@ public:
     return false;
   }
 };
+
+
 
 /// This class is intended to manage the handling of command line options for
 /// creating a *-opt config. This is a singleton.
@@ -171,6 +175,7 @@ struct MlirOptMainConfigCLOptions : public MlirOptMainConfig {
                 " (no crash required)"),
             cl::location(generateReproducerFileFlag), cl::init(""),
             cl::value_desc("filename"));
+
 
     /// Set the callback to load a pass plugin.
     passPlugins.setCallback([&](const std::string &pluginPath) {
@@ -501,6 +506,7 @@ mlir::registerAndParseCLIOptions(int argc, char **argv,
   registerPassManagerCLOptions();
   registerDefaultTimingManagerCLOptions();
   tracing::DebugCounter::registerCLOptions();
+  registerDSPOptions();
 
   // Build the list of dialects as a header for the --help message.
   std::string helpHeader = (toolName + "\nAvailable Dialects: ").str();
