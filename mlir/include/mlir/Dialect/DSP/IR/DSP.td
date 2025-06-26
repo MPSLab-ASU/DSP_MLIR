@@ -61,15 +61,17 @@ def ConstantOp : DSP_Op<"constant", [Pure]> {
 
     ```mlir
       %0 = dsp.constant dense<[[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]>
-                        : tensor<2x3xf64>
+                        : tensor<2x3xf32>
     ```
   }];
 
   // The constant operation takes an attribute as the only input.
-  let arguments = (ins F64ElementsAttr:$value);
+  let arguments = (ins F32ElementsAttr:$value);
+
+
 
   // The constant operation returns a single value of TensorType.
-  let results = (outs F64Tensor);
+  let results = (outs F32Tensor);
 
   // Indicate that the operation has a custom parser and printer method.
   let hasCustomAssemblyFormat = 1;
@@ -106,8 +108,8 @@ def ModuloOp : DSP_Op<"modulo",
     The shapes of the tensor operands are expected to match.
   }];
 
-  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs);
+  let results = (outs F32Tensor);
   
   let builders = [
     OpBuilder<(ins "Value":$lhs, "Value":$rhs)>
@@ -126,8 +128,8 @@ def AddOp : DSP_Op<"add",
     The shapes of the tensor operands are expected to match.
   }];
 
-  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs);
+  let results = (outs F32Tensor);
 
   // Indicate that the operation has a custom parser and printer method.
   let hasCustomAssemblyFormat = 1;
@@ -157,8 +159,8 @@ def CastOp : DSP_Op<"cast", [
     mismatching constant dimension.
   }];
 
-  let arguments = (ins F64Tensor:$input);
-  let results = (outs F64Tensor:$output);
+  let arguments = (ins F32Tensor:$input);
+  let results = (outs F32Tensor:$output);
 
   let assemblyFormat = "$input attr-dict `:` type($input) `to` type($output)";
 }
@@ -179,9 +181,9 @@ def FuncOp : DSP_Op<"func", [
 
     ```mlir
     dsp.func @main() {
-      %0 = dsp.constant dense<5.500000e+00> : tensor<f64>
-      %1 = dsp.reshape(%0 : tensor<f64>) to tensor<2x2xf64>
-      dsp.print %1 : tensor<2x2xf64>
+      %0 = dsp.constant dense<5.500000e+00> : tensor<f32>
+      %1 = dsp.reshape(%0 : tensor<f32>) to tensor<2x2xf32>
+      dsp.print %1 : tensor<2x2xf32>
       dsp.return
     }
     ```
@@ -232,7 +234,7 @@ def GenericCallOp : DSP_Op<"generic_call",
 
     ```mlir
      %4 = dsp.generic_call @my_func(%1, %3)
-           : (tensor<2x3xf64>, tensor<2x3xf64>) -> tensor<*xf64>
+           : (tensor<2x3xf32>, tensor<2x3xf32>) -> tensor<*xf32>
     ```
 
     This is only valid if a function named "my_func" exists and takes two
@@ -241,10 +243,10 @@ def GenericCallOp : DSP_Op<"generic_call",
 
   // The generic call operation takes a symbol reference attribute as the
   // callee, and inputs for the call.
-  let arguments = (ins FlatSymbolRefAttr:$callee, Variadic<F64Tensor>:$inputs);
+  let arguments = (ins FlatSymbolRefAttr:$callee, Variadic<F32Tensor>:$inputs);
 
   // The generic call operation returns a single value of TensorType.
-  let results = (outs F64Tensor);
+  let results = (outs F32Tensor);
 
   // Specialize assembly printing and parsing using a declarative format.
   let assemblyFormat = [{
@@ -269,8 +271,8 @@ def MulOp : DSP_Op<"mul",
     tensors. The shapes of the tensor operands are expected to match.
   }];
 
-  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs);
+  let results = (outs F32Tensor);
 
   // Indicate that the operation has a custom parser and printer method.
   let hasCustomAssemblyFormat = 1;
@@ -296,8 +298,8 @@ def DivOp : DSP_Op<"div",
     tensors. The shapes of the tensor operands are expected to match.
   }];
 
-  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs);
+  let results = (outs F32Tensor);
 
   // Indicate that the operation has a custom parser and printer method.
   let hasCustomAssemblyFormat = 1;
@@ -322,8 +324,8 @@ def BitwiseAndOp : DSP_Op<"bitwiseand",
     tensors. The shapes of the tensor operands are expected to match.
   }];
 
-  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs);
+  let results = (outs F32Tensor);
 
   // Indicate that the operation has a custom parser and printer method.
   let hasCustomAssemblyFormat = 1;
@@ -346,8 +348,8 @@ def PowOp : DSP_Op<"pow",
                 The accepted operand is restrict to a scaler constant.
         }];
 
-        let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);
-        let results = (outs F64Tensor);
+        let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs);
+        let results = (outs F32Tensor);
 
         // has custom parser and printer for method
         // let hasCustomAssemblyFormat = 1;
@@ -371,8 +373,8 @@ def PrintOp : DSP_Op<"print"> {
   }];
 
   // The print operation takes an input tensor to print.
-  // We also allow a F64MemRef to enable interop during partial lowering.
-  let arguments = (ins AnyTypeOf<[F64Tensor, F64MemRef]>:$input);
+  // We also allow a F32MemRef to enable interop during partial lowering.
+  let arguments = (ins AnyTypeOf<[F32Tensor, F32MemRef]>:$input);
 
   let assemblyFormat = "$input attr-dict `:` type($input)";
 }
@@ -388,11 +390,11 @@ def ReshapeOp : DSP_Op<"reshape", [Pure]> {
     the same number of elements but different shapes. For example:
 
     ```mlir
-       %0 = dsp.reshape (%arg1 : tensor<10xf64>) to tensor<5x2xf64>
+       %0 = dsp.reshape (%arg1 : tensor<10xf32>) to tensor<5x2xf32>
     ```
   }];
 
-  let arguments = (ins F64Tensor:$input);
+  let arguments = (ins F32Tensor:$input);
 
   let assemblyFormat = [{
     `(` $input `:` type($input) `)` attr-dict `to` type(results)
@@ -402,7 +404,7 @@ def ReshapeOp : DSP_Op<"reshape", [Pure]> {
   let hasCanonicalizer = 1;
 
   // We expect that the reshape operation returns a statically shaped tensor.
-  let results = (outs StaticShapeTensorOf<[F64]>);
+  let results = (outs StaticShapeTensorOf<[F32]>);
 }
 
 //===----------------------------------------------------------------------===//
@@ -419,16 +421,16 @@ def ReturnOp : DSP_Op<"return", [Pure, HasParent<"FuncOp">,
     the operation. For example:
 
     ```mlir
-      dsp.func @foo() -> tensor<2xf64> {
+      dsp.func @foo() -> tensor<2xf32> {
         ...
-        dsp.return %0 : tensor<2xf64>
+        dsp.return %0 : tensor<2xf32>
       }
     ```
   }];
 
   // The return operation takes an optional input operand to return. This
   // value must match the return type of the enclosing function.
-  let arguments = (ins Variadic<F64Tensor>:$input);
+  let arguments = (ins Variadic<F32Tensor>:$input);
 
   // The return operation only emits the input in the format if it is present.
   let assemblyFormat = "($input^ `:` type($input))? attr-dict ";
@@ -455,8 +457,8 @@ def TransposeOp : DSP_Op<"transpose",
     [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
   let summary = "transpose operation";
 
-  let arguments = (ins F64Tensor:$input);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$input);
+  let results = (outs F32Tensor);
 
   let assemblyFormat = [{
     `(` $input `:` type($input) `)` attr-dict `to` type(results)
@@ -487,12 +489,12 @@ def DelayOp : DSP_Op<"delay" ,
     The shapes of the tensor operands are expected to match.
   }];
 
-  // let arguments = (ins F64Tensor:$lhs, UI32:$rhs); //
-  // let results = (outs F64Tensor);
+  // let arguments = (ins F32Tensor:$lhs, UI32:$rhs); //
+  // let results = (outs F32Tensor);
 
-  // let arguments = (ins F64Tensor:$lhs, UI32:$rhs); 
-  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);//working
-  let results = (outs F64Tensor);
+  // let arguments = (ins F32Tensor:$lhs, UI32:$rhs); 
+  let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs);//working
+  let results = (outs F32Tensor);
 
   // Indicate that the operation has a custom parser and printer method.
   // let hasCustomAssemblyFormat = 1;
@@ -532,14 +534,14 @@ def GainOp : DSP_Op<"gain" ,
     The shapes of the tensor operands are expected to match.
   }];
 
-  // let arguments = (ins F64Tensor:$lhs, UI32:$rhs); //
-  // let results = (outs F64Tensor);
+  // let arguments = (ins F32Tensor:$lhs, UI32:$rhs); //
+  // let results = (outs F32Tensor);
 
-  // let arguments = (ins F64Tensor:$lhs, UI32:$rhs); 
-  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);//working -- F64
-  // let arguments = (ins F64Tensor:$lhs, F64:$rhs);
-  // let arguments = (ins F64Tensor:$lhs, F64Attr:$rhs);
-  let results = (outs F64Tensor); //I64
+  // let arguments = (ins F32Tensor:$lhs, UI32:$rhs); 
+  let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs);//working -- F32
+  // let arguments = (ins F32Tensor:$lhs, F32:$rhs);
+  // let arguments = (ins F32Tensor:$lhs, F32Attr:$rhs);
+  let results = (outs F32Tensor); //I32
   
 
   // Indicate that the operation has a custom parser and printer method.
@@ -571,8 +573,8 @@ def SubOp : DSP_Op<"sub", [Pure , DeclareOpInterfaceMethods<ShapeInferenceOpInte
      The subtract block subtracts each element of a vector with each other.
    }];
 
-   let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);//working
-   let results = (outs F64Tensor);
+   let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs);//working
+   let results = (outs F32Tensor);
 
    // Indicate that the operation has a custom parser and printer method.
    // let hasCustomAssemblyFormat = 1;
@@ -602,8 +604,8 @@ def FFTRealOp : DSP_Op<"fftReal", [Pure, DeclareOpInterfaceMethods<ShapeInferenc
       Providing an array of any other size will result in a segmentation fault.
   }];
 
-  let arguments = (ins F64Tensor:$lhs);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$lhs);
+  let results = (outs F32Tensor);
 
   let builders = [
     OpBuilder<(ins "Value":$lhs)>
@@ -624,8 +626,8 @@ def FFTImagOp : DSP_Op<"fftImag", [Pure, DeclareOpInterfaceMethods<ShapeInferenc
       Providing an array of any other size will result in a segmentation fault.
   }];
 
-  let arguments = (ins F64Tensor:$lhs);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$lhs);
+  let results = (outs F32Tensor);
 
   let builders = [
     OpBuilder<(ins "Value":$lhs)>
@@ -643,9 +645,9 @@ def zeroCrossCountOp : DSP_Op<"zeroCrossCount" ,
     ex: [-1 , -2 , 3, 0 , 0, -2] has 2 zero-crosses 
   }];
 
-  let arguments = (ins F64Tensor:$lhs); //working -- F64
-  let results =  (outs F64Tensor);
-  // let results = (outs I64);
+  let arguments = (ins F32Tensor:$lhs); //working -- F32
+  let results =  (outs F32Tensor);
+  // let results = (outs I32);
 
   // Indicate that the operation has a custom parser and printer method.
   // let hasCustomAssemblyFormat = 1;
@@ -679,9 +681,9 @@ def FIRFilterResponseOp : DSP_Op<"FIRFilterResponse" ,
       y[n] = sum(h(k) . x(n-k)) k=0 to N-1 
   }];
 
-  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs); //working -- F64
-  let results =  (outs F64Tensor);
-  // let results = (outs I64);
+  let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs); //working -- F32
+  let results =  (outs F32Tensor);
+  // let results = (outs I32);
 
   // Indicate that the operation has a custom parser and printer method.
   // let hasCustomAssemblyFormat = 1;
@@ -709,8 +711,8 @@ def FIRFilterResponseOp : DSP_Op<"FIRFilterResponse" ,
 def MedianFilterOp : DSP_Op<"medianFilter", 
     [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
   
-  let arguments = (ins F64Tensor:$input);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$input);
+  let results = (outs F32Tensor);
 
   let builders = [
     OpBuilder<(ins "Value":$input)>
@@ -725,8 +727,8 @@ def SlidingWindowAvgOp : DSP_Op<"slidingWindowAvg",
     [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
   let summary = "sliding window average operation";
 
-  let arguments = (ins F64Tensor:$input);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$input);
+  let results = (outs F32Tensor);
 
   let assemblyFormat = [{
     `(` $input `:` type($input) `)` attr-dict `to` type(results)
@@ -760,8 +762,8 @@ def DownsamplingOp : DSP_Op<"downsampling" ,
   }];
 
 
-  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);//working -- F64
-  let results = (outs F64Tensor); //I64
+  let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs);//working -- F32
+  let results = (outs F32Tensor); //I32
   
 
   // Indicate that the operation has a custom parser and printer method.
@@ -799,8 +801,8 @@ def UpsamplingOp : DSP_Op<"upsampling" ,
   }];
 
 
-  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);//working -- F64
-  let results = (outs F64Tensor); //I64
+  let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs);//working -- F32
+  let results = (outs F32Tensor); //I32
   
 
   // Indicate that the operation has a custom parser and printer method.
@@ -838,8 +840,8 @@ def LowPassFilter1stOrderOp : DSP_Op<"lowPassFilter" ,
   }];
 
 
-  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);//working -- F64
-  let results = (outs F64Tensor); //I64
+  let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs);//working -- F32
+  let results = (outs F32Tensor); //I32
   
 
   // Indicate that the operation has a custom parser and printer method.
@@ -877,8 +879,8 @@ def HighPassFilterOp : DSP_Op<"highPassFilter",
     The shapes of the tensor operands are expected to match.
   }];
 
-  let arguments = (ins F64Tensor:$input);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$input);
+  let results = (outs F32Tensor);
 
   // let assemblyFormat = [{
   //   `(` $input `:` type($input) `)` attr-dict `to` type(results)
@@ -917,9 +919,9 @@ def FFT1DOp : DSP_Op<"fft1d",
     The shapes of the tensor operands are expected to match.
   }];
 
-  let arguments = (ins F64Tensor:$input);
-  let results = (outs F64Tensor:$real, F64Tensor:$img); //(ins F64Tensor:$lhs, F64Tensor:$rhs);
-  // let results = (outs F64Tensor:$real);
+  let arguments = (ins F32Tensor:$input);
+  let results = (outs F32Tensor:$real, F32Tensor:$img); //(ins F32Tensor:$lhs, F32Tensor:$rhs);
+  // let results = (outs F32Tensor:$real);
   // let assemblyFormat = [{
   //   `(` $input `:` type($input) `)` attr-dict `to` type(results)
   // }];
@@ -957,10 +959,10 @@ def IFFT1DOp : DSP_Op<"ifft1d",
     The shapes of the tensor operands are expected to match.
   }];
 
-  // let arguments = (ins F64Tensor:$input ,  F64Tensor:$input);
-  let arguments = (ins F64Tensor:$real ,  F64Tensor:$img);
-  // let results = (outs F64Tensor:$real, F64Tensor:$img); //(ins F64Tensor:$lhs, F64Tensor:$rhs);
-  let results = (outs F64Tensor);
+  // let arguments = (ins F32Tensor:$input ,  F32Tensor:$input);
+  let arguments = (ins F32Tensor:$real ,  F32Tensor:$img);
+  // let results = (outs F32Tensor:$real, F32Tensor:$img); //(ins F32Tensor:$lhs, F32Tensor:$rhs);
+  let results = (outs F32Tensor);
 
   let hasCanonicalizer = 1;
 
@@ -989,9 +991,9 @@ def HammingWindowOp : DSP_Op<"hamming",
     The shapes of the tensor operands are expected to match.
   }];
 
-  let arguments = (ins F64Tensor:$input);
-  // let results = (outs F64Tensor:$real, F64Tensor:$img); //(ins F64Tensor:$lhs, F64Tensor:$rhs);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$input);
+  // let results = (outs F32Tensor:$real, F32Tensor:$img); //(ins F32Tensor:$lhs, F32Tensor:$rhs);
+  let results = (outs F32Tensor);
   let assemblyFormat = [{
     `(` $input `:` type($input) `)` attr-dict `to` type(results)
   }];
@@ -1031,9 +1033,9 @@ def DCTOp : DSP_Op<"dct",
     The shapes of the tensor operands are expected to match.
   }];
 
-  let arguments = (ins F64Tensor:$input);
-  // let results = (outs F64Tensor:$real, F64Tensor:$img); //(ins F64Tensor:$lhs, F64Tensor:$rhs);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$input);
+  // let results = (outs F32Tensor:$real, F32Tensor:$img); //(ins F32Tensor:$lhs, F32Tensor:$rhs);
+  let results = (outs F32Tensor);
   let assemblyFormat = [{
     `(` $input `:` type($input) `)` attr-dict `to` type(results)
   }];
@@ -1068,8 +1070,8 @@ def filterOp : DSP_Op<"filter" ,
       also, y[0] = b[0] * x[0]
   }];
 
-  let arguments = (ins F64Tensor:$b, F64Tensor:$a, F64Tensor:$x); //working -- F64
-  let results =  (outs F64Tensor);
+  let arguments = (ins F32Tensor:$b, F32Tensor:$a, F32Tensor:$x); //working -- F32
+  let results =  (outs F32Tensor);
   
   // Indicate that the operation has a custom parser and printer method.
   // let hasCustomAssemblyFormat = 1;
@@ -1099,8 +1101,8 @@ def SumOp : DSP_Op<"sum",
     [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
   let summary = "sum of all the elements operation";
 
-  let arguments = (ins F64Tensor:$input);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$input);
+  let results = (outs F32Tensor);
 
   let assemblyFormat = [{
     `(` $input `:` type($input) `)` attr-dict `to` type(results)
@@ -1129,9 +1131,9 @@ def SumOp : DSP_Op<"sum",
      The sin operation computes the sine of a given value. It takes one operand of floating point type (i.e., scalar, tensor or vector) and returns one result of the same type. It has no standard attributes.
    }];
 
-   let arguments = (ins F64Tensor:$input);
-   // let results = (outs F64Tensor:$real, F64Tensor:$img); //(ins F64Tensor:$lhs, F64Tensor:$rhs);
-   let results = (outs F64Tensor);
+   let arguments = (ins F32Tensor:$input);
+   // let results = (outs F32Tensor:$real, F32Tensor:$img); //(ins F32Tensor:$lhs, F32Tensor:$rhs);
+   let results = (outs F32Tensor);
    let assemblyFormat = [{
      `(` $input `:` type($input) `)` attr-dict `to` type(results)
    }];
@@ -1163,9 +1165,9 @@ def SumOp : DSP_Op<"sum",
      The cos operation computes the cosine of a given value. It takes one operand of floating point type (i.e., scalar, tensor or vector) and returns one result of the same type. It has no standard attributes.
    }];
 
-   let arguments = (ins F64Tensor:$input);
-   // let results = (outs F64Tensor:$real, F64Tensor:$img); //(ins F64Tensor:$lhs, F64Tensor:$rhs);
-   let results = (outs F64Tensor);
+   let arguments = (ins F32Tensor:$input);
+   // let results = (outs F32Tensor:$real, F32Tensor:$img); //(ins F32Tensor:$lhs, F32Tensor:$rhs);
+   let results = (outs F32Tensor);
    let assemblyFormat = [{
      `(` $input `:` type($input) `)` attr-dict `to` type(results)
    }];
@@ -1195,8 +1197,8 @@ def SquareOp : DSP_Op<"square",
     [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
   let summary = "square of the input vector";
 
-  let arguments = (ins F64Tensor:$input);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$input);
+  let results = (outs F32Tensor);
 
   let assemblyFormat = [{
     `(` $input `:` type($input) `)` attr-dict `to` type(results)
@@ -1230,9 +1232,9 @@ def FFT1DRealOp : DSP_Op<"fft1dreal",
     The shapes of the tensor operands are expected to match.
   }];
 
-  let arguments = (ins F64Tensor:$input);
-  let results = (outs F64Tensor:$real); //(ins F64Tensor:$lhs, F64Tensor:$rhs);
-  // let results = (outs F64Tensor:$real);
+  let arguments = (ins F32Tensor:$input);
+  let results = (outs F32Tensor:$real); //(ins F32Tensor:$lhs, F32Tensor:$rhs);
+  // let results = (outs F32Tensor:$real);
   // let assemblyFormat = [{
   //   `(` $input `:` type($input) `)` attr-dict `to` type(results)
   // }];
@@ -1270,9 +1272,9 @@ def FFT1DImgOp : DSP_Op<"fft1dimg",
     The shapes of the tensor operands are expected to match.
   }];
 
-  let arguments = (ins F64Tensor:$input);
-  let results = (outs F64Tensor:$real); //(ins F64Tensor:$lhs, F64Tensor:$rhs);
-  // let results = (outs F64Tensor:$real);
+  let arguments = (ins F32Tensor:$input);
+  let results = (outs F32Tensor:$real); //(ins F32Tensor:$lhs, F32Tensor:$rhs);
+  // let results = (outs F32Tensor:$real);
   // let assemblyFormat = [{
   //   `(` $input `:` type($input) `)` attr-dict `to` type(results)
   // }];
@@ -1309,9 +1311,9 @@ def SincOp : DSP_Op<"sinc",
     The shapes of the tensor operands are expected to match.
   }];
 
-  let arguments = (ins F64Tensor:$wc , F64Tensor:$n);
-  let results = (outs F64Tensor); //(ins F64Tensor:$lhs, F64Tensor:$rhs);
-  // let results = (outs F64Tensor:$real);
+  let arguments = (ins F32Tensor:$wc , F32Tensor:$n);
+  let results = (outs F32Tensor); //(ins F32Tensor:$lhs, F32Tensor:$rhs);
+  // let results = (outs F32Tensor:$real);
   // let assemblyFormat = [{
   //   `(` $input `:` type($input) `)` attr-dict `to` type(results)
   // }];
@@ -1340,8 +1342,8 @@ def GetElemAtIndxOp : DSP_Op<"getElemAtIndx",
     [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
   let summary = "get elem at given indx of the vector";
 
-  let arguments = (ins F64Tensor:$input, F64Tensor:$indx);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$input, F32Tensor:$indx);
+  let results = (outs F32Tensor);
 
   // let assemblyFormat = [{
   //   `(` $input `:` type($input) `)` attr-dict `to` type(results)
@@ -1372,8 +1374,8 @@ def GetSingleElemAtIdxOp : DSP_Op<"getSingleElemAtIndx",
     [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
   let summary = "This one access ranked tensor at idx and returns signle tensor without dimension.";
 
-  let arguments = (ins F64Tensor:$input, F64Tensor:$indx);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$input, F32Tensor:$indx);
+  let results = (outs F32Tensor);
 
   let builders = [
     OpBuilder<(ins "Value":$input, "Value":$indx)>
@@ -1394,8 +1396,8 @@ def Diff2MeanOptimizedOp : DSP_Op<"diff2meanOpt",
     [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
   let summary = "This one implemnets mean(diff(input)) as (input[-1] - input[0])/len(input). Note that mean uses length of diff, this operation consider input[-1] == input[length paramter of mean], not input[length paramter of mean-1]";
 
-  let arguments = (ins F64Tensor:$input, F64Tensor:$length);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$input, F32Tensor:$length);
+  let results = (outs F32Tensor);
 
   let builders = [
     OpBuilder<(ins "Value":$input, "Value":$length)>
@@ -1412,8 +1414,8 @@ def FindPeaks2Diff2MeanOptimizedOp : DSP_Op<"findpeaks2diff2meanOpt",
     [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
   let summary = "This one implemnets mean(diff(find_peaks(input))) as (peak[-1] - peak[0])/(len(peaks)-1).";
 
-   let arguments = (ins F64Tensor:$signal, F64Tensor:$height, F64Tensor:$distance);
-   let results = (outs F64Tensor);
+   let arguments = (ins F32Tensor:$signal, F32Tensor:$height, F32Tensor:$distance);
+   let results = (outs F32Tensor);
    
    let builders = [
      OpBuilder<(ins "Value":$signal, "Value":$height, "Value":$distance)>
@@ -1434,8 +1436,8 @@ def LMS2FindPeaksOptimizedOp : DSP_Op<"lms2findPeaks",
     [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
   let summary = "Fusing loop for LMSFilterResponseOp and FindPeaksOp";
 
-  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs, F64Tensor:$mu, F64Tensor:$filterLen, F64Tensor:$height, F64Tensor:$distance);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs, F32Tensor:$mu, F32Tensor:$filterLen, F32Tensor:$height, F32Tensor:$distance);
+  let results = (outs F32Tensor);
 
   let builders = [
     OpBuilder<(ins "Value":$lhs, "Value":$rhs, "Value":$mu, "Value":$filterLen, "Value":$height, "Value":$distance)>
@@ -1455,8 +1457,8 @@ def SetElemAtIndxOp : DSP_Op<"setElemAtIndx",
     [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
   let summary = "set elem at given indx of the vector";
 
-  let arguments = (ins F64Tensor:$input, F64Tensor:$indx , F64Tensor:$val);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$input, F32Tensor:$indx , F32Tensor:$val);
+  let results = (outs F32Tensor);
 
   // let assemblyFormat = [{
   //   `(` $input `:` type($input) `)` attr-dict `to` type(results)
@@ -1491,9 +1493,9 @@ def LowPassFIRFilterOp : DSP_Op<"lowPassFIRFilter",
     The shapes of the tensor operands are expected to match.
   }];
 
-  let arguments = (ins F64Tensor:$wc, F64Tensor:$n);
-  // let results = (outs F64Tensor:$real, F64Tensor:$img); //(ins F64Tensor:$lhs, F64Tensor:$rhs);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$wc, F32Tensor:$n);
+  // let results = (outs F32Tensor:$real, F32Tensor:$img); //(ins F32Tensor:$lhs, F32Tensor:$rhs);
+  let results = (outs F32Tensor);
   // let assemblyFormat = [{
   //   `(` $input `:` type($input) `)` attr-dict `to` type(results)
   // }];
@@ -1530,8 +1532,8 @@ def LMSFilterOp : DSP_Op<"lmsFilter",
     w(n)=αw(n−1)+f(u(n),e(n),μ)
   }];
 
-  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs, F64Tensor:$mu, F64Tensor:$filterLen, F64Tensor:$iters);
-   let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs, F32Tensor:$mu, F32Tensor:$filterLen, F32Tensor:$iters);
+   let results = (outs F32Tensor);
   /// Indicate that the operation has a custom parser and printer method.
    // let hasCustomAssemblyFormat = 1;
    // let assemblyFormat = [{
@@ -1566,8 +1568,8 @@ def HighPassFIRFilterOp : DSP_Op<"highPassFIRFilter",
     ex: N = odd for symmetry &  Output : y= [0.08,0.54,1,0.54] 
   }];
 
-  let arguments = (ins F64Tensor:$wc, F64Tensor:$N);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$wc, F32Tensor:$N);
+  let results = (outs F32Tensor);
   // let assemblyFormat = [{
   //   `(` $input `:` type($input) `)` attr-dict `to` type(results)
   // }];
@@ -1605,8 +1607,8 @@ def GetRangeOfVectorOp : DSP_Op<"getRangeOfVector",
     
   }];
 
-  let arguments = (ins F64Tensor:$first, F64Tensor:$N, F64Tensor:$step);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$first, F32Tensor:$N, F32Tensor:$step);
+  let results = (outs F32Tensor);
   // let assemblyFormat = [{
   //   `(` $input `:` type($input) `)` attr-dict `to` type(results)
   // }];
@@ -1647,9 +1649,9 @@ def FIRFilterHammingOptimizedOp : DSP_Op<"FIRFilterHammingOptimized",
     
   }];
 
-  let arguments = (ins F64Tensor:$wc, F64Tensor:$n);
-  // let results = (outs F64Tensor:$real, F64Tensor:$img); //(ins F64Tensor:$lhs, F64Tensor:$rhs);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$wc, F32Tensor:$n);
+  // let results = (outs F32Tensor:$real, F32Tensor:$img); //(ins F32Tensor:$lhs, F32Tensor:$rhs);
+  let results = (outs F32Tensor);
   // let assemblyFormat = [{
   //   `(` $input `:` type($input) `)` attr-dict `to` type(results)
   // }];
@@ -1690,9 +1692,9 @@ def HighPassFIRHammingOptimizedOp : DSP_Op<"highPassFIRHammingOptimizedOp",
     
   }];
 
-  let arguments = (ins F64Tensor:$wc, F64Tensor:$n);
-  // let results = (outs F64Tensor:$real, F64Tensor:$img); //(ins F64Tensor:$lhs, F64Tensor:$rhs);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$wc, F32Tensor:$n);
+  // let results = (outs F32Tensor:$real, F32Tensor:$img); //(ins F32Tensor:$lhs, F32Tensor:$rhs);
+  let results = (outs F32Tensor);
   // let assemblyFormat = [{
   //   `(` $input `:` type($input) `)` attr-dict `to` type(results)
   // }];
@@ -1728,8 +1730,8 @@ def ThresholdOp : DSP_Op<"threshold",
     ex: Input x= [-0.08,-5.4,-1,3.4] and threshld = 2 , then y[n] = [ 0, -5.4, 0, 3.4]  
   }];
 
-  let arguments = (ins F64Tensor:$input, F64Tensor:$threshld);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$input, F32Tensor:$threshld);
+  let results = (outs F32Tensor);
 
   // let assemblyFormat = [{
   //   `(` $input `:` type($input) `)` attr-dict `to` type(results)
@@ -1773,8 +1775,8 @@ def QuantizationOp : DSP_Op<"quantization",
         Quantized coefficients: [ 3.125 -1.25   0.625 -3.125  4.375]
   }];
 
-  let arguments = (ins F64Tensor:$input, F64Tensor:$Nlevels, F64Tensor:$max, F64Tensor:$min);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$input, F32Tensor:$Nlevels, F32Tensor:$max, F32Tensor:$min);
+  let results = (outs F32Tensor);
 
   // Enable registering canonicalization patterns with this operation.
   // let hasCanonicalizer = 1;
@@ -1803,8 +1805,8 @@ def LMSFilterResponseOp : DSP_Op<"lmsFilterResponse",
     w(n)=αw(n−1)+f(u(n),e(n),μ)
   }];
 
-  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs, F64Tensor:$mu, F64Tensor:$filterLen);
-   let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs, F32Tensor:$mu, F32Tensor:$filterLen);
+   let results = (outs F32Tensor);
   /// Indicate that the operation has a custom parser and printer method.
    // let hasCustomAssemblyFormat = 1;
    // let assemblyFormat = [{
@@ -1838,8 +1840,8 @@ def RunLenEncodingOp : DSP_Op<"runLenEncoding",
     then output is [4,2,-1,2, 0,0,0,0 , 2,1,2,3,0,0,0,0]
     }];
 
-  let arguments = (ins F64Tensor:$input);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$input);
+  let results = (outs F32Tensor);
 
   // Enable registering canonicalization patterns with this operation.
   // let hasCanonicalizer = 1;
@@ -1869,9 +1871,9 @@ def FIRFilterResSymmOptimizedOp : DSP_Op<"FIRFilterResSymmOptimized" ,
       Basically, we are trying to reduce the number of load/store operations by half -- so that we can reduce the operations
   }];
 
-  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs); //working -- F64
-  let results =  (outs F64Tensor);
-  // let results = (outs I64);
+  let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs); //working -- F32
+  let results =  (outs F32Tensor);
+  // let results = (outs I32);
 
   // Indicate that the operation has a custom parser and printer method.
   // let hasCustomAssemblyFormat = 1;
@@ -1903,8 +1905,8 @@ def LengthOp : DSP_Op<"len" ,
     ex: x[n] = [2,1,3,2,4], len(x) will be 5
     }];
 
-  let arguments = (ins F64Tensor:$input); //working -- F64
-  let results =  (outs F64Tensor);
+  let arguments = (ins F32Tensor:$input); //working -- F32
+  let results =  (outs F32Tensor);
 
   // Indicate that the operation has a custom parser and printer method.
   // let hasCustomAssemblyFormat = 1;
@@ -1937,8 +1939,8 @@ def ReverseInputOp : DSP_Op<"reverseInput" ,
     ex: x[n] = [1,2,3,4], y[n] = [4,3,2,1]
     }];
 
-  let arguments = (ins F64Tensor:$input); //working -- F64
-  let results =  (outs F64Tensor);
+  let arguments = (ins F32Tensor:$input); //working -- F32
+  let results =  (outs F32Tensor);
 
   // Indicate that the operation has a custom parser and printer method.
   // let hasCustomAssemblyFormat = 1;
@@ -1975,8 +1977,8 @@ def PaddingOp : DSP_Op<"padding",
         y[n] = [1,2,3,4,0,0,0]
   }];
 
-  let arguments = (ins F64Tensor:$input, F64Tensor:$PadValue, F64Tensor:$PadLen);
-   let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$input, F32Tensor:$PadValue, F32Tensor:$PadLen);
+   let results = (outs F32Tensor);
   /// Indicate that the operation has a custom parser and printer method.
    // let hasCustomAssemblyFormat = 1;
    // let assemblyFormat = [{
@@ -2012,9 +2014,9 @@ def FIRFilterYSymmOptimizedOp : DSP_Op<"FIRFilterYSymmOptimized" ,
       So, we are reducing the number of outer loops -- 
   }];
 
-  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs); //working -- F64
-  let results =  (outs F64Tensor);
-  // let results = (outs I64);
+  let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs); //working -- F32
+  let results =  (outs F32Tensor);
+  // let results = (outs I32);
 
   // Indicate that the operation has a custom parser and printer method.
   // let hasCustomAssemblyFormat = 1;
@@ -2053,9 +2055,9 @@ def FFT1DRealSymmOp : DSP_Op<"fft1DRealSymm",
     The shapes of the tensor operands are expected to match.
   }];
 
-  let arguments = (ins F64Tensor:$input);
-  let results = (outs F64Tensor:$real); //(ins F64Tensor:$lhs, F64Tensor:$rhs);
-  // let results = (outs F64Tensor:$real);
+  let arguments = (ins F32Tensor:$input);
+  let results = (outs F32Tensor:$real); //(ins F32Tensor:$lhs, F32Tensor:$rhs);
+  // let results = (outs F32Tensor:$real);
   // let assemblyFormat = [{
   //   `(` $input `:` type($input) `)` attr-dict `to` type(results)
   // }];
@@ -2096,9 +2098,9 @@ def FFT1DImgConjSymmOp : DSP_Op<"fft1DimgConjSymm",
     The shapes of the tensor operands are expected to match.
   }];
 
-  let arguments = (ins F64Tensor:$input);
-  let results = (outs F64Tensor:$real); //(ins F64Tensor:$lhs, F64Tensor:$rhs);
-  // let results = (outs F64Tensor:$real);
+  let arguments = (ins F32Tensor:$input);
+  let results = (outs F32Tensor:$real); //(ins F32Tensor:$lhs, F32Tensor:$rhs);
+  // let results = (outs F32Tensor:$real);
   // let assemblyFormat = [{
   //   `(` $input `:` type($input) `)` attr-dict `to` type(results)
   // }];
@@ -2131,8 +2133,8 @@ def ShiftRightOp : DSP_Op<"shiftRight", [Pure , DeclareOpInterfaceMethods<ShapeI
      The shift right block shifts each element of a vector by right-hand side integer. 
    }]; 
 
-   let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs); //Problem: how can we do logical shift with floating point tensor?
-   let results = (outs F64Tensor);
+   let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs); //Problem: how can we do logical shift with floating point tensor?
+   let results = (outs F32Tensor);
 
    // Indicate that the operation has a custom parser and printer method.
    // let hasCustomAssemblyFormat = 1;
@@ -2161,8 +2163,8 @@ def MatmulOp : DSP_Op<"matmul", [Pure , DeclareOpInterfaceMethods<ShapeInference
      Matrix multiplication between the left-hand side and right-hand side.
    }]; 
 
-   let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs); //Problem: how can we do logical shift with floating point tensor?
-   let results = (outs F64Tensor);
+   let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs); //Problem: how can we do logical shift with floating point tensor?
+   let results = (outs F32Tensor);
 
    // Indicate that the operation has a custom parser and printer method.
    // let hasCustomAssemblyFormat = 1;
@@ -2194,9 +2196,9 @@ def Conv2DOp : DSP_Op<"conv2d",
         Performs a 2D convolution on the input tensor using specified kernel.
     }];
 
-    let arguments = (ins F64Tensor:$input, F64Tensor:$kernel, F64Tensor:$bias);
+    let arguments = (ins F32Tensor:$input, F32Tensor:$kernel, F32Tensor:$bias);
 
-    let results = (outs F64Tensor:$output);
+    let results = (outs F32Tensor:$output);
 
     let builders = [
         OpBuilder<(ins "Value":$input, "Value":$kernel, "Value":$bias)>
@@ -2221,9 +2223,9 @@ def ThresholdUpOp : DSP_Op<"thresholdUp",
         Converts all the values above threhold to 1 if returnoriginal is false, returns original value if returnoriginal is true else 0
     }];
 
-    let arguments = (ins F64Tensor:$input, F64Tensor:$threshold, F64Tensor:$returnoriginal);
+    let arguments = (ins F32Tensor:$input, F32Tensor:$threshold, F32Tensor:$returnoriginal);
 
-    let results = (outs F64Tensor:$output);
+    let results = (outs F32Tensor:$output);
 
     let builders = [
         OpBuilder<(ins "Value":$input, "Value":$threshold, "Value":$returnoriginal)>
@@ -2243,9 +2245,9 @@ def GenerateDTMFOp : DSP_Op<"generateDtmf",
         Converts the digit into a signal.
     }];
 
-    let arguments = (ins F64Tensor:$digit, F64Tensor:$duration, F64Tensor:$fs);
+    let arguments = (ins F32Tensor:$digit, F32Tensor:$duration, F32Tensor:$fs);
 
-    let results = (outs F64Tensor:$output);
+    let results = (outs F32Tensor:$output);
 
     let builders = [
         OpBuilder<(ins "Value":$digit, "Value":$duration, "Value":$fs)>
@@ -2264,9 +2266,9 @@ def FFTFreqOp : DSP_Op<"fftfreq",
         Generates frequency bins for fft.
     }];
 
-    let arguments = (ins F64Tensor:$length, F64Tensor:$distance);
+    let arguments = (ins F32Tensor:$length, F32Tensor:$distance);
 
-    let results = (outs F64Tensor:$output);
+    let results = (outs F32Tensor:$output);
 
     let builders = [
         OpBuilder<(ins "Value":$length, "Value":$distance)>
@@ -2285,9 +2287,9 @@ def FindDominantPeaksOp : DSP_Op<"findDominantPeaks",
         Designed for the DTMF Application.
     }];
 
-    let arguments = (ins F64Tensor:$frequencies, F64Tensor:$magnitudes);
+    let arguments = (ins F32Tensor:$frequencies, F32Tensor:$magnitudes);
 
-    let results = (outs F64Tensor:$output);
+    let results = (outs F32Tensor:$output);
 
     let builders = [
         OpBuilder<(ins "Value":$frequencies, "Value":$magnitudes)>
@@ -2306,9 +2308,9 @@ def RecoverDTMFDigitOp : DSP_Op<"recoverDtmfDigit",
         -----------------------------.
     }];
 
-    let arguments = (ins F64Tensor:$frequencies, F64Tensor:$freqPairs);
+    let arguments = (ins F32Tensor:$frequencies, F32Tensor:$freqPairs);
 
-    let results = (outs F64Tensor:$output);
+    let results = (outs F32Tensor:$output);
 
     let builders = [
         OpBuilder<(ins "Value":$frequencies, "Value":$freqPairs)>
@@ -2329,9 +2331,9 @@ def FFTCombineOp : DSP_Op<"fftCombine",
         array representing the magnitudes of the corresponding complex values.
     }];
 
-    let arguments = (ins F64Tensor:$real, F64Tensor:$imag);
+    let arguments = (ins F32Tensor:$real, F32Tensor:$imag);
 
-    let results = (outs F64Tensor:$output);
+    let results = (outs F32Tensor:$output);
 
     let builders = [
         OpBuilder<(ins "Value":$real, "Value":$imag)>
@@ -2351,9 +2353,9 @@ def GenerateVoiceSignatureOp : DSP_Op<"generateVoiceSignature",
         the sampling frequency, and generate the voice signature of the speaker. 
     }];
 
-    let arguments = (ins F64Tensor:$f1, F64Tensor:$f2, F64Tensor:$duration, F64Tensor:$fs);
+    let arguments = (ins F32Tensor:$f1, F32Tensor:$f2, F32Tensor:$duration, F32Tensor:$fs);
 
-    let results = (outs F64Tensor:$output);
+    let results = (outs F32Tensor:$output);
 
     let builders = [
         OpBuilder<(ins "Value":$f1, "Value":$f2, "Value":$duration, "Value":$fs)>
@@ -2372,9 +2374,9 @@ def SqrtOp : DSP_Op<"sqrt",
         Takes the element wise square root of the tensor.
     }];
 
-    let arguments = (ins F64Tensor:$input);
+    let arguments = (ins F32Tensor:$input);
 
-    let results = (outs F64Tensor:$output);
+    let results = (outs F32Tensor:$output);
 
     let builders = [
         OpBuilder<(ins "Value":$input)>
@@ -2393,9 +2395,9 @@ def QamModulateRealOp : DSP_Op<"qam_modulate_real",
         Performs a digital modulation on input tensor.
     }];
 
-    let arguments = (ins F64Tensor:$signal);
+    let arguments = (ins F32Tensor:$signal);
 
-    let results = (outs F64Tensor:$real);
+    let results = (outs F32Tensor:$real);
 
 
     let builders = [
@@ -2416,9 +2418,9 @@ def QamModulateImgOp : DSP_Op<"qam_modulate_imagine",
         Performs a digital modulation on input tensor.
     }];
 
-    let arguments = (ins F64Tensor:$signal);
+    let arguments = (ins F32Tensor:$signal);
 
-    let results = (outs F64Tensor:$imagine);
+    let results = (outs F32Tensor:$imagine);
 
 
     let builders = [
@@ -2441,9 +2443,9 @@ def QamDemodulateOp : DSP_Op<"qam_demodulate",
         Returns the decoded binary output.
     }];
 
-    let arguments = (ins F64Tensor:$real, F64Tensor:$imagine);
+    let arguments = (ins F32Tensor:$real, F32Tensor:$imagine);
 
-    let results = (outs F64Tensor:$output);
+    let results = (outs F32Tensor:$output);
 
     let builders = [
         OpBuilder<(ins "Value":$real, "Value":$imagine)>
@@ -2479,8 +2481,8 @@ def FindPeaksOp : DSP_Op<"find_peaks", [Pure , DeclareOpInterfaceMethods<ShapeIn
 
    }]; 
 
-   let arguments = (ins F64Tensor:$signal, F64Tensor:$height, F64Tensor:$distance);
-   let results = (outs F64Tensor);
+   let arguments = (ins F32Tensor:$signal, F32Tensor:$height, F32Tensor:$distance);
+   let results = (outs F32Tensor);
 
    // Indicate that the operation has a custom parser and printer method.
    // let hasCustomAssemblyFormat = 1;
@@ -2513,12 +2515,12 @@ def BeamFormOp : DSP_Op<"beam_form",
         Performs a beam forming signal encoding on the input tensor using specified weights.
     }];
 
-    let arguments = (ins I64Attr:$antennas, I64Attr:$freq, F64Tensor:$time, F64Tensor:$weights);
+    let arguments = (ins I32Attr:$antennas, I32Attr:$freq, F32Tensor:$time, F32Tensor:$weights);
 
-    let results = (outs F64Tensor:$output);
+    let results = (outs F32Tensor:$output);
 
     let builders = [
-        OpBuilder<(ins "int64_t":$antennas, "int64_t":$freq, "Value":$time, "Value":$weights)>
+        OpBuilder<(ins "int32_t":$antennas, "int32_t":$freq, "Value":$time, "Value":$weights)>
     ];
 
     let hasVerifier = 1;
@@ -2535,9 +2537,9 @@ def SpaceModulateOp : DSP_Op<"space_modulate",
         Takes in string input and convert it to binary.
     }];
 
-    let arguments = (ins F64Tensor:$signal);
+    let arguments = (ins F32Tensor:$signal);
 
-    let results = (outs F64Tensor:$output);
+    let results = (outs F32Tensor:$output);
 
     let builders = [
         OpBuilder<(ins "Value":$signal)>
@@ -2557,9 +2559,9 @@ def SpaceDemodulateOp : DSP_Op<"space_demodulate",
         Takes in binary input and convert it to string.
     }];
 
-    let arguments = (ins F64Tensor:$binary);
+    let arguments = (ins F32Tensor:$binary);
 
-    let results = (outs F64Tensor:$output);
+    let results = (outs F32Tensor:$output);
 
     let builders = [
         OpBuilder<(ins "Value":$binary)>
@@ -2580,9 +2582,9 @@ def SpaceErrCorrectionOp : DSP_Op<"space_err_correction",
         Remove noise operation for signal transmission in space.
     }];
 
-    let arguments = (ins F64Tensor:$signal);
+    let arguments = (ins F32Tensor:$signal);
 
-    let results = (outs F64Tensor:$output);
+    let results = (outs F32Tensor:$output);
 
     let builders = [
         OpBuilder<(ins "Value":$signal)>
@@ -2602,8 +2604,8 @@ def MaxOp : DSP_Op<"max", [Pure , DeclareOpInterfaceMethods<ShapeInferenceOpInte
 		This operation finds and returns the maximum value of the tensor.
    }]; 
 
-   let arguments = (ins F64Tensor:$input);
-   let results = (outs F64Tensor);
+   let arguments = (ins F32Tensor:$input);
+   let results = (outs F32Tensor);
 
    // Indicate that the operation has a custom parser and printer method.
    // let hasCustomAssemblyFormat = 1;
@@ -2638,8 +2640,8 @@ def MeanOp : DSP_Op<"mean", [Pure , DeclareOpInterfaceMethods<ShapeInferenceOpIn
 		- with length argument -> use the provided length
    }]; 
 
-   let arguments = (ins F64Tensor:$input, F64Tensor:$length);
-   let results = (outs F64Tensor);
+   let arguments = (ins F32Tensor:$input, F32Tensor:$length);
+   let results = (outs F32Tensor);
    
    let builders = [
      OpBuilder<(ins "Value":$input, "Value":$length)>
@@ -2669,8 +2671,8 @@ def DiffOp : DSP_Op<"diff", [Pure , DeclareOpInterfaceMethods<ShapeInferenceOpIn
 		- with length argument -> use the provided length
    }]; 
 
-   let arguments = (ins F64Tensor:$input, F64Tensor:$length);
-   let results = (outs F64Tensor);
+   let arguments = (ins F32Tensor:$input, F32Tensor:$length);
+   let results = (outs F32Tensor);
    
    let builders = [
      OpBuilder<(ins "Value":$input, "Value":$length)>
@@ -2692,8 +2694,8 @@ def AbsOp : DSP_Op<"abs", [Pure , DeclareOpInterfaceMethods<ShapeInferenceOpInte
        This operation calculates the absolute value element-wise.
    }]; 
 
-   let arguments = (ins F64Tensor:$input);
-   let results = (outs F64Tensor:$output);
+   let arguments = (ins F32Tensor:$input);
+   let results = (outs F32Tensor:$output);
    
    let builders = [
      OpBuilder<(ins "Value":$input)>
@@ -2711,11 +2713,11 @@ def ArgMaxOp : DSP_Op<"argmax", [Pure , DeclareOpInterfaceMethods<ShapeInference
        This operation find the indices of the maximum values along a specifies axis in an array.
    }]; 
 
-   let arguments = (ins F64Tensor:$input, I64Attr:$axis);
-   let results = (outs F64Tensor:$output);
+   let arguments = (ins F32Tensor:$input, I32Attr:$axis);
+   let results = (outs F32Tensor:$output);
    
    let builders = [
-     OpBuilder<(ins "Value":$input, "int64_t":$axis)>
+     OpBuilder<(ins "Value":$input, "int32_t":$axis)>
    ];
  }
 //===----------------------------------------------------------------------===//
@@ -2728,8 +2730,8 @@ def NormalizeOp : DSP_Op<"normalize", [Pure , DeclareOpInterfaceMethods<ShapeInf
        normalization dsp operation.
    }]; 
 
-   let arguments = (ins F64Tensor:$signal);
-   let results = (outs F64Tensor);
+   let arguments = (ins F32Tensor:$signal);
+   let results = (outs F32Tensor);
    
    let builders = [
      OpBuilder<(ins "Value":$signal)>
@@ -2750,9 +2752,9 @@ def NormLMSFilterResponseOptimizeOp : DSP_Op<"norm_LMSFilterResponse_opt",
       norm + lmsfilter
   }];
 
-  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs, F64Tensor:$mu, F64Tensor:$filterLen);
+  let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs, F32Tensor:$mu, F32Tensor:$filterLen);
 
-   let results = (outs F64Tensor);
+   let results = (outs F32Tensor);
 
    let builders = [
      OpBuilder<(ins "Value":$lhs, "Value":$rhs, "Value":$mu, "Value":$filterLen)>
@@ -2768,8 +2770,8 @@ def NormLMSFilterResponseOptimizeOp : DSP_Op<"norm_LMSFilterResponse_opt",
 def Median2SlidingOptimizedOp : DSP_Op<"median2slidingOp", 
     [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
   
-  let arguments = (ins F64Tensor:$input);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$input);
+  let results = (outs F32Tensor);
 
   let builders = [
     OpBuilder<(ins "Value":$input)>
@@ -2793,8 +2795,8 @@ def FIRFilterResSymmThresholdUpOptimizedOp : DSP_Op<"FIRFilterResSymmThresholdUp
       Basically, we are trying to reduce the number of load/store operations by half -- so that we can reduce the operations
   }];
 
-  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs, F64Tensor:$threshold, F64Tensor:$returnoriginal); 
-  let results =  (outs F64Tensor);
+  let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs, F32Tensor:$threshold, F32Tensor:$returnoriginal); 
+  let results =  (outs F32Tensor);
 
   let builders = [
     OpBuilder<(ins "Value":$lhs, "Value":$rhs, "Value":$threshold, "Value":$returnoriginal)>
@@ -2814,8 +2816,8 @@ def FFTOp : DSP_Op<"fft", [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInter
       Providing an array of any other size will result in a segmentation fault.
   }];
 
-  let arguments = (ins F64Tensor:$lhs);
-  let results = (outs F64Tensor:$real, F64Tensor:$imag);
+  let arguments = (ins F32Tensor:$lhs);
+  let results = (outs F32Tensor:$real, F32Tensor:$imag);
 
   let builders = [
     OpBuilder<(ins "Value":$lhs)>
@@ -2834,8 +2836,8 @@ def FFTAbsOp : DSP_Op<"FFTAbsOp", [Pure, DeclareOpInterfaceMethods<ShapeInferenc
       ------------------
   }];
 
-  let arguments = (ins F64Tensor:$input);
-  let results = (outs F64Tensor:$amplitude);
+  let arguments = (ins F32Tensor:$input);
+  let results = (outs F32Tensor:$amplitude);
 
   let builders = [
     OpBuilder<(ins "Value":$input)>
@@ -2852,8 +2854,8 @@ def DFTAbsOp : DSP_Op<"DFTAbsOp", [Pure, DeclareOpInterfaceMethods<ShapeInferenc
       ------------------
   }];
 
-  let arguments = (ins F64Tensor:$input);
-  let results = (outs F64Tensor:$amplitude);
+  let arguments = (ins F32Tensor:$input);
+  let results = (outs F32Tensor:$amplitude);
 
   let builders = [
     OpBuilder<(ins "Value":$input)>
@@ -2870,8 +2872,8 @@ def DFTAbsThresholdUpOp : DSP_Op<"DFTAbsThresholdUpOp", [Pure, DeclareOpInterfac
       ------------------
   }];
 
-  let arguments = (ins F64Tensor:$input, F64Tensor:$threshold, F64Tensor:$returnoriginal);
-  let results = (outs F64Tensor:$amplitude);
+  let arguments = (ins F32Tensor:$input, F32Tensor:$threshold, F32Tensor:$returnoriginal);
+  let results = (outs F32Tensor:$amplitude);
 
   let builders = [
     OpBuilder<(ins "Value":$input, "Value":$threshold, "Value":$returnoriginal)>
@@ -2890,8 +2892,8 @@ def CorrelateOp : DSP_Op<"correlate", [Pure , DeclareOpInterfaceMethods<ShapeInf
 		This operation finds and returns the maximum value of the tensor.
    }]; 
 
-   let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);
-   let results = (outs F64Tensor);
+   let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs);
+   let results = (outs F32Tensor);
 
    // Indicate that the operation has a custom parser and printer method.
    // let hasCustomAssemblyFormat = 1;
@@ -2916,8 +2918,8 @@ def SetSingleElemAtIdxOp : DSP_Op<"setSingleElemAtIndx",
     [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
   let summary = "This one access ranked tensor at idx and sets signle tensor with or without dimension.";
 
-  let arguments = (ins F64Tensor:$input, F64Tensor:$indx , F64Tensor:$val);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$input, F32Tensor:$indx , F32Tensor:$val);
+  let results = (outs F32Tensor);
 
   let builders = [
     OpBuilder<(ins "Value":$input, "Value":$indx, "Value":$val)>
@@ -2938,8 +2940,8 @@ def Correl2MaxOptimizedOp : DSP_Op<"correl2max", [Pure , DeclareOpInterfaceMetho
 		This operation fuses loops for correlate and max.
    }]; 
 
-   let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs);
-   let results = (outs F64Tensor);
+   let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs);
+   let results = (outs F32Tensor);
    
    let builders = [
      OpBuilder<(ins "Value":$lhs, "Value":$rhs)>
@@ -2954,8 +2956,8 @@ def LMSFilterResponse2GainOp : DSP_Op<"lmsFilterResponse2gain",
     [Pure, DeclareOpInterfaceMethods<ShapeInferenceOpInterface>]> {
   let summary = "Fusing loop for LMSFilterResponseOp and GainOp";
                                         
-  let arguments = (ins F64Tensor:$lhs, F64Tensor:$rhs, F64Tensor:$mu, F64Tensor:$filterLen, F64Tensor:$gain);
-  let results = (outs F64Tensor);
+  let arguments = (ins F32Tensor:$lhs, F32Tensor:$rhs, F32Tensor:$mu, F32Tensor:$filterLen, F32Tensor:$gain);
+  let results = (outs F32Tensor);
                                                                             
   let builders = [           
     OpBuilder<(ins "Value":$lhs, "Value":$rhs, "Value":$mu, "Value":$filterLen, "Value":$gain)>
@@ -2963,6 +2965,5 @@ def LMSFilterResponse2GainOp : DSP_Op<"lmsFilterResponse2gain",
 }                                  
 
 #endif // DSP
-
 
 
