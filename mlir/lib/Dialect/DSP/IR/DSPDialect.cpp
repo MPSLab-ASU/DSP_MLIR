@@ -170,7 +170,7 @@ static mlir::ParseResult parseBinaryOp(mlir::OpAsmParser &parser,
 
   // If the type is a function type, it contains the input and result types of
   // this operation.
-  if (FunctionType funcType = llvm::dyn_cast<FunctionType>(type)) {
+  if (FunctionType funcType = mlir::dyn_cast<FunctionType>(type)) {
     if (parser.resolveOperands(operands, funcType.getInputs(), operandsLoc,
                                result.operands))
       return mlir::failure();
@@ -288,7 +288,13 @@ mlir::LogicalResult ConstantOp::verify() {
 
 void ModuloOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                      mlir::Value lhs, mlir::Value rhs) {
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = lhs.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands({lhs, rhs});
 }
 
@@ -300,7 +306,13 @@ void ModuloOp::inferShapes() { getResult().setType(getLhs().getType()); }
 
 void AddOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                   mlir::Value lhs, mlir::Value rhs) {
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = lhs.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands({lhs, rhs});
 }
 
@@ -330,8 +342,8 @@ bool CastOp::areCastCompatible(TypeRange inputs, TypeRange outputs) {
   if (inputs.size() != 1 || outputs.size() != 1)
     return false;
   // The inputs must be Tensors with the same element type.
-  TensorType input = llvm::dyn_cast<TensorType>(inputs.front());
-  TensorType output = llvm::dyn_cast<TensorType>(outputs.front());
+  TensorType input = mlir::dyn_cast<TensorType>(inputs.front());
+  TensorType output = mlir::dyn_cast<TensorType>(outputs.front());
   if (!input || !output || input.getElementType() != output.getElementType())
     return false;
   // The shape is required to match if both types are ranked.
@@ -381,7 +393,13 @@ void FuncOp::print(mlir::OpAsmPrinter &p) {
 void GenericCallOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                           StringRef callee, ArrayRef<mlir::Value> arguments) {
   // Generic call always returns an unranked Tensor initially.
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = arguments[0].getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands(arguments);
   state.addAttribute("callee",
                      mlir::SymbolRefAttr::get(builder.getContext(), callee));
@@ -415,7 +433,13 @@ MutableOperandRange GenericCallOp::getArgOperandsMutable() {
 
 void MulOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                   mlir::Value lhs, mlir::Value rhs) {
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = lhs.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands({lhs, rhs});
 }
 
@@ -436,7 +460,13 @@ void MulOp::inferShapes() { getResult().setType(getLhs().getType()); }
 
 void DivOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                   mlir::Value lhs, mlir::Value rhs) {
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = lhs.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands({lhs, rhs});
 }
 
@@ -457,7 +487,13 @@ void DivOp::inferShapes() { getResult().setType(getLhs().getType()); }
 
 void BitwiseAndOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                          mlir::Value lhs, mlir::Value rhs) {
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = lhs.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands({lhs, rhs});
 }
 
@@ -516,19 +552,25 @@ mlir::LogicalResult ReturnOp::verify() {
 
 void TransposeOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                         mlir::Value value) {
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = value.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands(value);
 }
 
 void TransposeOp::inferShapes() {
-  auto arrayTy = llvm::cast<RankedTensorType>(getOperand().getType());
+  auto arrayTy = mlir::dyn_cast<RankedTensorType>(getOperand().getType());
   SmallVector<int64_t, 2> dims(llvm::reverse(arrayTy.getShape()));
   getResult().setType(RankedTensorType::get(dims, arrayTy.getElementType()));
 }
 
 mlir::LogicalResult TransposeOp::verify() {
-  auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand().getType());
-  auto resultType = llvm::dyn_cast<RankedTensorType>(getType());
+  auto inputType = mlir::dyn_cast<RankedTensorType>(getOperand().getType());
+  auto resultType = mlir::dyn_cast<RankedTensorType>(getType());
   if (!inputType || !resultType)
     return mlir::success();
 
@@ -551,7 +593,13 @@ void DelayOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
   //
   // state.addTypes(UnrankedTensorType::get(builder.getF64Type()),
   // builder.getI32Type());
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type())); // working
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = lhs.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType)); // working
   state.addOperands({lhs, rhs});
   // state.addOperands(value);
 }
@@ -590,7 +638,13 @@ void GainOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
   // state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
   // state.addTypes({UnrankedTensorType::get(builder.getF64Type()),
   // builder.getF64Type()}); //working
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = lhs.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands({lhs, rhs});
   // state.addOperands({rhs});
   // state.addTypes();
@@ -629,7 +683,13 @@ void GainOp::inferShapes() { getResult().setType(getLhs().getType()); }
 
 void SubOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                   mlir::Value lhs, mlir::Value rhs) {
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = lhs.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands({lhs, rhs});
 }
 
@@ -650,7 +710,13 @@ void SubOp::inferShapes() { getResult().setType(getLhs().getType()); }
 
 void FFTRealOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                       mlir::Value lhs) {
-  state.addTypes(lhs.getType());
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = lhs.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands({lhs});
 }
 
@@ -662,7 +728,13 @@ void FFTRealOp::inferShapes() { getResult().setType(getLhs().getType()); }
 
 void FFTImagOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                       mlir::Value lhs) {
-  state.addTypes(lhs.getType());
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = lhs.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands({lhs});
 }
 
@@ -674,7 +746,13 @@ void FFTImagOp::inferShapes() { getResult().setType(getLhs().getType()); }
 
 void MatmulOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                      mlir::Value lhs, mlir::Value rhs) {
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = lhs.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands({lhs, rhs});
 }
 
@@ -734,7 +812,13 @@ void MatmulOp::inferShapes() {
 void FindPeaksOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                         mlir::Value signal, mlir::Value height,
                         mlir::Value distance) {
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = signal.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands({signal, height, distance});
 }
 
@@ -772,7 +856,13 @@ void FindPeaksOp::inferShapes() {
 
 void MaxOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                   mlir::Value input) {
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = input.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands({input});
 }
 
@@ -796,7 +886,13 @@ void MaxOp::inferShapes() {
 
 void MeanOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                    mlir::Value input, mlir::Value length) {
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = input.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands({input, length});
 }
 
@@ -817,7 +913,13 @@ void MeanOp::inferShapes() {
 
 void DiffOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                    mlir::Value input, mlir::Value length) {
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = input.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands({input, length});
 }
 
@@ -840,7 +942,13 @@ void DiffOp::inferShapes() {
 
 void AbsOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                   mlir::Value input) {
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = input.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands({input});
 }
 
@@ -850,12 +958,7 @@ void AbsOp::inferShapes() { getResult().setType(getInput().getType()); }
 // ArgMaxOp
 //===----------------------------------------------------------------------===//
 
-void ArgMaxOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                     mlir::Value input, int64_t axis) {
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
-  state.addAttribute("axis", builder.getI64IntegerAttr(axis));
-  state.addOperands({input});
-}
+
 
 void ArgMaxOp::inferShapes() {
 
@@ -886,15 +989,21 @@ void ArgMaxOp::inferShapes() {
 
 void PowOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
                   mlir::Value lhs, mlir::Value rhs) {
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = lhs.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands({lhs, rhs});
 }
 
 void PowOp::inferShapes() { getResult().setType(getLhs().getType()); }
 
 mlir::LogicalResult PowOp::verify() {
-  auto lhsType = llvm::dyn_cast<RankedTensorType>(getLhs().getType());
-  auto resultType = llvm::dyn_cast<RankedTensorType>(getType());
+  auto lhsType = mlir::dyn_cast<RankedTensorType>(getLhs().getType());
+  auto resultType = mlir::dyn_cast<RankedTensorType>(getType());
 
   if (!lhsType || !resultType)
     return mlir::success();
@@ -916,7 +1025,13 @@ mlir::LogicalResult PowOp::verify() {
 
 void zeroCrossCountOp::build(mlir::OpBuilder &builder,
                              mlir::OperationState &state, mlir::Value lhs) {
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = lhs.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   // state.addTypes(builder.getF64Type()));
   // state.addTypes(builder.getI64Type());
   state.addOperands({lhs});
@@ -935,7 +1050,13 @@ void zeroCrossCountOp::inferShapes() {
 void FIRFilterResponseOp::build(mlir::OpBuilder &builder,
                                 mlir::OperationState &state, mlir::Value lhs,
                                 mlir::Value rhs) {
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = lhs.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands({lhs, rhs});
 }
 
@@ -989,7 +1110,13 @@ mlir::LogicalResult FIRFilterResponseOp::verify() {
 
 void MedianFilterOp::build(mlir::OpBuilder &builder,
                            mlir::OperationState &state, mlir::Value value) {
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = value.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands(value);
 }
 
@@ -997,7 +1124,7 @@ void MedianFilterOp::inferShapes() {
   // for each rank
   // Get the shape/size of input
   // output size = input_size - 2
-  auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand().getType());
+  auto inputType = mlir::dyn_cast<RankedTensorType>(getOperand().getType());
 
   auto shapeOfInput = inputType.getShape();
 
@@ -1022,7 +1149,13 @@ void MedianFilterOp::inferShapes() {
 
 void SlidingWindowAvgOp::build(mlir::OpBuilder &builder,
                                mlir::OperationState &state, mlir::Value value) {
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = value.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands(value);
 }
 
@@ -1030,7 +1163,7 @@ void SlidingWindowAvgOp::inferShapes() {
   // for each rank
   // Get the shape/size of input
   // output size = input_size - 2
-  auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand().getType());
+  auto inputType = mlir::dyn_cast<RankedTensorType>(getOperand().getType());
 
   auto shapeOfInput = inputType.getShape();
 
@@ -1076,7 +1209,13 @@ mlir::LogicalResult SlidingWindowAvgOp::verify() {
 void DownsamplingOp::build(mlir::OpBuilder &builder,
                            mlir::OperationState &state, mlir::Value lhs,
                            mlir::Value rhs) {
-  state.addTypes(UnrankedTensorType::get(builder.getF64Type()));
+  mlir::Type elementType = builder.getF64Type();
+  if (auto tensorType = lhs.getType().dyn_cast<mlir::TensorType>()) {
+    elementType = tensorType.getElementType();
+    if (!elementType.isF32() && !elementType.isF64())
+      elementType = builder.getF64Type();
+  }
+  state.addTypes(UnrankedTensorType::get(elementType));
   state.addOperands({lhs, rhs});
 }
 
@@ -1488,7 +1627,7 @@ void DCTOp::inferShapes() {
 
 mlir::LogicalResult DCTOp::verify() {
   // DEBUG_PRINT_NO_ARGS() ;
-  auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand().getType());
+  auto inputType = mlir::dyn_cast<RankedTensorType>(getOperand().getType());
   auto inputRank = inputType.getRank();
 
   // llvm::errs() << "inputRank: " << inputRank << " alphaValueRank: " <<
@@ -1939,7 +2078,7 @@ void Median2SlidingOptimizedOp::inferShapes() {
   // for each rank
   // Get the shape/size of input
   // output size = input_size - 4
-  auto inputType = llvm::dyn_cast<RankedTensorType>(getOperand().getType());
+  auto inputType = mlir::dyn_cast<RankedTensorType>(getOperand().getType());
 
   auto shapeOfInput = inputType.getShape();
 
@@ -2974,8 +3113,8 @@ void Conv2DOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
   state.addOperands({input, weight, bias});
 }
 void Conv2DOp::inferShapes() {
-  auto inputType = llvm::dyn_cast<RankedTensorType>(getInput().getType());
-  auto kernelType = llvm::dyn_cast<RankedTensorType>(getKernel().getType());
+  auto inputType = mlir::dyn_cast<RankedTensorType>(getInput().getType());
+  auto kernelType = mlir::dyn_cast<RankedTensorType>(getKernel().getType());
 
   int64_t IH = inputType.getShape()[0];
   int64_t IW = inputType.getShape()[1];
@@ -2989,9 +3128,9 @@ void Conv2DOp::inferShapes() {
 
 mlir::LogicalResult Conv2DOp::verify() {
 
-  auto inputType = llvm::dyn_cast<RankedTensorType>(getInput().getType());
-  auto kernelType = llvm::dyn_cast<RankedTensorType>(getKernel().getType());
-  auto biasType = llvm::dyn_cast<RankedTensorType>(getBias().getType());
+  auto inputType = mlir::dyn_cast<RankedTensorType>(getInput().getType());
+  auto kernelType = mlir::dyn_cast<RankedTensorType>(getKernel().getType());
+  auto biasType = mlir::dyn_cast<RankedTensorType>(getBias().getType());
 
   if (!inputType) {
     llvm::errs() << "expect a ranked tensor for input, get " << getInput();
@@ -3067,9 +3206,9 @@ void ThresholdUpOp::inferShapes() { getResult().setType(getInput().getType()); }
 //===----------------------------------------------------------------------===//
 
 mlir::LogicalResult GenerateDTMFOp::verify() {
-  auto digitType = llvm::dyn_cast<RankedTensorType>(getDigit().getType());
-  auto durationType = llvm::dyn_cast<RankedTensorType>(getDuration().getType());
-  auto fsType = llvm::dyn_cast<RankedTensorType>(getFs().getType());
+  auto digitType = mlir::dyn_cast<RankedTensorType>(getDigit().getType());
+  auto durationType = mlir::dyn_cast<RankedTensorType>(getDuration().getType());
+  auto fsType = mlir::dyn_cast<RankedTensorType>(getFs().getType());
 
   if (!digitType) {
     return emitError() << "Digit must be a ranked tensor";
@@ -3124,9 +3263,9 @@ void GenerateDTMFOp::build(mlir::OpBuilder &builder,
   state.addOperands({digit, duration, fs});
 }
 void GenerateDTMFOp::inferShapes() {
-  auto digitType = llvm::dyn_cast<RankedTensorType>(getDigit().getType());
-  auto durationType = llvm::dyn_cast<RankedTensorType>(getDuration().getType());
-  auto fsType = llvm::dyn_cast<RankedTensorType>(getFs().getType());
+  auto digitType = mlir::dyn_cast<RankedTensorType>(getDigit().getType());
+  auto durationType = mlir::dyn_cast<RankedTensorType>(getDuration().getType());
+  auto fsType = mlir::dyn_cast<RankedTensorType>(getFs().getType());
   // auto digitElementType = digitType.getElementType();
 
   auto duration = getDuration();
@@ -3161,7 +3300,7 @@ void FFTFreqOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
 mlir::LogicalResult FFTFreqOp::verify() { return mlir::success(); }
 
 void FFTFreqOp::inferShapes() {
-  auto lengthType = llvm::dyn_cast<RankedTensorType>(getLength().getType());
+  auto lengthType = mlir::dyn_cast<RankedTensorType>(getLength().getType());
   auto length = getLength();
   auto lengthConst = length.getDefiningOp<dsp::ConstantOp>();
   auto lengthValue = lengthConst.getValue();
@@ -3187,7 +3326,7 @@ void FindDominantPeaksOp::build(mlir::OpBuilder &builder,
 
 void FindDominantPeaksOp::inferShapes() {
   auto frequenciesType =
-      llvm::dyn_cast<RankedTensorType>(getFrequencies().getType());
+      mlir::dyn_cast<RankedTensorType>(getFrequencies().getType());
   SmallVector<int64_t, 1> resultShape{2};
   auto resultType =
       RankedTensorType::get(resultShape, frequenciesType.getElementType());
@@ -3196,9 +3335,9 @@ void FindDominantPeaksOp::inferShapes() {
 
 mlir::LogicalResult FindDominantPeaksOp::verify() {
   auto frequenciesType =
-      llvm::dyn_cast<RankedTensorType>(getFrequencies().getType());
+      mlir::dyn_cast<RankedTensorType>(getFrequencies().getType());
   auto magnitudesType =
-      llvm::dyn_cast<RankedTensorType>(getMagnitudes().getType());
+      mlir::dyn_cast<RankedTensorType>(getMagnitudes().getType());
   return mlir::success();
 }
 
@@ -3215,7 +3354,7 @@ void RecoverDTMFDigitOp::build(mlir::OpBuilder &builder,
 
 void RecoverDTMFDigitOp::inferShapes() {
   auto frequenciesType =
-      llvm::dyn_cast<RankedTensorType>(getFrequencies().getType());
+      mlir::dyn_cast<RankedTensorType>(getFrequencies().getType());
   SmallVector<int64_t, 1> resultShape{1};
   auto resultType =
       RankedTensorType::get(resultShape, frequenciesType.getElementType());
@@ -3224,9 +3363,9 @@ void RecoverDTMFDigitOp::inferShapes() {
 
 mlir::LogicalResult RecoverDTMFDigitOp::verify() {
   auto frequenciesType =
-      llvm::dyn_cast<RankedTensorType>(getFrequencies().getType());
+      mlir::dyn_cast<RankedTensorType>(getFrequencies().getType());
   auto freqPairsType =
-      llvm::dyn_cast<RankedTensorType>(getFreqPairs().getType());
+      mlir::dyn_cast<RankedTensorType>(getFreqPairs().getType());
   return mlir::success();
 }
 
@@ -3241,8 +3380,8 @@ void FFTCombineOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
 }
 
 mlir::LogicalResult FFTCombineOp::verify() {
-  auto realType = llvm::dyn_cast<RankedTensorType>(getReal().getType());
-  auto imagType = llvm::dyn_cast<RankedTensorType>(getImag().getType());
+  auto realType = mlir::dyn_cast<RankedTensorType>(getReal().getType());
+  auto imagType = mlir::dyn_cast<RankedTensorType>(getImag().getType());
 
   auto realNoOfElements = realType.getNumElements();
   auto imagNoOfElements = imagType.getNumElements();
@@ -3270,10 +3409,10 @@ void GenerateVoiceSignatureOp::build(mlir::OpBuilder &builder,
 }
 
 mlir::LogicalResult GenerateVoiceSignatureOp::verify() {
-  auto f1Type = llvm::dyn_cast<RankedTensorType>(getF1().getType());
-  auto f2Type = llvm::dyn_cast<RankedTensorType>(getF2().getType());
-  auto durationType = llvm::dyn_cast<RankedTensorType>(getDuration().getType());
-  auto fsType = llvm::dyn_cast<RankedTensorType>(getFs().getType());
+  auto f1Type = mlir::dyn_cast<RankedTensorType>(getF1().getType());
+  auto f2Type = mlir::dyn_cast<RankedTensorType>(getF2().getType());
+  auto durationType = mlir::dyn_cast<RankedTensorType>(getDuration().getType());
+  auto fsType = mlir::dyn_cast<RankedTensorType>(getFs().getType());
 
   if (!f1Type) {
     return emitError() << "f1 must be a ranked tensor";
@@ -3316,8 +3455,8 @@ mlir::LogicalResult GenerateVoiceSignatureOp::verify() {
 }
 
 void GenerateVoiceSignatureOp::inferShapes() {
-  auto durationType = llvm::dyn_cast<RankedTensorType>(getDuration().getType());
-  auto fsType = llvm::dyn_cast<RankedTensorType>(getFs().getType());
+  auto durationType = mlir::dyn_cast<RankedTensorType>(getDuration().getType());
+  auto fsType = mlir::dyn_cast<RankedTensorType>(getFs().getType());
   // auto digitElementType = digitType.getElementType();
 
   auto duration = getDuration();
@@ -3350,7 +3489,7 @@ void SqrtOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
 }
 
 mlir::LogicalResult SqrtOp::verify() {
-  auto inputType = llvm::dyn_cast<RankedTensorType>(getInput().getType());
+  auto inputType = mlir::dyn_cast<RankedTensorType>(getInput().getType());
   return mlir::success();
 }
 
@@ -3368,7 +3507,7 @@ void QamDemodulateOp::build(mlir::OpBuilder &builder,
 }
 
 void QamDemodulateOp::inferShapes() {
-  auto realType = llvm::dyn_cast<RankedTensorType>(getReal().getType());
+  auto realType = mlir::dyn_cast<RankedTensorType>(getReal().getType());
   auto realShape = realType.getShape();
   SmallVector<long int, 2> outputShape(realShape);
 
@@ -3380,8 +3519,8 @@ void QamDemodulateOp::inferShapes() {
 }
 
 mlir::LogicalResult QamDemodulateOp::verify() {
-  auto realType = llvm::dyn_cast<RankedTensorType>(getReal().getType());
-  auto imagineType = llvm::dyn_cast<RankedTensorType>(getImagine().getType());
+  auto realType = mlir::dyn_cast<RankedTensorType>(getReal().getType());
+  auto imagineType = mlir::dyn_cast<RankedTensorType>(getImagine().getType());
 
   return mlir::success();
 }
@@ -3398,7 +3537,7 @@ void QamModulateRealOp::build(mlir::OpBuilder &builder,
   state.addOperands({signal});
 }
 void QamModulateRealOp::inferShapes() {
-  auto signalType = llvm::dyn_cast<RankedTensorType>(getSignal().getType());
+  auto signalType = mlir::dyn_cast<RankedTensorType>(getSignal().getType());
   auto signalShape = signalType.getShape();
 
   SmallVector<long int, 8> outputShape(signalShape);
@@ -3412,7 +3551,7 @@ void QamModulateRealOp::inferShapes() {
 
 mlir::LogicalResult QamModulateRealOp::verify() {
 
-  // auto signalType = llvm::dyn_cast<RankedTensorType>(getSignal().getType());
+  // auto signalType = mlir::dyn_cast<RankedTensorType>(getSignal().getType());
   //
   // if(!signalType) {
   // llvm::errs() << "expect a ranked tensor for signal input, get " <<
@@ -3441,7 +3580,7 @@ void QamModulateImgOp::build(mlir::OpBuilder &builder,
   state.addOperands({signal});
 }
 void QamModulateImgOp::inferShapes() {
-  auto signalType = llvm::dyn_cast<RankedTensorType>(getSignal().getType());
+  auto signalType = mlir::dyn_cast<RankedTensorType>(getSignal().getType());
   auto signalShape = signalType.getShape();
 
   SmallVector<long int, 8> outputShape(signalShape);
@@ -3461,15 +3600,6 @@ mlir::LogicalResult QamModulateImgOp::verify() {
 //===----------------------------------------------------------------------===//
 // BeamFormOp
 //===----------------------------------------------------------------------===//
-
-void BeamFormOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
-                       int64_t antennas, int64_t freq, mlir::Value time,
-                       mlir::Value weights) {
-  state.addTypes({UnrankedTensorType::get(builder.getF64Type())});
-  state.addAttribute("antennas", builder.getI64IntegerAttr(antennas));
-  state.addAttribute("freq", builder.getI64IntegerAttr(freq));
-  state.addOperands({time, weights});
-}
 
 void BeamFormOp::inferShapes() { getResult().setType(getTime().getType()); }
 

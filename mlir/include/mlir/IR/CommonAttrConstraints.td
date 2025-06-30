@@ -510,6 +510,7 @@ class FloatElementsAttr<int width> : ElementsAttrBase<
 }
 
 def F64ElementsAttr : FloatElementsAttr<64>;
+def F32ElementsAttr : FloatElementsAttr<32>;
 
 // A `width`-bit floating point elements attribute. The attribute should be
 // ranked and has a shape as specified in `dims`.

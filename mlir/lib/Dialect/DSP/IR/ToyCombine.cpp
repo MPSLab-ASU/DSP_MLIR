@@ -457,9 +457,9 @@ struct SimplifyGainwZero : public mlir::OpRewritePattern<GainOp> {
     DenseElementsAttr InputValueFrmgainOp = constant_Op0.getValue();
     int64_t inputSize = InputValueFrmgainOp.size();
 
-    // Define the type of the tensor (tensor<f64>).
+    // Define the type of the tensor (tensor<f32>).
     RankedTensorType tensorType =
-        RankedTensorType::get({inputSize}, rewriter.getF64Type());
+        RankedTensorType::get({inputSize}, rewriter.getF32Type());
 
     // Create a constant operation with the specified value and type.
     DenseElementsAttr zerovalue = DenseElementsAttr::get(tensorType, 0.0);
@@ -621,10 +621,10 @@ struct SimplifyFIRFilterRespnseWithSymmFilter
 // label: pass 1st
 // Pseudo code:
 //  if the FFT1DRealOp & FFT1DImgOp has same input then replace them with single
-//  %4 = "dsp.fft1dreal"(%3) : (tensor<10xf64>) -> tensor<10xf64>
-//  %5 = "dsp.fft1dimg"(%3) : (tensor<10xf64>) -> tensor<10xf64>
-//  replace with %4, %5 = "dsp.fft1d"(%3) : (tensor<10xf64>) -> (tensor<10xf64 ,
-//  tensor<10xf64)>
+//  %4 = "dsp.fft1dreal"(%3) : (tensor<10xf32>) -> tensor<10xf32>
+//  %5 = "dsp.fft1dimg"(%3) : (tensor<10xf32>) -> tensor<10xf32>
+//  replace with %4, %5 = "dsp.fft1d"(%3) : (tensor<10xf32>) -> (tensor<10xf32 ,
+//  tensor<10xf32)>
 //
 //  Define the canonicalization pattern.
 struct SimplifyFFTRealAndImg : public OpRewritePattern<FFT1DRealOp> {
@@ -656,9 +656,9 @@ struct SimplifyFFTRealAndImg : public OpRewritePattern<FFT1DRealOp> {
 
 // Pseudo-Code
 // Find FIRFilterResponse & reverseInput
-//  %1 = "dsp.reverseInput"(%0) : (tensor<4xf64>) -> tensor<*xf64>
-//  %2 = "dsp.FIRFilterResponse"(%0, %1) : (tensor<4xf64>, tensor<*xf64>) ->
-//  tensor<*xf64>
+//  %1 = "dsp.reverseInput"(%0) : (tensor<4xf32>) -> tensor<*xf32>
+//  %2 = "dsp.FIRFilterResponse"(%0, %1) : (tensor<4xf32>, tensor<*xf32>) ->
+//  tensor<*xf32>
 // For above pattern , replace dsp.FIRFilterResponse with
 // FIRFilterYSymmOptimized %1 = "dsp.reverseInput"(%0) result2 =
 // dsp.FIRFilterYSymmOptimized(result1, rate2)
@@ -1264,15 +1264,15 @@ struct SimplifyCorrel2Max : public mlir::OpRewritePattern<MaxOp> {
 
 // Pseudo-Code
 // Find pattern on DivOp
-//  %3 = "dsp.getRangeOfVector"(%0, %1, %2) : (tensor<f64>, tensor<f64>, tensor<f64>) -> tensor<*xf64>
-//  %4 = "dsp.fft1dreal"(%3) : (tensor<*xf64>) -> tensor<*xf64>
-//  %5 = "dsp.fft1dimg"(%3) : (tensor<*xf64>) -> tensor<*xf64>
-//  %6 = dsp.square(%4 : tensor<*xf64>) to tensor<*xf64>
-//  %7 = dsp.square(%5 : tensor<*xf64>) to tensor<*xf64>
-//  %8 = dsp.add %6, %7 : tensor<*xf64>
-//  %9 = dsp.sum(%8 : tensor<*xf64>) to tensor<*xf64>
-//  %10 = "dsp.len"(%3) : (tensor<*xf64>) -> tensor<*xf64>
-//  %11 = dsp.div %9, %10 : tensor<*xf64> 
+//  %3 = "dsp.getRangeOfVector"(%0, %1, %2) : (tensor<f32>, tensor<f32>, tensor<f32>) -> tensor<*xf32>
+//  %4 = "dsp.fft1dreal"(%3) : (tensor<*xf32>) -> tensor<*xf32>
+//  %5 = "dsp.fft1dimg"(%3) : (tensor<*xf32>) -> tensor<*xf32>
+//  %6 = dsp.square(%4 : tensor<*xf32>) to tensor<*xf32>
+//  %7 = dsp.square(%5 : tensor<*xf32>) to tensor<*xf32>
+//  %8 = dsp.add %6, %7 : tensor<*xf32>
+//  %9 = dsp.sum(%8 : tensor<*xf32>) to tensor<*xf32>
+//  %10 = "dsp.len"(%3) : (tensor<*xf32>) -> tensor<*xf32>
+//  %11 = dsp.div %9, %10 : tensor<*xf32> 
 //  fft_real = fft1dreal(input)
 //  sq1 = square(fft_real)
 //  sq_abs = AddOp (sq1, square(fft_img)) // this is actually + sign
