@@ -51,7 +51,7 @@ void buildDSPPipeline(
     OpPassManager &pm, const DSPPipelineOptions &options);
 
 /// Registers all pipelines for the `dsp` dialect. Currently,
-/// this includes only the "dsp-pipeline".
+/// this includes only the "dsp-shapeinference".
 void registerDSPPipelines();
 
 std::unique_ptr<Pass> createShapeInferencePass();

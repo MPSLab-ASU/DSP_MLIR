@@ -1357,7 +1357,7 @@ def ConvertVectorToSPIRV : Pass<"convert-vector-to-spirv"> {
 
 
 def ConvertDSPToAffine : Pass<"dsp-to-affine", "ModuleOp"> {
-   let summary = "Convert DSP to the Affine dialect";
+   let summary = "Converts DSP operations to Affine, SCF, MemRef, or Math operations.";
    let dependentDialects = [
      "affine::AffineDialect",
      "memref::MemRefDialect",
