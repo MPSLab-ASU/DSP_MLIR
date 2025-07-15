@@ -49,8 +49,8 @@ using namespace std;
 
 //namespace { 
 struct DSPOptions {
-	llvm::cl::opt<bool> enableCanonicalOpt{"canonOpt",
-											llvm::cl::desc("Enable optimizations"),
+	llvm::cl::opt<bool> enableCanonicalOpt{"dsp-canonicalize",
+											llvm::cl::desc("Enables canonicalization for DSP dialect operations."),
 											llvm::cl::init(false)};
 											
 };

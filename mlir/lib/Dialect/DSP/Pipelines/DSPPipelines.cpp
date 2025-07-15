@@ -55,9 +55,8 @@ void mlir::dsp::buildDSPPipeline(
 
 void mlir::dsp::registerDSPPipelines() {
   PassPipelineRegistration<DSPPipelineOptions>(
-      "dsp-pipeline",
-      "The default pipeline for DSP dialect"
-	  "including registering shape inference pass.",
+      "dsp-shapeinference",
+      "Implements Shape Inference and Inlining for DSP dialect operations.",
       buildDSPPipeline);
 }
 
