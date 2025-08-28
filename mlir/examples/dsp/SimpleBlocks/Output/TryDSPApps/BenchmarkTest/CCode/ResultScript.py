@@ -18,7 +18,11 @@ import math
 # Path to the input file
 # Apps = "lowPassFIRFilterDesign.c", "noisecancelling.c" , "echocancelling.c",  "hearingAid.c", "audioEqualizer.c", "vibrationAnalysis.c", "underWaterCommunication.c", "voiceActivityDetection.c", "signalSmoothing",  "targetDetection", "biomedicalSignalProcessing", "periodogram2Conv", "spaceCommunication", "dtmfDetection", "speakerIdentification"
 input_file_name = sys.argv[1]
-BasePathForLLVM = "/home/local/ASURITE/apkhedka/ForLLVM/"
+full_path = os.path.abspath(__file__)
+
+# Find the path up to 'DSP_MLIR'
+if 'DSP_MLIR' in full_path:
+    BasePathForLLVM = full_path.split('DSP_MLIR')[0] + 'DSP_MLIR/'
 OutputScriptPath = "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/CCode/"
 # OutputPath = BasePathForLLVM + "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/Results/TryResultScript/Output/"
 input_file_path = BasePathForLLVM + OutputScriptPath + input_file_name
@@ -182,6 +186,7 @@ elif sys.argv[1] == "spectralAnalysis.c":
         "10K": 10000,
         "20K": 20000,
         "30K": 30000,
+        "40K": 40000
     }
 
 elif sys.argv[1] == "audioEqualization.c":
@@ -407,7 +412,7 @@ elif sys.argv[1] == "speakerIdentification.c":
         "1M": 1000000,
     }
 
-NoOfIterations = 3
+NoOfIterations = 30
 
 
 # Define the cases
@@ -442,6 +447,8 @@ for key, value in inputValues.items():
             if line.strip().startswith("#define INPUT_LENGTH"):
                 if sys.argv[1] == "speakerIdentification.c":
                     updated_line = f"#define INPUT_LENGTH {math.floor(value/8.192)}\n"
+                elif sys.argv[1] == "FIRFilterDesign.c":
+                    updated_line = f"#define INPUT_LENGTH {value +1}\n"
                 else:     
                     updated_line = f"#define INPUT_LENGTH {value}\n"
                 file.write(updated_line)
@@ -461,7 +468,7 @@ for key, value in inputValues.items():
         for i in range(0, NoOfIterations):
             try:
                 process = subprocess.run(
-                    "sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'",
+                    "sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'",
                     shell=True,
                     check=True,
                 )

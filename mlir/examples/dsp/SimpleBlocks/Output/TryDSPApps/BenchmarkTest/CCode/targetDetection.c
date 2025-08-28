@@ -4,7 +4,7 @@
 
 #define PI 3.14159265359
 #define FS 1000
-#define INPUT_LENGTH 1000  
+#define INPUT_LENGTH 50000000
 #define FILTER_SIZE 20
 #define MAX_PEAKS 50
 
@@ -104,48 +104,62 @@ double getElemAtIndx(double* input, int index) {
 
 int main() {
     double pi = PI;
-    double input[INPUT_LENGTH];
-    getRangeOfVector(input, 0, INPUT_LENGTH, 0.000125);
+    int len = INPUT_LENGTH;
 
+    // Dynamically allocate memory
+    double *input = malloc(len * sizeof(double));
+    double *getSinDuration = malloc(len * sizeof(double));
+    double *sig1 = malloc(len * sizeof(double));
+    double *getSinDuration2 = malloc(len * sizeof(double));
+    double *sinsig2 = malloc(len * sizeof(double));
+    double *sig2 = malloc(len * sizeof(double));
+    double *signal = malloc(len * sizeof(double));
+    double *noise = malloc(len * sizeof(double));
+    double *noisy_sig = malloc(len * sizeof(double));
+    double *y = malloc(len * sizeof(double));
+
+    // Check allocation
+    if (!input || !getSinDuration || !sig1 || !getSinDuration2 || !sinsig2 ||
+        !sig2 || !signal || !noise || !noisy_sig || !y) {
+        printf("Memory allocation failed.\n");
+        return -1;
+    }
+
+    getRangeOfVector(input, 0, len, 0.000125);
     double getMultiplier = 2 * pi * 10;
-    double getSinDuration[INPUT_LENGTH];
-    gain(getSinDuration, input, getMultiplier, INPUT_LENGTH);
-
-    double sig1[INPUT_LENGTH];
-    sine(sig1, getSinDuration, INPUT_LENGTH);
+    gain(getSinDuration, input, getMultiplier, len);
+    sine(sig1, getSinDuration, len);
 
     double getMultiplier2 = 2 * pi * 20;
-    double getSinDuration2[INPUT_LENGTH];
-    gain(getSinDuration2, input, getMultiplier2, INPUT_LENGTH);
-
-    double sinsig2[INPUT_LENGTH];
-    sine(sinsig2, getSinDuration2, INPUT_LENGTH);
-
-    double sig2[INPUT_LENGTH];
-    gain(sig2, sinsig2, 0.5, INPUT_LENGTH);
-
-    double signal[INPUT_LENGTH];
-    add(signal, sig1, sig2, INPUT_LENGTH);
-
-    double noise[INPUT_LENGTH];
-    delay(noise, signal, 5, INPUT_LENGTH);
-
-    double noisy_sig[INPUT_LENGTH];
-    add(noisy_sig, signal, noise, INPUT_LENGTH);
+    gain(getSinDuration2, input, getMultiplier2, len);
+    sine(sinsig2, getSinDuration2, len);
+    gain(sig2, sinsig2, 0.5, len);
+    add(signal, sig1, sig2, len);
+    delay(noise, signal, 5, len);
+    add(noisy_sig, signal, noise, len);
 
     double mu = 0.01;
-    double y[INPUT_LENGTH];
-    lmsFilterResponse(y, noisy_sig, signal, mu, FILTER_SIZE, INPUT_LENGTH);
+    lmsFilterResponse(y, noisy_sig, signal, mu, FILTER_SIZE, len);
 
     double peaks[MAX_PEAKS];
-    find_peaks(peaks, y, INPUT_LENGTH, 1.0, 50);
+    find_peaks(peaks, y, len, 1.0, 50);
 
     double final1 = getElemAtIndx(peaks, 1);
     double final2 = getElemAtIndx(peaks, 0);
+    printf("%f\t%f\n", final1, final2);
 
-    printf("%f\t", final1);
-    printf("%f", final2);
-   
+    // Free memory
+    free(input);
+    free(getSinDuration);
+    free(sig1);
+    free(getSinDuration2);
+    free(sinsig2);
+    free(sig2);
+    free(signal);
+    free(noise);
+    free(noisy_sig);
+    free(y);
 
     return 0;
 }
+

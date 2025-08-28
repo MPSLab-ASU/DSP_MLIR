@@ -1,40 +1,49 @@
-% Define constants
-PI = pi;
-INPUT_LENGTH = 100000000;
+INPUT_LENGTH = 100;
+FILTER_LENGTH = 200;
+N = 101;
 fs = 8000;
 
-% Generate input vector
-input = (0:0.000125:(INPUT_LENGTH-1)*0.000125)';
+clean_signal = generateSignal(500, INPUT_LENGTH, fs);
+noise_signal = generateSignal(3000, INPUT_LENGTH, fs);
+noise_signal = noise_signal * 0.5;
 
-% Signal processing steps
-f_sig = 500;
-getSinDuration = 2 * PI * f_sig * input;
-clean_sig = sin(getSinDuration);
+noisy_signal = clean_signal + noise_signal;
 
-f_noise = 3000;
-getNoiseSinDuration = 2 * PI * f_noise * input;
-noise = sin(getNoiseSinDuration);
+fir_filter = generateLowpassFilter(1000, N, fs);
+filtered_signal = applyFIRFilter(noisy_signal, fir_filter, FILTER_LENGTH, INPUT_LENGTH);
 
-scaled_noise = 0.5 * noise;
-noisy_sig = clean_sig + scaled_noise;
+fprintf('%.6f\n', filtered_signal(7));
 
-% Filter design
-fc = 1000;
-wc = 2 * PI * fc / fs;
-N = 101;
+function signal = generateSignal(freq, length, fs)
+    t = (0:length-1) / fs;
+    signal = sin(2 * pi * freq * t);
+end
 
-% Low-pass FIR filter
-n = -(N-1)/2:(N-1)/2;
-lpf = (wc / PI) * sinc(wc * n / PI);
+function filter = generateLowpassFilter(cutoff_freq, N, fs)
+    wc = 2 * pi * cutoff_freq / fs;
+    mid = floor(N / 2);
+    filter = zeros(1, N);
+    for i = 1:N
+        n = i - mid - 1;
+        if n == 0
+            filter(i) = wc / pi;
+        else
+            filter(i) = sin(wc * n) / (pi * n);
+        end
+        filter(i) = filter(i) * (0.54 - 0.46 * cos(2 * pi * (i-1) / (N - 1)));
+    end
+end
 
-% Hamming window
-hamming = 0.54 - 0.46 * cos(2 * PI * (0:N-1) / (N-1));
-
-% Apply window to filter
-lpf_w = lpf .* hamming;
-
-% Apply FIR filter
-FIRfilterResponse = filter(lpf_w, 1, noisy_sig);
-
-% Display results
-disp(FIRfilterResponse(2));
+function output = applyFIRFilter(input, filter, out_length, input_length)
+    N = length(filter);
+    output = zeros(1, out_length);
+    for i = 1:out_length
+        sum = 0;
+        for j = 1:N
+            if i - j + 1 > 0 && i - j + 1 <= input_length
+                sum = sum + input(i - j + 1) * filter(j);
+            end
+        end
+        output(i) = sum;
+    end
+end

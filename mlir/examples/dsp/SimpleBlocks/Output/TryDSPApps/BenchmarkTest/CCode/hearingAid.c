@@ -3,7 +3,7 @@
 #include <math.h>
 
 #define PI 3.14159265359
-#define INPUT_LENGTH 10
+#define INPUT_LENGTH 100000000
 #define FILTER_LENGTH 32
 
 // Function to generate a range of values
@@ -58,47 +58,55 @@ int main() {
     int fs = 8000;
     double step = 1.0 / fs;
 
-    // Allocate memory for vectors
-    double input[INPUT_LENGTH];
-    double getSinDuration[INPUT_LENGTH];
-    double clean_sig[INPUT_LENGTH];
-    double getNoiseSinDuration[INPUT_LENGTH];
-    double noise[INPUT_LENGTH];
-    double noise1[INPUT_LENGTH];
-    double noisy_sig[INPUT_LENGTH];
-    double y[INPUT_LENGTH];
-    double sol[INPUT_LENGTH];
+    // Allocate memory dynamically
+    double* input = malloc(INPUT_LENGTH * sizeof(double));
+    double* getSinDuration = malloc(INPUT_LENGTH * sizeof(double));
+    double* clean_sig = malloc(INPUT_LENGTH * sizeof(double));
+    double* getNoiseSinDuration = malloc(INPUT_LENGTH * sizeof(double));
+    double* noise = malloc(INPUT_LENGTH * sizeof(double));
+    double* noise1 = malloc(INPUT_LENGTH * sizeof(double));
+    double* noisy_sig = malloc(INPUT_LENGTH * sizeof(double));
+    double* y = malloc(INPUT_LENGTH * sizeof(double));
+    double* sol = malloc(INPUT_LENGTH * sizeof(double));
 
-    // Generate input range
+    if (!input || !getSinDuration || !clean_sig || !getNoiseSinDuration ||
+        !noise || !noise1 || !noisy_sig || !y || !sol) {
+        printf("Memory allocation failed!\n");
+        return -1;
+    }
+
     getRangeOfVector(input, 0.0, INPUT_LENGTH, step);
 
-    // Generate clean signal
     double f_sig = 500;
     gain(getSinDuration, input, 2 * PI * f_sig, INPUT_LENGTH);
     sine(clean_sig, getSinDuration, INPUT_LENGTH);
 
-    // Generate noise signal with frequency of 3000 Hz
     double f_noise = 3000;
     gain(getNoiseSinDuration, input, 2 * PI * f_noise, INPUT_LENGTH);
     sine(noise, getNoiseSinDuration, INPUT_LENGTH);
 
-
     gain(noise1, noise, 0.5, INPUT_LENGTH);
 
-    // Create noisy signal by adding noise to clean signal
     add(noisy_sig, clean_sig, noise1, INPUT_LENGTH);
-
 
     double mu = 0.01;
     lmsFilterResponse(y, noisy_sig, clean_sig, mu, FILTER_LENGTH, INPUT_LENGTH);
 
-
     double G1 = 123;
     gain(sol, y, G1, INPUT_LENGTH);
 
-   
     printf("%f\n", sol[3]);
 
+    // Free allocated memory
+    free(input);
+    free(getSinDuration);
+    free(clean_sig);
+    free(getNoiseSinDuration);
+    free(noise);
+    free(noise1);
+    free(noisy_sig);
+    free(y);
+    free(sol);
 
     return 0;
 }

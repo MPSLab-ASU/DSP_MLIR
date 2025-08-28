@@ -1,48 +1,56 @@
-% Constants
-INPUT_LENGTH = 100000000;
-FS = 8000;
-FC1 = 500;
-FC2 = 600;
-FC3 = 1000;
+INPUT_LENGTH = 101;
+fs = 8000;
+fc1 = 500;
+fc2 = 600;
+fc3 = 1000;
+fc4 = 1200;
 
-% Calculate normalized frequencies
-wc1 = 2 * pi * FC1 / FS;
-wc2 = 2 * pi * FC2 / FS;
-wc3 = 2 * pi * FC3 / FS;
+wc1 = 2 * pi * fc1 / fs;
+wc2 = 2 * pi * fc2 / fs;
+wc3 = 2 * pi * fc3 / fs;
+wc4 = 2 * pi * fc4 / fs;
 
-% Create Hamming window
-hamming_window = hamming(INPUT_LENGTH);
+hamming_window = hammingWindow(INPUT_LENGTH);
 
-% Create high-pass filters
 hpf1 = highPassFIRFilter(wc1, INPUT_LENGTH);
 hpf2 = highPassFIRFilter(wc2, INPUT_LENGTH);
 hpf3 = highPassFIRFilter(wc3, INPUT_LENGTH);
+hpf4 = highPassFIRFilter(wc4, INPUT_LENGTH);
 
-% Element-wise multiplication with Hamming window
-hpf_w1 = hpf1 .* hamming_window';
-hpf_w2 = hpf2 .* hamming_window';
-hpf_w3 = hpf3 .* hamming_window';
+hpf_w1 = elementWiseMultiply(hpf1, hamming_window);
+hpf_w2 = elementWiseMultiply(hpf2, hamming_window);
+hpf_w3 = elementWiseMultiply(hpf3, hamming_window);
+hpf_w4 = elementWiseMultiply(hpf4, hamming_window);
 
-% Get specific elements
-final1 = hpf_w1(7);  
-final2 = hpf_w2(8);
-final3 = hpf_w3(9);
+final1 = getElemAtIndex(hpf_w1, 6);
+final2 = getElemAtIndex(hpf_w2, 7);
+final3 = getElemAtIndex(hpf_w3, 8);
 
-% Display results
-fprintf('%f\n', final1);
-fprintf('%f\n', final2);
-fprintf('%f\n', final3);
+fprintf('%.6f\n', final1);
+fprintf('%.6f\n', final2);
+fprintf('%.6f\n', final3);
 
-% High-pass FIR filter function
-function h = highPassFIRFilter(wc, filterLength)
-    n = 0:(filterLength-1);
-    mid = (filterLength-1) / 2;
-    h = zeros(1, filterLength);
-    
-    % Use logical indexing to avoid issues with non-integer indices
-    midIndex = (n ~= mid);
-    h(midIndex) = -sin(wc * (n(midIndex) - mid)) ./ (pi * (n(midIndex) - mid));
-    
-    % Handle the middle point separately
-    h(floor(mid)+1) = 1 - (wc / pi);
+function window = hammingWindow(length)
+    n = 0:length-1;
+    window = 0.54 - 0.46 * cos(2 * pi * n / (length - 1));
+end
+
+function filter = highPassFIRFilter(wc, length)
+    mid = (length - 1) / 2;
+    filter = zeros(1, length);
+    for n = 0:length-1
+        if n == mid
+            filter(n+1) = 1 - (wc / pi);
+        else
+            filter(n+1) = -sin(wc * (n - mid)) / (pi * (n - mid));
+        end
+    end
+end
+
+function output = elementWiseMultiply(array1, array2)
+    output = array1 .* array2;
+end
+
+function value = getElemAtIndex(array, index)
+    value = array(index + 1);
 end

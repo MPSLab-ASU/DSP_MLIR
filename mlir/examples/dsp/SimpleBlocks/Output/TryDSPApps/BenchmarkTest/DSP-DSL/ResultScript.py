@@ -20,9 +20,11 @@ import sys
 # Apps = "hearingAid.py" , "lowPassFull.py" , " audioCompression.py", "lowPassFIRFilterDesign.py" , "EnergyOfSignal.py", "periodogram2Conv1.py", "audioEqualizer.py", "vibrationAnalysis.py", "signalSmoothing.py", "targetDetection.py", "biomedicalSignalProcessing.py", "spaceCommunication.py", "echocancelling", "noisecancelling.py", "digitalModulation", "underWaterCommunication", "voiceActivityDetection", "radarSignalProcessing", "speakerIdentification"
 # input_file_name = "speakerIdentification.py"
 input_file_name = sys.argv[1]
+full_path = os.path.abspath(__file__)
 
-
-BasePathForLLVM = "/home/local/ASURITE/apkhedka/ForLLVM/"
+# Find the path up to 'DSP_MLIR'
+if 'DSP_MLIR' in full_path:
+    BasePathForLLVM = full_path.split('DSP_MLIR')[0] + 'DSP_MLIR/'
 OutputScriptPath = (
     "mlir/examples/dsp/SimpleBlocks/Output/TryDSPApps/BenchmarkTest/DSP-DSL/"
 )
@@ -44,7 +46,7 @@ if not os.path.exists(OutputPath):
 
 
 # Now OutputPath is ready for use
-print("InputPath:{}".format(BasePathForLLVM))
+# print("InputPath:{}".format(BasePathForLLVM))
 print(f"OutputPath: {OutputPath}")
 
 # ************ Don't change unless u required
@@ -183,12 +185,13 @@ elif sys.argv[1] == "FIRFilterDesign.py":
 
 elif sys.argv[1] == "spectralAnalysis.py":
     inputValues = {
-        "10": 10,
+        # "10": 10,
         "100": 100,
         "1K": 1000,
         "10K": 10000,
         "20K": 20000,
         "30K": 30000,
+        "40K": 40000,
     }
 
 elif sys.argv[1] == "audioEqualization.py":
@@ -414,7 +417,7 @@ elif sys.argv[1] == "speakerIdentification.py":
         "1M": 1000000,
     }
 
-NoOfIterations = 3
+NoOfIterations = 30
 
 # --------------------------------------------------
 commands_base = [
@@ -436,13 +439,13 @@ cases = [
         "affineOpt": True,
         "canonOpt": False,
         "suffix": "fileAffineOpt.ll",
-        "exe": "fileAffineOptExe",
+        "exe": "AffineExe",
     },
     {
         "affineOpt": True,
         "canonOpt": True,
         "suffix": "fileAffineCanonOpt.ll",
-        "exe": "fileAffineCanonOptExe",
+        "exe": "DSP_MLIRExe",
     },
 ]
 
@@ -465,14 +468,14 @@ for key, value in inputValues.items():
     with open(input_file_path, "w") as file:
         for line in lines:
             if line.strip().startswith("var input = getRangeOfVector("):
-                if input_file_name in [
+                if sys.argv[1] in [
                     "audioCompression.py",
                     "audioEqualization.py",
                     "periodogram.py",
                     "spectralAnalysis.py",
                 ]:
                     updated_line = f"\tvar input = getRangeOfVector(0, {value}, 1);\n"
-                if input_file_name in ["voiceActivityDetection.py"]:
+                elif sys.argv[1] in ["voiceActivityDetection.py"]:
                     updated_line = (
                         f"\tvar input = getRangeOfVector(0, {value}, 0.125);\n"
                     )
@@ -528,7 +531,7 @@ for key, value in inputValues.items():
             # subprocess.run("sync; echo 3 > /proc/sys/vm/drop_caches", shell=True)
             try:
                 process = subprocess.run(
-                    "sudo sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'",
+                    "sh -c 'sync; echo 3 > /proc/sys/vm/drop_caches'",
                     shell=True,
                     check=True,
                 )

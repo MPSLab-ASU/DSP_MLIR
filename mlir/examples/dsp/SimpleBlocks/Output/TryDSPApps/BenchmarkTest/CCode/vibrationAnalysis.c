@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 #define PI 3.14159265359
-#define INPUT_LENGTH 10
+#define INPUT_LENGTH 100
 
 // Function prototypes
 double *getRangeOfVector(double start, int length, double increment);

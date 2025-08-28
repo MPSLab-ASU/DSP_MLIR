@@ -31,10 +31,11 @@ app_names = [
 
 # Loop through each application and execute the  script
 for app_name in app_names:
-    app_script = f"{app_name}.py"
+    app_script = f"{app_name}.c"
     log_file = os.path.join(log_dir, f"{app_name}.log")
     with open(log_file, "w") as log:
-        command = ["python", "ResultScript.py", app_script, app_name]
+        command = ["python", "HexagonClangResultScript.py", app_script, app_name]
+        print("")
         print(f"Running command: {' '.join(command)}")
         process = subprocess.Popen(
             command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True

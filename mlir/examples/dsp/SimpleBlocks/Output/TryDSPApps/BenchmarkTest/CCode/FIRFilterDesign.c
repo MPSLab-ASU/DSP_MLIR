@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #define INPUT_LENGTH 101
+#define M_PI 3.14159265358979323846
 #define PI M_PI
 #define FS 8000
 #define FC1 500
@@ -76,10 +77,12 @@ int main() {
     double final1 = getElemAtIndx(hpf_w1, 6);
     double final2 = getElemAtIndx(hpf_w2, 7);
     double final3 = getElemAtIndx(hpf_w3, 8);
+    double final4 = getElemAtIndx(hpf_w3, 5);
 
     printf("%f\n", final1);
     printf("%f\n", final2);
     printf("%f\n", final3);
+    printf("%f\n", final4);
 
     free(hamming_window);
     free(hpf1);

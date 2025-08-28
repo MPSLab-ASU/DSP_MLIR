@@ -1,38 +1,61 @@
-# Use the official Ubuntu base image
-FROM ubuntu:latest
+# Use an official Ubuntu 22.04 as a base
+FROM ubuntu:22.04
 
-# Install required packages
+# Install dependencies
 RUN apt-get update && \
-    apt-get install -y git cmake ninja-build clang
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    git \
+    cmake \
+    ninja-build \
+    clang \
+    build-essential \
+    python3 \
+    libedit2 \
+    libedit-dev \
+    libncurses6 \
+    libtinfo5 \
+    libncurses-dev \
+    python3-pip \
+    lld \
+    wget \
+    curl \
+    vim \
+    desktop-file-utils \
+    gawk \
+    sudo \
+    systemd \
+    xdg-utils && \
+    ln -s /usr/bin/python3 /usr/bin/python && \
+    rm -rf /var/lib/apt/lists/*
 
-# Set the working directory
-WORKDIR /llvm-project
 
-# Clone the LLVM project repository
-RUN git clone https://github.com/tridhapuku/DSP_MLIR.git .
+# Symlinks for older libraries
+RUN ln -s /usr/lib/x86_64-linux-gnu/libedit.so.2 /usr/lib/x86_64-linux-gnu/libedit.so.0 && \
+    ln -s /usr/lib/x86_64-linux-gnu/libncurses.so.6 /usr/lib/x86_64-linux-gnu/libncurses.so.5
 
-# Checkout latest Branch
-RUN git checkout latestMain
 
-# Create the build directory
-RUN mkdir build
 
-# Change to the build directory
-WORKDIR /llvm-project/build
+# Set environment variables
+ENV PATH=/usr/local/bin:$PATH
 
-# Download and install cmake
-RUN apt-get install -y cmake
+# Clone your project (checkout docker branch directly)
+RUN git clone https://github.com/MPSLab-ASU/DSP_MLIR.git /DSP_MLIR
 
-# Configure and build LLVM projects
-RUN cmake -S llvm -B build -G Ninja ../llvm -DLLVM_ENABLE_PROJECTS="mlir;clang;clang-tools-extra;lld" -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DLLVM_ENABLE_LLD=OFF
+# Set working directory
+WORKDIR /DSP_MLIR
+RUN git checkout docker
+# Build
+RUN mkdir build && cd build && \
+    cmake -G Ninja ../llvm \
+      -DLLVM_ENABLE_PROJECTS="mlir;clang" \
+      -DLLVM_BUILD_EXAMPLES=ON \
+      -DLLVM_TARGETS_TO_BUILD="Native;Hexagon" \
+      -DCMAKE_BUILD_TYPE=Release && \
+    ninja
 
-# Configure and build MLIR project
-RUN cmake ../llvm \
-    -DLLVM_ENABLE_PROJECTS=mlir \
-    -DLLVM_BUILD_EXAMPLES=ON \
-    -DLLVM_TARGETS_TO_BUILD="Native" \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DLLVM_ENABLE_ASSERTIONS=ON
+# Copy additional files
+# COPY hexagon_target/ /DSP_MLIR/build/bin/hexagon/
+# COPY Hexagon_Tools/ /DSP_MLIR/Hexagon_Tools/
 
-# Build and run MLIR tests
-RUN cmake --build . --target check-mlir
+# Default to bash
+CMD ["/bin/bash"]
