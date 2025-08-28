@@ -40,6 +40,7 @@
 #include <numeric>
 #include <optional>
 #include <vector>
+#include <bitset>
 
 using namespace mlir::dsp;
 using namespace dsp;
@@ -1248,6 +1249,28 @@ private:
   /// Emit a constant for a single number (FIXME: semantic? broadcast?)
   mlir::Value mlirGen(NumberExprAST &num) {
     return builder.create<ConstantOp>(loc(num.loc()), num.getValue());
+  }
+  
+  /// Emit a string exression
+  mlir::Value mlirGen(StringExprAST &expr) {
+    auto string_val = expr.getStringVal();
+    
+    std::vector<double> signals;
+    for(char ch : string_val) {
+        std::bitset<8> bits(static_cast<unsigned char>(ch)), reversed;
+        int n = 8;
+        for(int i=0; i<n; ++i) reversed[i] = bits[n-i-1];
+        for(int i=0; i<n; ++i) signals.push_back(reversed[i]);
+    }
+
+    mlir::Type eleType = builder.getF64Type();
+    auto dataType = mlir::RankedTensorType::get(signals.size(), eleType);
+
+    auto dataAttr = mlir::DenseElementsAttr::get(dataType, llvm::ArrayRef(signals));
+
+    auto type = getType(signals.size());
+
+    return builder.create<ConstantOp>(loc(expr.loc()), type, dataAttr);
   }
 
   /// Emit a string exression
